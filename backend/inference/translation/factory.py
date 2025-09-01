@@ -12,7 +12,8 @@ class TranslationStrategyFactory:
             return CustomTranslationStrategy(language_code, translationModel)
 
         strategy_chain = []
-        if language_code in ['tr', 'de', 'pt', 'et']:
+        if language_code in ['ar','de', 'el', 'es', 'et', 'hu', 'it', 'ja', 
+                             'pt', 'ro', 'ru', 'th', 'tr', 'uk', 'vi', 'zh']:
             strategy_chain = [DeeplStrategy, MarianStrategy, M2M100Strategy]
         elif language_code == 'yo':
             strategy_chain = [MarianStrategy, M2M100Strategy]
