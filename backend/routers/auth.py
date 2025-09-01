@@ -20,7 +20,7 @@ if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
 if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     raise ValueError("Missing OneDrive OAuth credentials")
 
-SCOPES    = ["Files.ReadWrite.All", "User.Read"]
+SCOPES    = ["Files.ReadWrite", "User.Read"]
 AUTH_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 
