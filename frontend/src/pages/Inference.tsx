@@ -481,6 +481,7 @@ export default function Inference() {
                     <SelectItem value="translate">Translate</SelectItem>
                     <SelectItem value="gloss">Gloss</SelectItem>
                     <SelectItem value="transliterate">Transliterate</SelectItem>
+                    <SelectItem value="create columns">Create Columns</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

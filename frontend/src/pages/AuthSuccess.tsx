@@ -34,16 +34,6 @@ const AuthSuccess = () => {
     }
   }, [accessToken, navigate]);
 
-  // 3. Copy-to-clipboard handler
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(accessToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy token:", err);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
@@ -61,11 +51,6 @@ const AuthSuccess = () => {
               Back to Home
             </Button>
             <div className="flex items-center gap-3">
-              <img
-                src="/placeholder.svg"
-                alt="LeibnizDream Logo"
-                className="w-8 h-8"
-              />
               <h1 className="text-2xl font-bold text-slate-800">
                 LeibnizDream
               </h1>
@@ -91,69 +76,6 @@ const AuthSuccess = () => {
               Your access token is ready.
             </p>
           </div>
-
-          {/* Token Card */}
-          <Card className="text-left">
-            <CardHeader>
-              <CardTitle className="text-slate-800">Access Token</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {/* Token Display */}
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <code className="text-sm break-all text-gray-700 font-mono">
-                    {accessToken}
-                  </code>
-                </div>
-                {/* Copy Button */}
-                <div className="flex gap-2">
-                  <Button onClick={copyToClipboard} className="flex-1 gap-2" size="lg">
-                    <Copy className="w-4 h-4" />
-                    {copied ? "Copied!" : "Copy Token to Clipboard"}
-                  </Button>
-                </div>
-                {/* Copied Feedback */}
-                {copied && (
-                  <div className="text-center text-green-600 font-medium">
-                    Copied!
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Next Steps */}
-          <Card className="text-left">
-            <CardHeader>
-              <CardTitle className="text-slate-800">Next Steps</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <ul className="space-y-2 text-slate-600">
-                <li className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Use this token to authenticate your API requests
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Store the token securely in your application
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Return to the app to start your workflow
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4 justify-center pt-4">
-            <Button onClick={() => navigate("/inference")} size="lg">
-              Go to Inference
-            </Button>
-            <Button onClick={() => navigate("/")} variant="outline" size="lg">
-              Return to Home
-            </Button>
-          </div>
         </div>
       </main>
 
@@ -161,11 +83,6 @@ const AuthSuccess = () => {
       <footer className="mt-16 py-8 border-t border-slate-200 bg-white/50">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 text-slate-600">
-            <img
-              src="/placeholder.svg"
-              alt="LeibnizDream Logo"
-              className="w-6 h-6"
-            />
             <p>LeibnizDream</p>
           </div>
         </div>
