@@ -1,30 +1,31 @@
-from inference.transliteration.abstract import TransliterationStrategy
-import spacy
+import re
 import pykakasi
-from spacy.cli import download
-from spacy.util import is_package
 
-class JapaneseStrategy(TransliterationStrategy):
+JP_BLOCK = re.compile(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fffー々]+')
+
+class JapaneseStrategy:
     def __init__(self):
-        # Load heavy models once
-        pkg = 'ja_core_news_lg'
-        if not is_package(pkg):
-                print(f"{pkg} not found — downloading…")
-                download(pkg)
-        self.nlp = spacy.load(pkg)
         self.kks = pykakasi.kakasi()
 
-    def transliterate(self, sentence: str) -> str:
-        doc = self.nlp(sentence)
-        romaji = []
-        for word in doc:
-            if word.text.isascii():
-                romaji.append(word.text)
-            elif word.text in ("、", "。"):
-                romaji.append({"、": ",", "。": "."}[word.text])
+    def transliterate(self, s: str) -> str:
+        out = []
+        i = 0
+        while i < len(s):
+            m = JP_BLOCK.match(s, i)
+            if m:
+                chunk = s[m.start():m.end()]
+                pieces = self.kks.convert(chunk)
+                romaji = " ".join((p.get("hepburn") or p.get("orig") or "").strip()
+                                  for p in pieces if p.get("orig"))
+                out.append(romaji)
+                i = m.end()
             else:
-                kana = word.morph.to_dict().get('Reading', word.text)
-                conv = self.kks.convert(kana)
-                hepburn = " ".join(item['hepburn'] for item in conv)
-                romaji.append(hepburn)
-        return " ".join(romaji)
+                out.append(s[i])
+                i += 1
+
+        text = "".join(out)
+        # Normalize Japanese punctuation to Western and tidy spaces
+        text = text.replace("、", ",").replace("。", ".")
+        text = re.sub(r"\s+([,.\!\?\:\;])", r"\1", text)
+        text = re.sub(r"\s{2,}", " ", text).strip()
+        return text

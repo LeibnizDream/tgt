@@ -1,16 +1,11 @@
 import re
-import spacy
-from pathlib import Path
-from spacy.cli import download
-from spacy.util import is_package
-
 from utils.functions import load_glossing_rules
-from inference.glossing.stanza import StanzaGlossingStrategy
+from inference.glossing.spacy import SpaCyGlossingStrategy
 
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
-class JapaneseGlossingStrategy(StanzaGlossingStrategy):
+class JapaneseGlossingStrategy(SpaCyGlossingStrategy):
     """
     A glossing strategy that either uses a default spaCy model
     or a custom one in models/glossing/, plus optional translation.
@@ -20,37 +15,35 @@ class JapaneseGlossingStrategy(StanzaGlossingStrategy):
         doc = self.nlp(sentence)
         out_tokens = []
 
+        # particle -> gloss mapping (surface form)
+        case_gloss = {
+            'が': 'NOM', 'は': 'TOP', 'の': 'GEN', 'を': 'ACC',
+            'に': 'DAT', 'へ': 'ALL', 'から': 'ABL', 'で': 'INS',
+        }
+
+        # ASCII + full-width digits, common JP brackets/quotes
+        SKIP_RE = re.compile(r"[()\[\]{}0-9\uFF10-\uFF19\u300C\u300D\u300E\u300F\u3010\u3011\uFF08\uFF09\u3014\u3015]")
+
         for token in doc:
-            # passthrough bracketed/digits
-            if re.search(r"[\(\[\]\)\d]", token.text):
-                out_tokens.append(token.text)
+            text = token.text
+            pos = token.pos_ or "X"
+
+            # pass through punctuation and bracket/number-like tokens
+            if pos == "PUNCT" or SKIP_RE.search(text):
+                out_tokens.append(text)
                 continue
 
-            # get a normalized lemma
-            lemma = token.lemma.lower()
-            if not lemma:
-                lemma = token.text.lower()
+            # detect case particles by surface form (most reliable for JP)
+            is_case_particle = text in case_gloss or (pos in {"ADP", "PART", "SCONJ"} and text in case_gloss)
 
-            lemma = lemma.replace(" ", ".")  # replace spaces with hyphens
-            pos = token.upos
-            if lemma == 'が':
-                rule_feat = 'NOM'
-            elif lemma == 'は':
-                rule_feat = 'TOP'
-            elif lemma == 'の':
-                rule_feat = 'GEN'
-            elif lemma == 'を':
-                rule_feat = 'ACC'
-            elif lemma == 'に':
-                rule_feat = 'DAT'
-            elif lemma == 'へ':
-                rule_feat = 'ALL'
-            elif lemma == 'から':
-                rule_feat = 'ABL'
-            elif lemma == 'で':
-                rule_feat = 'INS'
+            if is_case_particle:
+                norm = text  # keep surface for particles
+                rule_feat = case_gloss[text]
+            else:
+                # use lemma for content words; fallback to surface
+                norm = (token.lemma_ or text).lower().replace(" ", ".")
+                rule_feat = None
 
-            out_tokens.append(f"{lemma}-{pos}-{rule_feat}" if rule_feat else f"{lemma}-{pos}")
-
+            out_tokens.append(f"{norm}-{pos}-{rule_feat}" if rule_feat else f"{norm}-{pos}")
 
         return " ".join(out_tokens)
