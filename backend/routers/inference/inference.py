@@ -37,7 +37,7 @@ async def process(
     glossing_model = ProcessingService.normalize_model_name(glossingModel)
     translation_model = ProcessingService.normalize_model_name(translationModel)
 
-    logger.info(f"Processing job {job.id} - glossingModel: {glossing_model}, translationModel: {translation_model}")
+    logger.info(f"Processing job {job.id} - action {action}, - glossingModel: {glossing_model}, translationModel: {translation_model}")
 
     # Validate required parameters
     if not language:

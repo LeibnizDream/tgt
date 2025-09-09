@@ -1,11 +1,17 @@
 from inference.transliteration.abstract import TransliterationStrategy
 import spacy
 import pykakasi
+from spacy.cli import download
+from spacy.util import is_package
 
 class JapaneseStrategy(TransliterationStrategy):
     def __init__(self):
         # Load heavy models once
-        self.nlp = spacy.load('ja_core_news_trf')
+        pkg = 'ja_core_news_lg'
+        if not is_package(pkg):
+                print(f"{pkg} not found — downloading…")
+                download(pkg)
+        self.nlp = spacy.load(pkg)
         self.kks = pykakasi.kakasi()
 
     def transliterate(self, sentence: str) -> str:

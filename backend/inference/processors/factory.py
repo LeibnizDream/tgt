@@ -2,7 +2,7 @@ from inference.processors.abstract import DataProcessor
 from inference.processors.transcription import TranscriptionProcessor
 from inference.processors.translation import TranslationProcessor
 from inference.processors.glossing import GlossingProcessor
-from inference.processors.transliteration import Transliterator
+from inference.processors.transliteration import TransliteratorProcessor
 from inference.processors.ColumnCreation import ColumnCreationProcessor
 
 class ProcessorFactory:
@@ -15,7 +15,7 @@ class ProcessorFactory:
         elif action == "gloss":
             return GlossingProcessor(language, instruction, translationModel, glossingModel)
         elif action == "transliterate":
-            return Transliterator(language, instruction)
+            return TransliteratorProcessor(language, instruction)
         elif action == "create columns":
             return ColumnCreationProcessor(language, instruction)
         else:

@@ -3,9 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from utils.functions import (
-    find_language,
     set_global_variables,
-    format_excel_output,
 )
 from inference.transliteration.abstract import TransliterationStrategy
 from inference.transliteration.factory import TransliterationStrategyFactory
@@ -15,7 +13,7 @@ from inference.processors.abstract import DataProcessor  # wherever you put it
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
 
-class Transliterator(DataProcessor):
+class TransliteratorProcessor(DataProcessor):
     """
     Processes all '*.annotated.xlsx' files in a directory,
     applying a TransliterationStrategy to each DataFrame.
@@ -26,9 +24,11 @@ class Transliterator(DataProcessor):
         super().__init__(language, instruction)
         self.device = device
         # pick strategy based on resolved language code
+        print(f"Getting transliteration strategy for language: {self.language}")
         self.strategy: TransliterationStrategy = TransliterationStrategyFactory.get_strategy(
             self.language
         )
+        print('initialized transliteration strategy:', self.strategy.__class__.__name__)
         self.columns_to_highlight = (
             "latin_transcription_utterance_used"
             if self.instruction == "sentences"

@@ -104,6 +104,7 @@ class AbstractInferenceWorker(ABC):
                 self._put(f"Processing session: {session_name}")
 
                 # Create a processor based on configuration
+                print(f"Creating processor for action: {self.action}, language: {self.language}, instruction: {self.instruction}, translationModel: {self.translationModel}, glossingModel: {self.glossingModel}")
                 self.processor = ProcessorFactory.get_processor(
                     self.language,
                     self.action,
@@ -111,6 +112,7 @@ class AbstractInferenceWorker(ABC):
                     self.translationModel,
                     self.glossingModel,
                 )
+                print(f"Using processor: {self.processor.__class__.__name__}")
 
                 # Run the processing logic
                 self.processor.process(self.current_folder)
