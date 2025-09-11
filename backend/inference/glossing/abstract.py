@@ -2,7 +2,7 @@
 import re
 from abc import ABC, abstractmethod
 from utils.functions import load_glossing_rules
-from inference.translation.factory import TranslationStrategyFactory
+from inference.translation.marian import MarianStrategy
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
@@ -21,9 +21,7 @@ class GlossingStrategy(ABC):
         self.glossing_model = glossingModel
         self.nlp = None
         try:
-            self.translation_strategy = TranslationStrategyFactory.get_strategy(
-                language_code=language_code, translationModel=translationModel
-            )
+            self.translation_strategy = MarianStrategy(language_code=self.language_code)
             self.translation_strategy.load_model()
         except Exception as e:
             print(f"Warning: could not load translation model: {e}")

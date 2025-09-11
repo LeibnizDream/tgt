@@ -37,13 +37,13 @@ class JapaneseGlossingStrategy(SpaCyGlossingStrategy):
             is_case_particle = text in case_gloss or (pos in {"ADP", "PART", "SCONJ"} and text in case_gloss)
 
             if is_case_particle:
-                norm = text  # keep surface for particles
-                rule_feat = case_gloss[text]
+                norm = text 
             else:
-                # use lemma for content words; fallback to surface
-                norm = (token.lemma_ or text).lower().replace(" ", ".")
+                norm = text.lower().replace(" ", ".")
                 rule_feat = None
 
             out_tokens.append(f"{norm}-{pos}-{rule_feat}" if rule_feat else f"{norm}-{pos}")
+            output = " ".join(out_tokens)
+           
 
-        return " ".join(out_tokens)
+        return output

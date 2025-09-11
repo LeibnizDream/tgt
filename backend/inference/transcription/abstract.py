@@ -2,6 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from dotenv import load_dotenv
+from huggingface_hub import login
 
 _this_file = Path(__file__).resolve()
 parent_dir = _this_file.parent.parent.parent
@@ -11,6 +12,7 @@ class TranscriptionStrategy(ABC):
         self.language_code = language_code.lower()
         self.device = device
         self.hugging_key = self._load_hugging_face_token()
+        login(token=self.hugging_key)
         self.load_model()
     
     def _load_hugging_face_token(self):
