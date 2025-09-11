@@ -50,4 +50,4 @@ USER ${MAMBA_USER}
 EXPOSE 8000
 
 ENTRYPOINT ["/usr/local/bin/_entrypoint.sh", "micromamba", "run", "-n", "tgt"]
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app:app", "--host", "127.0.0.1", "--port", "8000"]

@@ -2,7 +2,7 @@ services:
   tgt:
     image: ghcr.io/camelo-cruz/tgt:latest
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - HUGGING_KEY
       - TENANT_ID
