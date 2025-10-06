@@ -15,7 +15,7 @@ from utils.functions import (
     find_ffmpeg,
     format_excel_output,
 )
-from inference.processors.abstract import DataProcessor  # adjust import path as needed
+from inference.processors.abstract import DataProcessor
 
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()

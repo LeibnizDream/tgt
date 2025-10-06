@@ -2,6 +2,7 @@ from inference.transcription.abstract import TranscriptionStrategy
 from inference.transcription.whisperx import WhisperxStrategy
 from inference.transcription.whisper import WhisperStrategy
 from inference.transcription.bengali import BengaliStrategy
+from inference.transcription.vietnamese import VietnameseStrategy
 
 
 
@@ -10,9 +11,11 @@ class TranscriptionStrategyFactory:
     def get_strategy(language_code: str) -> TranscriptionStrategy:
         if language_code in ['en', 'fr', 'de', 'es', 'it', 'ja', 'zh', 'nl',
                              'uk', 'pt', 'ar', 'cs', 'ru', 'pl', 'hu', 'fi',
-                             'fa', 'el', 'tr', 'da', 'he', 'vi', 'ko', 'ur', 
+                             'fa', 'el', 'tr', 'da', 'he', 'ko', 'ur', 
                              'te', 'hi', 'ca', 'ml', 'ro', 'ka', 'tl']:
             return WhisperxStrategy(language_code)
+        elif language_code in ['vi']:
+            return VietnameseStrategy(language_code)
         elif language_code in ['et']:
             return WhisperStrategy(language_code)
         elif language_code in ['bn']:
