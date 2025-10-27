@@ -8,6 +8,10 @@ from typing import List, Union
 
 import pandas as pd
 from tqdm import tqdm
+from utils.functions import set_global_variables, find_language
+
+LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
+
 
 class BasePreprocessor(ABC):
     """
@@ -15,17 +19,18 @@ class BasePreprocessor(ABC):
       - Discovers input files, reads data, applies cleaning, and writes a combined output.
       - Processes all files into a single DataFrame and writes one CSV.
     """
-    # Default column names
-    TEXT_COLUMN = "latin_transcription_utterance_used"
-    GLOSS_COLUMN = "glossing_utterance_used"
-    TRANSLATION_COLUMN = "translation_utterance_used"
 
     def __init__(self, lang: str, study: str, file_pattern: str = "*annotated.xlsx") -> None:
+        self.GLOSS_COLUMN = "glossing_utterance_used"
+        self.TRANSLATION_COLUMN = "translation_utterance_used"
+        self.TEXT_COLUMN = "latin_transcription_utterance_used"
         self.study = study
         self.file_pattern = file_pattern
 
         # Language setup
         self.lang = lang
+        if lang in NO_LATIN:
+            self.TEXT_COLUMN = "transcription_original_script_utterance_used"
         # Ensure UTF-8 for stdout/stderr once
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
