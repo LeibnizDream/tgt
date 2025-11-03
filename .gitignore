@@ -51,3 +51,4 @@ cache/
 *.pyc
 *.pyc
 backend/materials/token_cache.json
+/backend/models
