@@ -219,6 +219,7 @@ class UDPreprocessor(BasePreprocessor):
                     if not p:
                         # unknown atom inside combo → record and skip entire combo
                         self.unknown_codes.add(a)
+                        msg.warn(f"Unknown code in combo: {a}, skipping {code}")
                         atom_pairs = None
                         break
                     atom_pairs.append(p)
@@ -239,6 +240,7 @@ class UDPreprocessor(BasePreprocessor):
 
             # 3) Unknown code (neither exact nor slash-combo)
             self.unknown_codes.add(code)
+            msg.warn(f"Unknown gloss code: {code}")
 
         return '|'.join(mapped_pairs) if mapped_pairs else self.PLACEHOLDER
 

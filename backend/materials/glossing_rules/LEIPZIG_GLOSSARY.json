@@ -170,5 +170,11 @@
 "TOP":{"UD":"Top","category":"Other"},
 "TR":{"UD":"Tr","category":"Other"},
 "INTR":{"UD":"Intr","category":"Other"},
-"NPST":{"UD":"Npst","category":"Tense"}
+"NPST":{"UD":"Npst","category":"Tense"},
+"TE":{"UD":"Te","category":"Other"},
+"NMN":{"UD":"Nmn","category":"Nomzr"},
+"KA":{"UD":"Ka","category":"Other"},
+"VERB":{"UD":"Verb","category":"Pos"},
+"NOUN":{"UD":"Noun","category":"Pos"},
+"HON":{"UD":"Hon","category":"Polite"}
 }

@@ -50,3 +50,5 @@ cache/
 /backend/models/glossing/de_H10a_with_vectors_custom_glossing
 *.pyc
 *.pyc
+backend/materials/token_cache.json
+/backend/models
