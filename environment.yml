@@ -6,7 +6,8 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - pip
+  - pip=24.0
+  - pkg-config
   - pip:
       # MacOS-specific dependencies
       - torch==2.6.0; sys_platform == "darwin"
@@ -54,5 +55,5 @@ dependencies:
       - wandb
       - whisperx
       - setuptools
-      - cupy-cuda12x
-
+      - fairseq==0.12.2
+      - ai4bharat-transliteration
