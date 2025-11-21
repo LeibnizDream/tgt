@@ -96,7 +96,7 @@ class TranscriptionProcessor(DataProcessor):
         excel_out = os.path.join(base_dir, 'trials_and_sessions_annotated.xlsx')
 
         if os.path.exists(excel_file):
-            df = pd.read_excel(excel_file, encoding='utf-8')
+            df = pd.read_excel(excel_file)
         elif os.path.exists(csv_file):
             df = pd.read_csv(csv_file, encoding='utf-8')
         else:
