@@ -92,13 +92,13 @@ class TranscriptionProcessor(DataProcessor):
 
     def load_trials_data(self, base_dir: str):
         csv_file = os.path.join(base_dir, 'trials_and_sessions.csv')
-        excel_file = os.path.join(base_dir, 'trials_and_sessions.xlsx')
+        excel_file = os.path.join(base_dir, 'trials_and_sessions_annotated.xlsx')
         excel_out = os.path.join(base_dir, 'trials_and_sessions_annotated.xlsx')
 
-        if os.path.exists(csv_file):
-            df = pd.read_csv(csv_file, encoding='utf-8')
-        elif os.path.exists(excel_file):
+        if os.path.exists(excel_file):
             df = pd.read_excel(excel_file, encoding='utf-8')
+        elif os.path.exists(csv_file):
+            df = pd.read_csv(csv_file, encoding='utf-8')
         else:
             raise FileNotFoundError(
                 "No trials_and_sessions file found in the directory."

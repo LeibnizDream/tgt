@@ -61,6 +61,5 @@ class TransliteratorProcessor(DataProcessor):
                     df.at[idx, target] = ""
                 # apply strategy and append if new
                 translit = self.strategy.transliterate(sentence)
-                if translit not in df.at[idx, target]:
-                    df.at[idx, target] += translit + " "
+                df.at[idx, target] = translit
         return df

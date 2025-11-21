@@ -6,8 +6,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - pip=24.0
-  - pkg-config
+  - pip
   - pip:
       # MacOS-specific dependencies
       - torch==2.6.0; sys_platform == "darwin"
@@ -55,5 +54,6 @@ dependencies:
       - wandb
       - whisperx
       - setuptools
-      - fairseq==0.12.2
-      - ai4bharat-transliteration
+      - indic-transliteration
+      - git+https://github.com/apakabarfm/bengali-romanizer
+

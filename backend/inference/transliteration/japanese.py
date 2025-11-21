@@ -1,9 +1,11 @@
 import re
 import pykakasi
+from inference.transliteration.abstract import TransliterationStrategy 
 
 JP_BLOCK = re.compile(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fffー々]+')
 
-class JapaneseStrategy:
+
+class JapaneseStrategy(TransliterationStrategy):
     def __init__(self):
         self.kks = pykakasi.kakasi()
 

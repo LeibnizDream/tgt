@@ -1,10 +1,12 @@
-from ai4bharat.transliteration import XlitEngine
+from inference.transliteration.abstract import TransliterationStrategy 
+from indic_transliteration import sanscript
+from indic_transliteration.sanscript import transliterate
 
 
-class IndianStrategy(TransliterationStrategy):
-    def __init__(self, language_code):
-        self.engine = XlitEngine(language_code, beam_width=10)
+class BanglaStrategy(TransliterationStrategy):
+    def __init__(self):
+        self.script_from = sanscript.BENGALI
+        self.script_to = sanscript.IAST  # THIS is the academic Latin output you want
 
-    def transliterate(self, sentence: str) -> str:
-        output = self.engine.translit_sentence(sentence)
-        return output
+    def transliterate(self, text: str) -> str:
+        return transliterate(text, self.script_from, self.script_to)
