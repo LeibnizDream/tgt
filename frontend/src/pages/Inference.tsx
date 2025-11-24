@@ -493,9 +493,9 @@ export default function Inference() {
                     <SelectValue placeholder="Select instruction" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="automatic">Automatic</SelectItem>
-                    <SelectItem value="corrected">Corrected</SelectItem>
-                    <SelectItem value="sentences">Sentences</SelectItem>
+                    <SelectItem value="automatic">Automatic Transcription</SelectItem>
+                    <SelectItem value="corrected">Corrected Transcription</SelectItem>
+                    <SelectItem value="sentences">Chosen Sentences</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

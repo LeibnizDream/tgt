@@ -56,4 +56,5 @@ dependencies:
       - setuptools
       - indic-transliteration
       - git+https://github.com/apakabarfm/bengali-romanizer
+      - bntrans
 

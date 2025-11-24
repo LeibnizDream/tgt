@@ -8,7 +8,7 @@ from utils.functions import (
 from inference.transliteration.abstract import TransliterationStrategy
 from inference.transliteration.factory import TransliterationStrategyFactory
 
-from inference.processors.abstract import DataProcessor  # wherever you put it
+from inference.processors.abstract import DataProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -46,13 +46,19 @@ class TransliteratorProcessor(DataProcessor):
         else:
             raise ValueError(f"Unsupported instruction: {self.instruction}")
 
-        # ensure target column exists
-        df[target] = df.get(target, "").astype(object)
+        # ensure target column exists with proper string dtype
+        if target not in df.columns:
+            df[target] = ""
+        df[target] = df[target].astype(str).replace('nan', '')
 
         # transliterate every non-null source sentence
         for sentence in tqdm(
             df[source].dropna(), desc="Transliterating sentences", leave=False
         ):
+            # ensure sentence is properly decoded as UTF-8 string
+            if isinstance(sentence, bytes):
+                sentence = sentence.decode('utf-8')
+            
             # find all rows where this sentence occurs
             hits = df[df[source] == sentence].index
             for idx in hits:
@@ -61,5 +67,9 @@ class TransliteratorProcessor(DataProcessor):
                     df.at[idx, target] = ""
                 # apply strategy and append if new
                 translit = self.strategy.transliterate(sentence)
+                # ensure transliteration result is UTF-8 string
+                if isinstance(translit, bytes):
+                    translit = translit.decode('utf-8')
                 df.at[idx, target] = translit
+        
         return df

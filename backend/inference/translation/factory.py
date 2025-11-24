@@ -3,6 +3,7 @@ from inference.translation.custom import CustomTranslationStrategy
 from inference.translation.deepl import DeeplStrategy
 from inference.translation.marian import MarianStrategy
 from inference.translation.M2M100 import M2M100Strategy
+from inference.translation.bengali import BengaliTranslationStrategy
 
 
 class TranslationStrategyFactory:
@@ -15,6 +16,8 @@ class TranslationStrategyFactory:
         if language_code in ['ar','de', 'el', 'es', 'et', 'hu', 'it', 'ja', 
                              'pt', 'ro', 'ru', 'th', 'tr', 'uk', 'vi', 'zh']:
             strategy_chain = [DeeplStrategy, MarianStrategy, M2M100Strategy]
+        elif language_code == 'bn':
+            strategy_chain = [BengaliTranslationStrategy]
         elif language_code == 'yo':
             strategy_chain = [MarianStrategy, M2M100Strategy]
         else:
