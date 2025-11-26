@@ -4,6 +4,7 @@ import logging
 import sys
 from pathlib import Path
 import pandas as pd
+import fnmatch
 from utils.functions import set_global_variables, format_excel_output
 
 # global constants
@@ -128,7 +129,7 @@ class DataProcessor(ABC):
         matches = []
         for root, _, files in os.walk(base_dir):
             for f in files:
-                if f.endswith("annotated.xlsx"):
+                if fnmatch.fnmatch(f, 'trials_and_sessions_annotated.xlsx'):
                     matches.append(os.path.join(root, f))
         self.logger.info(f"Found {len(matches)} matching files in {base_dir}")
         return sorted(matches)
