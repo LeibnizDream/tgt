@@ -30,6 +30,7 @@ class TranslationProcessor(DataProcessor):
         super().__init__(language, instruction)
         self.device = device
         self.strategy: TranslationStrategy = TranslationStrategyFactory.get_strategy(self.language)
+        print(f"Using translation strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = {
             "automatic": "automatic_translation_automatic_transcription",
             "corrected": "translation_everything",
@@ -72,6 +73,8 @@ class TranslationProcessor(DataProcessor):
                 continue
             try:
                 translation = self.strategy.translate(str(text))
+                print(f"Translating text to {cols_map[self.instruction]}")
+                print(f"Translation result: {translation}")
                 if not translation:
                     continue
                 for target_col in cols_map[self.instruction]:

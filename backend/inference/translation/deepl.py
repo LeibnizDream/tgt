@@ -28,6 +28,7 @@ class DeeplStrategy(TranslationStrategy):
             self._deepl_source_lang = code
 
     def translate(self, text: str) -> str | None:
+            print("Using DeepL Strategy")
             """
             If the DeepL client was successfully created, call it.
             Otherwise return None.
@@ -38,17 +39,11 @@ class DeeplStrategy(TranslationStrategy):
                     "Call _init_deepl_client() before translating."
                 )
 
-            try:
-                # First try explicit source_lang; if that fails, let DeepL auto-detect
-                try:
-                    result = self._deepl_client.translate_text(
-                        text,
-                        source_lang=self._deepl_source_lang,
-                        target_lang="EN-US"
-                    )
-                except deepl.DeepLException:
-                    result = self._deepl_client.translate_text(text, target_lang="EN-US")
+            result = self._deepl_client.translate_text(
+                text,
+                source_lang=self._deepl_source_lang,
+                target_lang="EN-US"
+                )
+            print(f"Inside strategy {result}")
 
-                return result.text
-            except Exception:
-                return None
+            return result.text
