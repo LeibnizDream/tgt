@@ -1,8 +1,10 @@
 from inference.translation.abstract import TranslationStrategy
+from inference.translation.marian import MarianStrategy
 import os
 import sys
 import deepl
 from pathlib import Path
+from dotenv import load_dotenv
 
 _this_file = Path(__file__).resolve()
 parent_dir = _this_file.parent.parent.parent
@@ -14,7 +16,6 @@ class DeeplStrategy(TranslationStrategy):
             or DeepL is unreachable, leave them as None.
             """
             secrets_path = os.path.join(parent_dir, 'materials', 'secrets.env')
-            from dotenv import load_dotenv
             load_dotenv(secrets_path, override=True)
             api_key = os.getenv("DEEPL_API_KEY")
             if not api_key:
@@ -26,6 +27,8 @@ class DeeplStrategy(TranslationStrategy):
             if code.lower() == "pt":
                 code = "PT-BR"
             self._deepl_source_lang = code
+
+            alternative = MarianStrategy(self.language_code)
 
     def translate(self, text: str) -> str | None:
             print("Using DeepL Strategy")
