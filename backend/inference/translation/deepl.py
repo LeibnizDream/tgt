@@ -28,7 +28,7 @@ class DeeplStrategy(TranslationStrategy):
                 code = "PT-BR"
             self._deepl_source_lang = code
 
-            alternative = MarianStrategy(self.language_code)
+            fallback = MarianStrategy(self.language_code)
 
     def translate(self, text: str) -> str | None:
             print("Using DeepL Strategy")
@@ -49,4 +49,11 @@ class DeeplStrategy(TranslationStrategy):
                 )
             print(f"Inside strategy {result}")
 
-            return result.text
+            if not result.text:
+                result = self.fallback.translate(text)
+                print(f"DeepL translation failed, using fallback: {result}")
+                return result
+
+            else:
+                print(f"DeepL translation successful: {result.text}")
+                return result.text

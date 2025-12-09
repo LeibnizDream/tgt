@@ -155,6 +155,8 @@ def find_ffmpeg():
 
 
 def format_excel_output(excel_output_file, columns_to_highlight: list):
+    import openpyxl
+    from openpyxl.styles import Font
     from copy import copy
     
     wb = openpyxl.load_workbook(excel_output_file)
@@ -162,17 +164,25 @@ def format_excel_output(excel_output_file, columns_to_highlight: list):
     
     # Get header mapping
     headers = [cell.value for cell in ws[1]]
-    idx_map = {h: i for i, h in enumerate(headers, start=1) if h in columns_to_highlight}
+    col_indices = [i for i, h in enumerate(headers) if h in columns_to_highlight]
     
     # Apply red color to specified columns
     for row in ws.iter_rows(min_row=2):
-        for col_name, col_idx in idx_map.items():
-            cell = row[col_idx - 1]  # Adjust for 0-based indexing
+        for col_idx in col_indices:
+            cell = row[col_idx]
             if cell.value:
-                # Copy existing font and change only the color
-                new_font = copy(cell.font)
-                new_font.color = openpyxl.styles.colors.Color(rgb="FF0000")
-                cell.font = new_font
+                # Create a completely new Font object with all properties copied
+                old_font = cell.font
+                cell.font = Font(
+                    name=old_font.name,
+                    size=old_font.size,
+                    bold=old_font.bold,
+                    italic=old_font.italic,
+                    vertAlign=old_font.vertAlign,
+                    underline=old_font.underline,
+                    strike=old_font.strike,
+                    color="FF0000"  # Only this changes
+                )
     
     wb.save(excel_output_file)
 
