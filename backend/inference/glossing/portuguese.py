@@ -5,6 +5,7 @@ from spacy.util import is_package
 from utils.functions import load_glossing_rules
 from inference.glossing.abstract import GlossingStrategy
 from inference.translation.factory import TranslationStrategyFactory
+from huggingface_hub import login
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
@@ -13,6 +14,7 @@ class PortugueseGlossingStrategy(GlossingStrategy):
         super().__init__(language_code)
         self.translation_strategy = TranslationStrategyFactory.get_strategy(language_code)
         self.nlp = self.load_model()
+        login(token="hf_...")
 
     def load_model(self):
         model_name = "pt_core_news_lg"
