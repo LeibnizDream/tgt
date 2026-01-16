@@ -13,8 +13,8 @@ class PortugueseGlossingStrategy(GlossingStrategy):
     def __init__(self, language_code: str):
         super().__init__(language_code)
         self.translation_strategy = TranslationStrategyFactory.get_strategy(language_code)
+        print(f"Loaded translation strategy: {self.translation_strategy}")
         self.nlp = self.load_model()
-        login(token="hf_...")
 
     def load_model(self):
         model_name = "pt_core_news_lg"
@@ -94,13 +94,13 @@ class PortugueseGlossingStrategy(GlossingStrategy):
             lemma = token.lemma_.lower() or text.lower()
             lemmas.append(lemma)
 
-            # Optional translation (commented out)
-            #if self.translation_strategy:
-            #    translated_lemma = self.translation_strategy.translate(text=lemma)
-            #    if not translated_lemma:
-            #        translated_lemma = lemma
-
-            translated_lemma = lemma
+            translated_lemma = None
+            if self.translation_strategy:
+                translated_lemma = self.translation_strategy.translate(text=lemma)
+            
+            if not translated_lemma:
+                translated_lemma = lemma
+            
             lemma = translated_lemma.replace(" ", ".")
 
             feats = self.map_morph_to_leipzig(token.morph.to_dict())
