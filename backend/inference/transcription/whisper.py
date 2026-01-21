@@ -1,12 +1,10 @@
-import os
 import whisper
 from inference.transcription.abstract import TranscriptionStrategy
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-
-
 class WhisperStrategy(TranscriptionStrategy):
+    def __init__(self, language_code, device = "cpu"):
+        super().__init__(language_code, device)
+
     def load_model(self):
          self.model = whisper.load_model("large-v2", self.device)
 

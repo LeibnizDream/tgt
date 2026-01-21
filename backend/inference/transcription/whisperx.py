@@ -1,7 +1,5 @@
 import whisperx
 from whisperx.diarize import DiarizationPipeline
-
-
 from inference.transcription.abstract import TranscriptionStrategy
 
 
