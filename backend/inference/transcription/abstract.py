@@ -42,7 +42,7 @@ class TranscriptionStrategy(ABC):
         )
         
     @abstractmethod
-    def transcribe(self, text: str) -> str | None:
+    def transcribe(self, path_to_audio: str) -> str | None:
         """
         Transcribe the given text using the model implemented by the subclass.
 

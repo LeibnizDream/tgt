@@ -27,9 +27,7 @@ async def serve_spa(full_path: str):
     if candidate.is_file():
         return FileResponse(candidate)
 
-    # Fallback for "/", directories, and unknown client-side routes
     if index.is_file():
         return FileResponse(index)
 
-    # If your build is missing index.html, return a real 404 instead of "null"
     raise HTTPException(status_code=404, detail="Frontend build not found")
