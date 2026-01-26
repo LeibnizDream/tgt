@@ -4,8 +4,6 @@ from inference.transcription.abstract import TranscriptionStrategy
 
 
 class BengaliStrategy(TranscriptionStrategy):
-    def __init__(self, language_code, device = "cpu"):
-        super().__init__(language_code, device)
         
     def load_model(self):
         self.device = 0 if (torch.cuda.is_available()) else "cpu"

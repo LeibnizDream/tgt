@@ -3,10 +3,6 @@ from bntrans import Translator
 
 class BengaliTranslationStrategy(TranslationStrategy):
 
-    def __init__(self, language_code: str = "bn", translationModel: str = None, device: str = "cpu"):
-        # Pass required parameters to parent class
-        super().__init__(language_code, translationModel, device)
-
     def load_model(self, model_path=None):
         """Load the Bengali translator model"""
         self.translator = Translator(src="bn", dest="en")

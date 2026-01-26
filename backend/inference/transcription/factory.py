@@ -3,7 +3,7 @@ from inference.transcription.whisperx import WhisperxStrategy
 from inference.transcription.whisper import WhisperStrategy
 from inference.transcription.bengali import BengaliStrategy
 from inference.transcription.vietnamese import VietnameseStrategy
-
+from inference.transcription.thai import ThaiTranscriptionStrategy
 
 class TranscriptionStrategyFactory:
     @staticmethod
@@ -15,9 +15,12 @@ class TranscriptionStrategyFactory:
             return WhisperxStrategy(language_code)
         elif language_code in ['vi']:
             return VietnameseStrategy(language_code)
-        elif language_code in ['et', 'th']:
+        elif language_code in ['et']:
             return WhisperStrategy(language_code)
+        elif language_code in ['th']:
+            return ThaiTranscriptionStrategy(language_code)
         elif language_code in ['bn']:
             return BengaliStrategy(language_code)
+        
         else:
             raise ValueError(f"No transcription strategy available for language code: {language_code}")
