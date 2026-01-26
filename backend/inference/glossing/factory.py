@@ -3,6 +3,7 @@ from inference.glossing.spacy import SpaCyGlossingStrategy
 from inference.glossing.portuguese import PortugueseGlossingStrategy
 from inference.glossing.stanza import StanzaGlossingStrategy
 from inference.glossing.japanese import JapaneseGlossingStrategy
+from inference.glossing.gemini import GeminiGlossingStrategy
 
 
 class GlossingStrategyFactory:
@@ -12,8 +13,10 @@ class GlossingStrategyFactory:
             return SpaCyGlossingStrategy(language_code, 
                                          glossingModel=glossingModel, 
                                          translationModel=translationModel)
-        elif language_code in ['fi', 'fr', 'el', 'it', 'ro', 'ru', 'uk', 'de']:
+        elif language_code in ['fi', 'fr', 'el', 'it', 'ro', 'ru', 'uk']:
             return SpaCyGlossingStrategy(language_code)
+        elif language_code in ['de']:
+            return GeminiGlossingStrategy(language_code)
         elif language_code in ["tr", "vi", "uk", "ru", "en", "it"]:
             return StanzaGlossingStrategy(language_code)
         elif language_code == "pt":

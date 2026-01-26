@@ -52,8 +52,6 @@ class TranslationProcessor(DataProcessor):
             "sentences": sent_col,
         }.get(self.instruction, sent_col)
 
-        #if source_col not in df.columns:
-        #    raise ValueError(f"Source column '{source_col}' not found in DataFrame.")
 
         cols_map = {
             "corrected": ["automatic_translation_corrected_transcription", "translation_everything"],

@@ -5,7 +5,6 @@ from inference.transcription.bengali import BengaliStrategy
 from inference.transcription.vietnamese import VietnameseStrategy
 
 
-
 class TranscriptionStrategyFactory:
     @staticmethod
     def get_strategy(language_code: str) -> TranscriptionStrategy:
@@ -16,7 +15,7 @@ class TranscriptionStrategyFactory:
             return WhisperxStrategy(language_code)
         elif language_code in ['vi']:
             return VietnameseStrategy(language_code)
-        elif language_code in ['et']:
+        elif language_code in ['et', 'th']:
             return WhisperStrategy(language_code)
         elif language_code in ['bn']:
             return BengaliStrategy(language_code)
