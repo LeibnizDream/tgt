@@ -1,3 +1,14 @@
+# Architecture overview
+
+## Component diagram
+
+![component_diagram](documentation_diagrams/component_diagram.png)
+
+## Class diagram
+
+![class_diagram_inference](documentation_diagrams/class_diagram_inference.png)
+![class_diagram_training](documentation_diagrams/class_diagram_training.png)
+
 # Setup Guide
 
 ## Prerequisites
