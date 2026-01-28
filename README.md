@@ -6,7 +6,10 @@
 
 ## Class diagram
 
+### Class diagram for the inference component
 ![class_diagram_inference](documentation_diagrams/class_diagram_inference.png)
+
+### Class diagram for the training component
 ![class_diagram_training](documentation_diagrams/class_diagram_training.png)
 
 # Setup Guide
