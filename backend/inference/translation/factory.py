@@ -11,11 +11,9 @@ class TranslationStrategyFactory:
     def get_strategy(language_code: str, translationModel: str = None) -> TranslationStrategy:
         if translationModel:
             return CustomTranslationStrategy(language_code, translationModel)
-
-        strategy_chain = []
         if language_code in ['ar','de', 'el', 'es', 'et', 'hu', 'it', 'ja', 
                              'pt', 'ro', 'ru', 'th', 'tr', 'uk', 'vi', 'zh']:
-            return MarianStrategy(language_code)
+            return DeeplStrategy(language_code)
         elif language_code == 'bn':
             return BengaliTranslationStrategy(language_code)
         elif language_code == 'yo':

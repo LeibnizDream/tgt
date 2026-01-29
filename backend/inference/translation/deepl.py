@@ -28,7 +28,11 @@ class DeeplStrategy(TranslationStrategy):
                 code = "PT-BR"
             self._deepl_source_lang = code
 
-            fallback = MarianStrategy(self.language_code)
+            try:
+                fallback = MarianStrategy(self.language_code)
+            except Exception as e:
+                print(f"Error initializing fallback MarianStrategy: {e}")
+                fallback = None
 
     def translate(self, text: str) -> str | None:
             print("Using DeepL Strategy")
