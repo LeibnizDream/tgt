@@ -13,9 +13,9 @@ class GlossingStrategyFactory:
             return SpaCyGlossingStrategy(language_code, 
                                          glossingModel=glossingModel, 
                                          translationModel=translationModel)
-        elif language_code in ['fi', 'fr', 'el', 'it', 'ro', 'ru', 'uk']:
+        elif language_code in ['fi', 'fr', 'it', 'ro', 'ru', 'uk']:
             return SpaCyGlossingStrategy(language_code)
-        elif language_code in ['de', 'th']:
+        elif language_code in ['de', 'th', 'el']:
             return GeminiGlossingStrategy(language_code)
         elif language_code in ["tr", "vi", "uk", "ru", "en", "it"]:
             return StanzaGlossingStrategy(language_code)

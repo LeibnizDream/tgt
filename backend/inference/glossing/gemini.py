@@ -46,8 +46,8 @@ class GeminiGlossingStrategy(GlossingStrategy):
         ]
 
         # Add few-shot examples if available
+        system_parts.append("\nHere are example glosses to follow:")
         if examples:
-            system_parts.append("\nHere are example glosses to follow:")
             for i, ex in enumerate(examples[:10], 1):  # Limit to 10 examples
                 system_parts.append(f"\nExample {i}:")
                 system_parts.append(f"Input: {ex['source']}")
