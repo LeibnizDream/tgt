@@ -52,6 +52,10 @@ class GeminiGlossingStrategy(GlossingStrategy):
                 system_parts.append(f"\nExample {i}:")
                 system_parts.append(f"Input: {ex['source']}")
                 system_parts.append(f"Output gloss: {ex['gloss']}")
+        else:
+            system_parts.append("\nExample 1: Input: der frosch der von den enten gewaschen wird Output gloss: ART.DEF.M.SG.NOM frog.M.SG.NOM REL.M.SG.NOM by ART.DEF.PL.DAT duck-PL-DAT PASTP>wash<CIRC be.3.SG.PRS.IND")
+            system_parts.append("\nExample 2: Input: die zwei pferde die von der kuh geschubst werden Output gloss: ART.DEF.PL.NOM/ACC two horse-PL.NOM/ACC REL.PL.NOM/ACC by ART.DEF.F.SG.DAT cow.F.SG.DAT PASTP>push<CIRC be-3.PL.PRS.IND")
+            system_parts.append("\nExample 3: Input: das huhn der von dem frosch einen apfel zugeworfen kriegt Output gloss: ART.DEF.N.SG.NOM/ACC chicken.N.SG.NOM/ACC REL.M.SG.NOM from ART.DEF.M.SG.DAT frog.M.SG.DAT ART.INDF-M.SG.ACC apple.M.SG.ACC to-PASTP>throw<CIRC get-3.SG.PRS.IND")
 
         system = "\n".join(system_parts)
 
