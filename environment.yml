@@ -58,4 +58,5 @@ dependencies:
       - git+https://github.com/apakabarfm/bengali-romanizer
       - bntrans
       - langchain-google-genai
+      - langchain-community
 

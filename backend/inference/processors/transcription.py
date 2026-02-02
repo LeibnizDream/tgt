@@ -31,6 +31,7 @@ class TranscriptionProcessor(DataProcessor):
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
         self.pii_identifier = PIIIdentifierFactory.get_strategy(self.language)
         self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
@@ -39,11 +40,16 @@ class TranscriptionProcessor(DataProcessor):
         )
 
     def _find_files(self, base_dir: str) -> list[str]:
-        # find parent dirs containing a 'binaries' subfolder
         bases = set()
-        for subdir, _, files in os.walk(base_dir):
-            if 'binaries' in os.path.basename(subdir):
-                bases.add(os.path.abspath(os.path.join(subdir, '..')))
+        for subdir, _, _ in os.walk(base_dir):
+            if os.path.basename(subdir) == "binaries":
+                bases.add(os.path.abspath(os.path.join(subdir, "..")))
+
+        if not bases:
+            raise FileNotFoundError(
+                f"No 'binaries' directory found under: {base_dir}"
+            )
+
         return sorted(bases)
 
     def _read_file(self, base_dir: str) -> pd.DataFrame:
@@ -100,9 +106,11 @@ class TranscriptionProcessor(DataProcessor):
         elif os.path.exists(csv_file):
             df = pd.read_csv(csv_file, encoding='utf-8')
         else:
-            raise FileNotFoundError(
-                "No trials_and_sessions file found in the directory."
-            )
+            df = pd.DataFrame(columns=list(OBLIGATORY_COLUMNS))
+            print("No file found in the directory. Creating an empty DataFrame with obligatory columns.")
+            self.logger.info(
+                    f"No file found in the directory. Creating an empty DataFrame with obligatory columns."
+                )
 
         for col in OBLIGATORY_COLUMNS:
             df[col] = df.get(col, "")

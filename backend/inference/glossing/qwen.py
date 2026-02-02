@@ -1,20 +1,18 @@
 import json
 import sys
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOllama
 from inference.glossing.abstract import GlossingStrategy
 
 
-class GeminiGlossingStrategy(GlossingStrategy):
+class QwenGlossingStrategy(GlossingStrategy):
 
     def load_model(self):
-        # Check this initialization....
-        self.nlp = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+        self.nlp = ChatOllama(
+            model="qwen2:7b",
             temperature=0.0,
-            max_tokens=None,
-            timeout=120,
-            max_retries=2,
+            request_timeout=120,
         )
+        print("Qwen model loaded.")
 
     def gloss(self, payload: str) -> str:
         """
@@ -67,13 +65,13 @@ class GeminiGlossingStrategy(GlossingStrategy):
             ("human", human_payload),
         ]
 
-        print("Sending Gemini request with messages:", messages, file=sys.stderr)
+        print("Sending Qwen request with messages:", messages, file=sys.stderr)
 
         response = self.nlp.invoke(messages)
         print('Full response:', response, file=sys.stderr)
 
         text = response.content.strip()
-        print("Gemini response text:", text, file=sys.stderr)
+        print("Qwen response text:", text, file=sys.stderr)
 
         # Clean up markdown code blocks if present
         if text.startswith("```"):
@@ -103,6 +101,6 @@ class GeminiGlossingStrategy(GlossingStrategy):
             if input_ids != output_ids:
                 raise ValueError(f"ID mismatch. Input: {input_ids}, Output: {output_ids}")
         except json.JSONDecodeError as e:
-            raise ValueError(f"Gemini returned invalid JSON:\n{text}") from e
+            raise ValueError(f"Qwen returned invalid JSON:\n{text}") from e
 
         return text

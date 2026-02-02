@@ -8,6 +8,7 @@ from utils.functions import set_global_variables
 from inference.glossing.factory import GlossingStrategyFactory
 from inference.glossing.abstract import GlossingStrategy
 from inference.glossing.gemini import GeminiGlossingStrategy
+from inference.glossing.qwen import QwenGlossingStrategy
 from inference.processors.abstract import DataProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
@@ -88,7 +89,7 @@ class GlossingProcessor(DataProcessor):
         
         return examples, todo_items
 
-    def _gloss_with_gemini(
+    def _gloss_with_llm(
         self, 
         examples: Dict[int, Dict[str, str]],  # Fixed type hint
         todo_items: List[Dict[int, str]]
@@ -153,11 +154,13 @@ class GlossingProcessor(DataProcessor):
         
         # Separate into examples and items needing glossing
         examples, todo_items = self._separate_examples_and_todo(df, source_col)
+        if not todo_items:
+            self.file_changed = False
+            return df
         
         # Process based on strategy type
-        if isinstance(self.strategy, GeminiGlossingStrategy):
-            # Batch processing with Gemini (efficient)
-            id_to_gloss = self._gloss_with_gemini(examples, todo_items)
+        if isinstance(self.strategy, GeminiGlossingStrategy) or isinstance(self.strategy, QwenGlossingStrategy):
+            id_to_gloss = self._gloss_with_llm(examples, todo_items)
             
             # Merge results back into dataframe
             glossed = []
@@ -174,6 +177,8 @@ class GlossingProcessor(DataProcessor):
         else:
             # Row-by-row processing with standard strategy
             glossed_series = self._gloss_with_standard_strategy(df, source_col)
+            if glossed_series.empty:
+                self.file_changed = False
             df["automatic_glossing"] = glossed_series
             df["glossing_utterance_used"] = glossed_series
         

@@ -57,6 +57,7 @@ class DataProcessor(ABC):
         self.language = language
         self.instruction = instruction
         self.columns_to_highlight = None
+        self.file_changed = True
 
         # base logger; per-session handlers will be attached in _attach_session_handler
         self.logger = logging.getLogger(f"{self.__class__.__name__}")
@@ -120,7 +121,8 @@ class DataProcessor(ABC):
                 df = self._read_file(path)
                 self.logger.info(f"Loaded DataFrame with {len(df)} rows")
                 df = self._process_dataframe(df)
-                self._write_file(path, df)
+                if self.file_changed:
+                    self._write_file(path, df)
             finally:
                 self.logger.info(f"Finished session {path}")
                 self._detach_session_handler(fh)
