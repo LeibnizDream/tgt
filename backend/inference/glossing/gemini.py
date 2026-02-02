@@ -7,7 +7,6 @@ from inference.glossing.abstract import GlossingStrategy
 class GeminiGlossingStrategy(GlossingStrategy):
 
     def load_model(self):
-        # Check this initialization....
         self.nlp = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.0,
@@ -59,7 +58,7 @@ class GeminiGlossingStrategy(GlossingStrategy):
         response = self.nlp.invoke(messages)
 
         print("Received Gemini response:", response)
-        
+
         text = response.content.strip()
 
         # Clean markdown
