@@ -35,6 +35,12 @@ class GlossingProcessor(DataProcessor):
             self.language, self.glossing_model, self.translation_model
         )
         self.columns_to_highlight = ["glossing_utterance_used"]
+    
+    @classmethod
+    def reset_examples(cls):
+        """Reset accumulated examples (useful for testing or new sessions)"""
+        cls._shared_examples = {}
+        cls._shared_index = 0
 
     def _get_source_column(self) -> str:
         """Determine which column to gloss based on instruction."""

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from utils.functions import find_language, set_global_variables
 
 from inference.processors.factory import ProcessorFactory
+from inference.processors.glossing import GlossingProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -126,6 +127,8 @@ class AbstractInferenceWorker(ABC):
             self._put(traceback.format_exc())
         finally:
             # Always signal completion
+            if isinstance(self.processor, GlossingProcessor):
+                GlossingProcessor.reset_examples()
             self._put("[DONE ALL]")
 
 
