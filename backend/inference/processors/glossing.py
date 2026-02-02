@@ -2,7 +2,7 @@ import pandas as pd
 from tqdm import tqdm
 import json
 from typing import Dict, List, Tuple
-from collections import defaultdict
+from collections import deque
 
 from utils.functions import set_global_variables
 from inference.glossing.factory import GlossingStrategyFactory
@@ -19,7 +19,8 @@ class GlossingProcessor(DataProcessor):
     Concrete DataProcessor that applies a GlossingStrategy
     to each '*.annotated.xlsx' file under input_dir.
     """
-
+    _shared_examples = {}  # Class variable
+    _shared_index = 0
     def __init__(
         self,
         language: str,
@@ -54,94 +55,55 @@ class GlossingProcessor(DataProcessor):
         self, 
         df: pd.DataFrame, 
         source_col: str
-    ) -> Tuple[Dict[int, str], List[Dict[int, str]]]:
+    ) -> List[Dict[int, str]]:
         """
-        Separate rows into:
-        - examples: rows that already have glosses (for few-shot prompting)
-        - todo_items: rows that need glossing
-        
-        Returns:
-            Tuple of (examples_dict, todo_items_list)
+        Separate rows into examples (stored in class-level _shared_examples) and todo_items.
+        Only returns items that need glossing.
         """
-        examples = {}
         todo_items = []
         
         for i in range(len(df)):
             source_text = df.at[i, source_col]
             existing_gloss = df.at[i, "glossing_utterance_used"]
             
-            # If source text is empty, skip
             if not isinstance(source_text, str) or not source_text.strip():
                 continue
             
-            # If existing gloss is present, use as example
             if isinstance(existing_gloss, str) and existing_gloss.strip():
-                examples[i] = {
+                GlossingProcessor._shared_examples[GlossingProcessor._shared_index] = {
                     'source': source_text,
                     'gloss': existing_gloss
                 }
+                GlossingProcessor._shared_index += 1
             else:
-                # Needs glossing
                 todo_items.append({
                     'id': i,
                     'text': source_text
                 })
         
-        return examples, todo_items
+        return todo_items
 
     def _gloss_with_llm(
         self, 
-        examples: Dict[int, Dict[str, str]],  # Fixed type hint
         todo_items: List[Dict[int, str]]
     ) -> Dict[int, str]:
         """
-        Send batch request to Gemini with examples for few-shot learning.
-        
-        Returns:
-            Dict mapping row indices to glossed text
+        Send batch request with accumulated examples for few-shot learning.
         """
         if not todo_items:
             return {}
         
-        # Prepare payload with examples for few-shot prompting
+        examples = list(GlossingProcessor._shared_examples.values())[-10:]
+        
         payload = {
-            'examples': list(examples.values()),
-            'items': todo_items  # Items to gloss
+            'examples': examples,
+            'items': todo_items
         }
         
-        # Single Gemini API call
         response_text = self.strategy.gloss(json.dumps(payload, ensure_ascii=False))
         response_json = json.loads(response_text)
         
-        # Map results back to row indices
         return {item['id']: item['gloss'] for item in response_json['items']}
-
-    def _gloss_with_standard_strategy(
-        self, 
-        df: pd.DataFrame, 
-        source_col: str
-    ) -> pd.Series:
-        """
-        Process rows one-by-one with standard (non-Gemini) strategy.
-        """
-        glossed = []
-        
-        for i in tqdm(range(len(df)), desc="Glossing rows", unit="row"):
-            source_text = df.at[i, source_col]
-            existing_gloss = df.at[i, "glossing_utterance_used"]
-            
-            # Keep existing gloss if present
-            if isinstance(existing_gloss, str) and existing_gloss.strip():
-                glossed.append(existing_gloss)
-            # Gloss each line separately if source exists
-            elif isinstance(source_text, str) and source_text.strip():
-                lines = source_text.split("\n")
-                glossed_lines = [self.strategy.gloss(line) for line in lines]
-                glossed.append("\n".join(glossed_lines))
-            else:
-                glossed.append("")
-        
-        return pd.Series(glossed, index=df.index)
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -152,30 +114,25 @@ class GlossingProcessor(DataProcessor):
         if source_col not in df.columns:
             return df
         
-        # Separate into examples and items needing glossing
-        examples, todo_items = self._separate_examples_and_todo(df, source_col)
+        todo_items = self._separate_examples_and_todo(df, source_col)
         if not todo_items:
             self.file_changed = False
             return df
         
-        # Process based on strategy type
-        if isinstance(self.strategy, GeminiGlossingStrategy) or isinstance(self.strategy, QwenGlossingStrategy):
-            id_to_gloss = self._gloss_with_llm(examples, todo_items)
+        if isinstance(self.strategy, (GeminiGlossingStrategy, QwenGlossingStrategy)):
+            id_to_gloss = self._gloss_with_llm(todo_items)
             
-            # Merge results back into dataframe
             glossed = []
             for i in range(len(df)):
                 if i in id_to_gloss:
                     glossed.append(id_to_gloss[i])
                 else:
-                    # Keep existing gloss or empty string
                     existing = df.at[i, "glossing_utterance_used"]
                     glossed.append(existing if isinstance(existing, str) else "")
             
             df["automatic_glossing"] = glossed
             df["glossing_utterance_used"] = glossed
         else:
-            # Row-by-row processing with standard strategy
             glossed_series = self._gloss_with_standard_strategy(df, source_col)
             if glossed_series.empty:
                 self.file_changed = False

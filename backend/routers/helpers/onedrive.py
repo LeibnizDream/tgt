@@ -84,7 +84,11 @@ def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_fol
     with open(local_file_path, 'rb') as f:
         response = requests.put(upload_url, headers=headers, data=f)
 
-    if response.status_code not in (200, 201):
-        raise Exception(f"Failed to upload/replace file: {response.text}")
+        if response.status_code == 423:
+            raise Exception("Do you have the file open? File is locked and cannot be overwritten.")
+        if response.status_code == 401:
+            raise Exception("Unauthorized: Try to refresh your access token.")
+        else:
+            response.raise_for_status()
 
     return response.json()
