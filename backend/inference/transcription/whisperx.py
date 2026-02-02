@@ -11,12 +11,13 @@ class WhisperxStrategy(TranscriptionStrategy):
         self.batch_size = kwargs.get('batch_size', 8)
     
     def load_model(self):
+        device = self.device if self.device == 'cuda' else 'cpu'
         try:
-            self.model = whisperx.load_model("large-v2", self.device, compute_type="float16", language=self.language_code)
+            self.model = whisperx.load_model("large-v2", device, compute_type="float16", language=self.language_code)
         except:
-            self.model = whisperx.load_model("large-v2", self.device, compute_type="int8", language=self.language_code)
+            self.model = whisperx.load_model("large-v2", device, compute_type="int8", language=self.language_code)
         finally:
-            print(f"Whisperx model loaded on device {self.device}")
+            print(f"Whisperx model loaded on device {device}")
 
     def transcribe(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)

@@ -30,10 +30,16 @@ class TranscriptionProcessor(DataProcessor):
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction)
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+        self.device = device
         print(f"Using device: {self.device}")
         self.pii_identifier = PIIIdentifierFactory.get_strategy(self.language)
-        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
+        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language, self.device)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'
