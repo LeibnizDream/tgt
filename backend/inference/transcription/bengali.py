@@ -6,7 +6,6 @@ from inference.transcription.abstract import TranscriptionStrategy
 class BengaliStrategy(TranscriptionStrategy):
         
     def load_model(self):
-        self.device = 0 if (torch.cuda.is_available()) else "cpu"
         self.whisper_asr = pipeline(
             "automatic-speech-recognition",
             model="mozilla-ai/whisper-large-v3-bn",

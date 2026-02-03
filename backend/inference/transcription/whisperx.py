@@ -1,4 +1,5 @@
 import whisperx
+import torch
 from whisperx.diarize import DiarizationPipeline
 from inference.transcription.abstract import TranscriptionStrategy
 
@@ -8,16 +9,33 @@ class WhisperxStrategy(TranscriptionStrategy):
         """
         Initialize the Whisperx transcription strategy.	"""
         super().__init__(*args, **kwargs)
+        print("Initializing inside WhisperxStrategy")
         self.batch_size = kwargs.get('batch_size', 8)
+        cuda_available = torch.cuda.is_available()
+        cudnn_version = None
+        
+        if cuda_available:
+            try:
+                cudnn_version = torch.backends.cudnn.version()
+            except:
+                cudnn_version = None
+
+        if cuda_available and cudnn_version and 8000 <= cudnn_version < 9000:
+            device = "cuda"
+            print(f"Using CUDA with cuDNN {cudnn_version}")
+        else:
+            device = "cpu"
+            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN version: {cudnn_version})")
+
+        self.device = device
     
     def load_model(self):
-        device = self.device if self.device == 'cuda' else 'cpu'
         try:
-            self.model = whisperx.load_model("large-v2", device, compute_type="float16", language=self.language_code)
+            self.model = whisperx.load_model("large-v2", self.device, compute_type="float16", language=self.language_code)
         except:
-            self.model = whisperx.load_model("large-v2", device, compute_type="int8", language=self.language_code)
+            self.model = whisperx.load_model("large-v2", self.device, compute_type="int8", language=self.language_code)
         finally:
-            print(f"Whisperx model loaded on device {device}")
+            print(f"Whisperx model loaded on device {self.device}")
 
     def transcribe(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)

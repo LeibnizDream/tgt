@@ -2,15 +2,39 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from dotenv import load_dotenv
+import torch
 from huggingface_hub import login
 
 _this_file = Path(__file__).resolve()
 parent_dir = _this_file.parent.parent.parent
 
 class TranscriptionStrategy(ABC):
-    def __init__(self, language_code: str, device: str = "cpu"):
+    def __init__(self, language_code: str):
+        print("Initializing inside TranscriptionStrategy")
         self.language_code = language_code.lower()
+        cuda_available = torch.cuda.is_available()
+        mps_available = torch.backends.mps.is_available()
+        cudnn_version = None
+        
+        if cuda_available:
+            try:
+                cudnn_version = torch.backends.cudnn.version()
+            except:
+                cudnn_version = None
+        
+        # Use CUDA only if cuDNN 8 is available
+        if mps_available:
+            device = "mps"
+            print("Using Apple Silicon GPU (MPS)")
+        elif cuda_available and cudnn_version and 8000 <= cudnn_version < 9000:
+            device = "cuda"
+            print(f"Using CUDA with cuDNN {cudnn_version}")
+        else:
+            device = "cpu"
+            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN version: {cudnn_version})")
+
         self.device = device
+        print(f"TranscriptionStrategy initialized with device: {self.device}, language_code: {self.language_code}")
         self.hugging_key = self._load_hugging_face_token()
         login(token=self.hugging_key)
         self.load_model()

@@ -7,13 +7,11 @@ class ThaiTranscriptionStrategy(TranscriptionStrategy):
     def load_model(self):
         MODEL_NAME = "biodatlab/whisper-th-large-v3-combined"  # specify the model name
 
-        device = 0 if torch.cuda.is_available() else "cpu"
-
         self.pipe = pipeline(
             task="automatic-speech-recognition",
             model=MODEL_NAME,
             chunk_length_s=30,
-            device=device,
+            device=self.device,
         )
     
     def transcribe(self, path_to_audio: str) -> str | None:
