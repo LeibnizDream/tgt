@@ -48,6 +48,8 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
                 f"{item['parentReference']['driveId']}/items/{item['id']}/children"
             )
             resp = requests.get(children_url, headers=headers)
+            if resp.status_code == 401:
+                raise Exception("token might be expired. Could you try refreshing it?")
             resp.raise_for_status()
             for child in resp.json().get('value', []):
                 recursive_collect_files(child, os.path.join(relative_path, item['name']))
@@ -94,13 +96,13 @@ def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_fol
         graph_code = None
 
     if resp.status_code == 423:
-        raise Exception("File locked (423): probablemente está abierto en OneDrive/Office.")
+        raise Exception("Is the file open in another program? Locked (423).")
     elif resp.status_code == 409:
         raise Exception(f"Conflict (409): {graph_code or ''} {graph_msg or resp.text}")
     elif resp.status_code == 403:
         raise Exception(f"Forbidden (403): {graph_code or ''} {graph_msg or resp.text}")
     elif resp.status_code == 401:
-        raise Exception("Unauthorized (401): token expirado o inválido.")
+        raise Exception("token might be expired. Could you try refreshing it?")
     else:
         # si falla, que el error tenga contexto útil
         try:
