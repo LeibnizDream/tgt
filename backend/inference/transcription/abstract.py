@@ -12,26 +12,20 @@ class TranscriptionStrategy(ABC):
     def __init__(self, language_code: str):
         print("Initializing inside TranscriptionStrategy")
         self.language_code = language_code.lower()
-        cuda_available = torch.cuda.is_available()
         mps_available = torch.backends.mps.is_available()
-        cudnn_version = None
-        
-        if cuda_available:
-            try:
-                cudnn_version = torch.backends.cudnn.version()
-            except:
-                cudnn_version = None
-        
-        # Use CUDA only if cuDNN 8 is available
-        if mps_available:
+        cuda_available = torch.cuda.is_available()
+        cudnn_available = torch.backends.cudnn.is_available() if cuda_available else False
+
+        if cuda_available and cudnn_available:
+            device = "cuda"
+            cudnn_version = torch.backends.cudnn.version()
+            print(f"Using CUDA with cuDNN {cudnn_version}")
+        elif mps_available:
             device = "mps"
             print("Using Apple Silicon GPU (MPS)")
-        elif cuda_available and cudnn_version and 8000 <= cudnn_version < 9000:
-            device = "cuda"
-            print(f"Using CUDA with cuDNN {cudnn_version}")
         else:
             device = "cpu"
-            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN version: {cudnn_version})")
+            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN available: {cudnn_available})")
 
         self.device = device
         print(f"TranscriptionStrategy initialized with device: {self.device}, language_code: {self.language_code}")

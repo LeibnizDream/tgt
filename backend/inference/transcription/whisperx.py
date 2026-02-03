@@ -9,23 +9,17 @@ class WhisperxStrategy(TranscriptionStrategy):
         """
         Initialize the Whisperx transcription strategy.	"""
         super().__init__(*args, **kwargs)
-        print("Initializing inside WhisperxStrategy")
         self.batch_size = kwargs.get('batch_size', 8)
         cuda_available = torch.cuda.is_available()
-        cudnn_version = None
-        
-        if cuda_available:
-            try:
-                cudnn_version = torch.backends.cudnn.version()
-            except:
-                cudnn_version = None
+        cudnn_available = torch.backends.cudnn.is_available() if cuda_available else False
 
-        if cuda_available and cudnn_version and 8000 <= cudnn_version < 9000:
+        if cuda_available and cudnn_available:
             device = "cuda"
+            cudnn_version = torch.backends.cudnn.version()
             print(f"Using CUDA with cuDNN {cudnn_version}")
         else:
             device = "cpu"
-            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN version: {cudnn_version})")
+            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN available: {cudnn_available})")
 
         self.device = device
     

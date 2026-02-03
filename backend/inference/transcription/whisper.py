@@ -9,4 +9,6 @@ class WhisperStrategy(TranscriptionStrategy):
 
     def transcribe(self, path_to_audio):
         res = self.model.transcribe(path_to_audio, language=self.language_code)
-        return res["text"]
+        text = res["text"]
+        print(text)
+        return text

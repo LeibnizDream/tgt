@@ -11,13 +11,13 @@ class TranscriptionStrategyFactory:
         if language_code in ['en', 'fr', 'de', 'es', 'it', 'ja', 'zh', 'nl',
                              'uk', 'pt', 'ar', 'cs', 'ru', 'pl', 'hu', 'fi',
                              'fa', 'el', 'tr', 'da', 'he', 'ko', 'ur', 
-                             'te', 'hi', 'ca', 'ml', 'ka', 'tl']:
+                             'te', 'hi', 'ca', 'ml', 'ka', 'tl', 'ro']:
             return WhisperxStrategy(language_code)
         elif language_code in ['th']:
             return ThaiTranscriptionStrategy(language_code)
         elif language_code in ['vi']:
             return VietnameseStrategy(language_code)
-        elif language_code in ['et', 'ro']:
+        elif language_code in ['et']:
             return WhisperStrategy(language_code)
         elif language_code in ['bn']:
             return BengaliStrategy(language_code)
