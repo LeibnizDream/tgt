@@ -39,7 +39,7 @@ class TranscriptionProcessor(DataProcessor):
         self.device = device
         print(f"Using device: {self.device}")
         self.pii_identifier = PIIIdentifierFactory.get_strategy(self.language)
-        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language, self.device)
+        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'
