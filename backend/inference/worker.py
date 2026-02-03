@@ -44,6 +44,7 @@ class AbstractInferenceWorker(ABC):
         self.job_id = job.id if job else 'local_job'
         self.q = getattr(job, 'queue', None)
         self.cancel = getattr(job, 'cancel_event', None)
+        self.processor = None
 
     @abstractmethod
     def _initial_message(self) -> None:
@@ -104,6 +105,7 @@ class AbstractInferenceWorker(ABC):
                 session_name = os.path.basename(os.path.normpath(self.current_folder))
                 self._put(f"Processing session: {session_name}")
 
+                # This needs to be created here because of the multiprocessing context
                 # Create a processor based on configuration
                 print(f"Creating processor for action: {self.action}, language: {self.language}, instruction: {self.instruction}, translationModel: {self.translationModel}, glossingModel: {self.glossingModel}")
                 self.processor = ProcessorFactory.get_processor(

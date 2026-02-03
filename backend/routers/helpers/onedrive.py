@@ -81,14 +81,31 @@ def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_fol
 
     upload_url = f"https://graph.microsoft.com/v1.0/drives/{target_drive_id}/items/{parent_folder_id}:/{file_name_in_folder}:/content"
 
-    with open(local_file_path, 'rb') as f:
-        response = requests.put(upload_url, headers=headers, data=f)
+    with open(local_file_path, "rb") as f:
+        resp = requests.put(upload_url, headers=headers, data=f)
 
-        if response.status_code == 423:
-            raise Exception("Do you have the file open? File is locked and cannot be overwritten.")
-        if response.status_code == 401:
-            raise Exception("Unauthorized: Try to refresh your access token.")
-        else:
-            response.raise_for_status()
+    # intenta sacar el error estructurado de Graph
+    graph_msg = None
+    try:
+        j = resp.json()
+        graph_msg = j.get("error", {}).get("message")
+        graph_code = j.get("error", {}).get("code")
+    except Exception:
+        graph_code = None
 
-    return response.json()
+    if resp.status_code == 423:
+        raise Exception("File locked (423): probablemente está abierto en OneDrive/Office.")
+    elif resp.status_code == 409:
+        raise Exception(f"Conflict (409): {graph_code or ''} {graph_msg or resp.text}")
+    elif resp.status_code == 403:
+        raise Exception(f"Forbidden (403): {graph_code or ''} {graph_msg or resp.text}")
+    elif resp.status_code == 401:
+        raise Exception("Unauthorized (401): token expirado o inválido.")
+    else:
+        # si falla, que el error tenga contexto útil
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            raise Exception(f"HTTP {resp.status_code}: {graph_code or ''} {graph_msg or resp.text}") from e
+
+    return resp.json()
