@@ -63,9 +63,12 @@ class TranscriptionProcessor(DataProcessor):
         # iterate over audio files in 'binaries' and append transcriptions
         bin_dir = os.path.join(self._current_base_dir, 'binaries')
         files = sorted(os.listdir(bin_dir))
+        print(f"[DEBUG] Files found in {bin_dir}, found {files} files.")
         count = 0
         for file in tqdm(files, desc="Transcribing audio"):
+            print(f"[DEBUG] Processing file: {file}")
             if not file.lower().endswith(('.mp3', '.mp4', '.m4a')):
+                print(f"[DEBUG] Skipping non-audio file: {file}")
                 continue
             count += 1
             path = os.path.join(bin_dir, file)
@@ -83,6 +86,7 @@ class TranscriptionProcessor(DataProcessor):
                     self.filename_regexp,
                 )
             except Exception as e:
+                print(f"[ERROR] Error processing file '{file}': {e}")
                 self.logger.info(f"Error processing file '{file}': {e}")
         return df
 
@@ -122,8 +126,15 @@ class TranscriptionProcessor(DataProcessor):
                 df[col] = ""
 
         if self.language not in NO_LATIN:
-            df["transcription_original_script"] = ""
-            df["transcription_original_script_utterance_used"] = ""
+            print(f"[DEBUG] Language without Latin script detected {self.language}.")
+            df.drop(
+                columns=[
+                    "transcription_original_script",
+                    "transcription_original_script_utterance_used"
+                ],
+                errors="ignore",
+                inplace=True
+            )
 
         return df, excel_out
 
@@ -135,6 +146,7 @@ class TranscriptionProcessor(DataProcessor):
         self, df, file, transcription, count, filename_regexp
     ):
         series = df[df.isin([file])].stack()
+        print(f"[DEBUG] Searching for file '{file}' in DataFrame.")
         text_auto = f"{count}: {transcription}"
         suffix = " - " if series.empty else " "
         col_name = (
@@ -149,6 +161,7 @@ class TranscriptionProcessor(DataProcessor):
                 self._append_to_cell(df, row_idx, 'automatic_transcription', text_auto + suffix)
                 self._append_to_cell(df, row_idx, col_name, text_auto + suffix)
         else:
+            print(f"[DEBUG] File '{file}' not found directly in DataFrame, attempting block/task/trial match.")
             if 'Block_Nr' in df.columns and 'Task_Nr' in df.columns and 'Trial_Nr' in df.columns:
                 match = filename_regexp.search(file)
                 if not match:

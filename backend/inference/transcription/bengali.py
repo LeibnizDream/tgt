@@ -1,4 +1,3 @@
-import torch
 from transformers import pipeline
 from inference.transcription.abstract import TranscriptionStrategy
 
@@ -17,7 +16,12 @@ class BengaliStrategy(TranscriptionStrategy):
             self.whisper_asr.tokenizer.get_decoder_prompt_ids(language=self.language_code, task="transcribe")
         )
 
-        result = self.whisper_asr(path_to_audio)
+        result = self.whisper_asr(path_to_audio, return_timestamps=True)
         result = result.get("text", "").strip()
-        print(result)
+        if not result:
+            print(f"[WARNING] Empty transcription for: {path_to_audio}")
+            print(f"[DEBUG] Raw result: {result}")
+        else:
+            print(f"[SUCCESS] Transcribed {len(result)} chars: {result[:100]}")
+            print(result)
         return result
