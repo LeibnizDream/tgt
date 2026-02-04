@@ -16,7 +16,7 @@ class GlossingStrategyFactory:
                                          translationModel=translationModel)
         elif language_code in ['fi', 'fr', 'it', 'ro', 'ru', 'uk']:
             return SpaCyGlossingStrategy(language_code)
-        elif language_code in ['de']:
+        elif language_code in ['de', 'et']:
             return GeminiGlossingStrategy(language_code)
         elif language_code in []:
             return QwenGlossingStrategy(language_code)
