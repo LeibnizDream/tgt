@@ -31,6 +31,7 @@ class TranscriptionStrategy(ABC):
         print(f"TranscriptionStrategy initialized with device: {self.device}, language_code: {self.language_code}")
         self.hugging_key = self._load_hugging_face_token()
         login(token=self.hugging_key)
+        
         self.load_model()
     
     def _load_hugging_face_token(self):

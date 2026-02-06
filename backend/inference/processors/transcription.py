@@ -126,7 +126,7 @@ class TranscriptionProcessor(DataProcessor):
                 df[col] = ""
 
         if self.language not in NO_LATIN:
-            print(f"[DEBUG] Language without Latin script detected {self.language}.")
+            print(f"[DEBUG] Language with Latin script detected {self.language}.")
             df.drop(
                 columns=[
                     "transcription_original_script",

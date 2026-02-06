@@ -1,8 +1,26 @@
-import whisperx
+import os
 import torch
-from whisperx.diarize import DiarizationPipeline
 from inference.transcription.abstract import TranscriptionStrategy
 
+# Patch torch.load FIRST
+_original_load = torch.load
+def patched_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+torch.load = patched_load
+
+# Patch hf_hub_download BEFORE whisperx imports it
+from huggingface_hub import hf_hub_download as _original_hf_download
+def patched_hf_download(*args, **kwargs):
+    if 'use_auth_token' in kwargs:
+        kwargs['token'] = kwargs.pop('use_auth_token')
+    return _original_hf_download(*args, **kwargs)
+
+import huggingface_hub
+huggingface_hub.hf_hub_download = patched_hf_download
+
+import whisperx
+from whisperx.diarize import DiarizationPipeline
 
 class WhisperxStrategy(TranscriptionStrategy):
     def __init__(self, *args, **kwargs):
@@ -26,10 +44,10 @@ class WhisperxStrategy(TranscriptionStrategy):
     def load_model(self):
         try:
             self.model = whisperx.load_model("large-v2", self.device, compute_type="float16", language=self.language_code)
-        except:
+        except Exception as e:
+            print(f"float16 failed: {e}, falling back to int8")
             self.model = whisperx.load_model("large-v2", self.device, compute_type="int8", language=self.language_code)
-        finally:
-            print(f"Whisperx model loaded on device {self.device}")
+        print(f"Whisperx model loaded on device {self.device}")
 
     def transcribe(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)
@@ -41,7 +59,6 @@ class WhisperxStrategy(TranscriptionStrategy):
         result = whisperx.align(result["segments"], model_a, metadata, audio, self.device)
 
         diarize_model = DiarizationPipeline(
-            use_auth_token=self.hugging_key,
             device=self.device
         )
         diarize_segments = diarize_model(audio)

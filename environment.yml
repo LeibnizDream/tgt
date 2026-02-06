@@ -6,6 +6,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
+  - cudnn=8.9.2
   - pip
   - pip:
       # MacOS-specific dependencies
