@@ -20,9 +20,6 @@ class TranscriptionStrategy(ABC):
             device = "cuda"
             cudnn_version = torch.backends.cudnn.version()
             print(f"Using CUDA with cuDNN {cudnn_version}")
-        elif mps_available:
-            device = "mps"
-            print("Using Apple Silicon GPU (MPS)")
         else:
             device = "cpu"
             print(f"Using CPU (CUDA available: {cuda_available}, cuDNN available: {cudnn_available})")
