@@ -61,6 +61,12 @@ class TranslationProcessor(DataProcessor):
 
         print(f"Source column for {self.instruction}: {source_col}")
 
+        # Ensure target columns exist with object dtype so string assignment works
+        for target_col in cols_map[self.instruction]:
+            if target_col not in df.columns:
+                df[target_col] = pd.NA
+            df[target_col] = df[target_col].astype(object)
+
         for idx, row in tqdm(df.iterrows(), desc="Translating rows"):
             if idx >= 100:
                 self.logger.info(f"Reached max rows at {idx}")
