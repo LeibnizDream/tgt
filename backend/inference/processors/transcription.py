@@ -30,8 +30,7 @@ class TranscriptionProcessor(DataProcessor):
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction)
-        self.device = device
-        print(f"Using device: {self.device}")
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.pii_identifier = PIIIdentifierFactory.get_strategy(self.language)
         self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
@@ -40,16 +39,11 @@ class TranscriptionProcessor(DataProcessor):
         )
 
     def _find_files(self, base_dir: str) -> list[str]:
+        # find parent dirs containing a 'binaries' subfolder
         bases = set()
-        for subdir, _, _ in os.walk(base_dir):
-            if os.path.basename(subdir) == "binaries":
-                bases.add(os.path.abspath(os.path.join(subdir, "..")))
-
-        if not bases:
-            raise FileNotFoundError(
-                f"No 'binaries' directory found under: {base_dir}"
-            )
-
+        for subdir, _, files in os.walk(base_dir):
+            if 'binaries' in os.path.basename(subdir):
+                bases.add(os.path.abspath(os.path.join(subdir, '..')))
         return sorted(bases)
 
     def _read_file(self, base_dir: str) -> pd.DataFrame:
@@ -63,12 +57,9 @@ class TranscriptionProcessor(DataProcessor):
         # iterate over audio files in 'binaries' and append transcriptions
         bin_dir = os.path.join(self._current_base_dir, 'binaries')
         files = sorted(os.listdir(bin_dir))
-        print(f"[DEBUG] Files found in {bin_dir}, found {files} files.")
         count = 0
         for file in tqdm(files, desc="Transcribing audio"):
-            print(f"[DEBUG] Processing file: {file}")
             if not file.lower().endswith(('.mp3', '.mp4', '.m4a')):
-                print(f"[DEBUG] Skipping non-audio file: {file}")
                 continue
             count += 1
             path = os.path.join(bin_dir, file)
@@ -86,7 +77,6 @@ class TranscriptionProcessor(DataProcessor):
                     self.filename_regexp,
                 )
             except Exception as e:
-                print(f"[ERROR] Error processing file '{file}': {e}")
                 self.logger.info(f"Error processing file '{file}': {e}")
         return df
 
@@ -110,31 +100,16 @@ class TranscriptionProcessor(DataProcessor):
         elif os.path.exists(csv_file):
             df = pd.read_csv(csv_file, encoding='utf-8')
         else:
-            # Create from binaries
-            bin_dir = os.path.join(base_dir, 'binaries')
-            files = [f for f in os.listdir(bin_dir) if f.lower().endswith(('.mp3', '.mp4', '.m4a'))]
-            
-            if not files:
-                raise FileNotFoundError(f"No audio files found in {bin_dir}")
-            
-            df = pd.DataFrame({'files': files})
-            self.logger.info(f"Created DataFrame from {len(files)} audio files")
+            raise FileNotFoundError(
+                "No trials_and_sessions file found in the directory."
+            )
 
-        # Add obligatory columns
         for col in OBLIGATORY_COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
+            df[col] = df.get(col, "")
 
         if self.language not in NO_LATIN:
-            print(f"[DEBUG] Language with Latin script detected {self.language}.")
-            df.drop(
-                columns=[
-                    "transcription_original_script",
-                    "transcription_original_script_utterance_used"
-                ],
-                errors="ignore",
-                inplace=True
-            )
+            df["transcription_original_script"] = ""
+            df["transcription_original_script_utterance_used"] = ""
 
         return df, excel_out
 
@@ -146,7 +121,15 @@ class TranscriptionProcessor(DataProcessor):
         self, df, file, transcription, count, filename_regexp
     ):
         series = df[df.isin([file])].stack()
-        print(f"[DEBUG] Searching for file '{file}' in DataFrame.")
+        series = series[series == file]
+        print(f"[DEBUG] file='{file}' | series length={len(series)} | empty={series.empty}")
+        if not series.empty:
+            for (row_idx, col_name_found), val in series.items():
+                print(f"  [DEBUG] row={row_idx}, col='{col_name_found}', value='{val}'")
+            unique_rows = series.index.get_level_values(0).unique()
+            print(f"  [DEBUG] unique rows matched: {list(unique_rows)} (count={len(unique_rows)})")
+            if len(unique_rows) > 1:
+                raise ValueError(f"File '{file}' matched multiple unique rows in the DataFrame, which should not happen.")
         text_auto = f"{count}: {transcription}"
         suffix = " - " if series.empty else " "
         col_name = (
@@ -155,44 +138,40 @@ class TranscriptionProcessor(DataProcessor):
             else 'latin_transcription_everything'
         )
 
-        if not series.empty:
-            print(f"[DEBUG] File '{file}' found in DataFrame.")
+        if series.empty:
+            match = filename_regexp.search(file)
+            if not match:
+                self.logger.info(
+                    f"File '{file}' does not match block/task/trial pattern. Skipping."
+                )
+                return
+            blk = int(match['block'])
+            tsk = int(match['task'])
+            trl = int(match['trial'])
+            cond = (
+                (df['Block_Nr'] == blk)
+                & (df['Task_Nr'] == tsk)
+                & (df['Trial_Nr'] == trl)
+            )
+            if df.loc[cond].empty:
+                self.logger.info(
+                    f"No row for block {blk}, task {tsk}, trial {trl}. Skipping '{file}'."
+                )
+                return
+            miss_col = next(
+                f"missing_filename_{i}"
+                for i in range(1, 10)
+                if f"missing_filename_{i}" not in df.columns
+                or df.loc[cond, f"missing_filename_{i}"].isna().all()
+            )
+            df.loc[cond, miss_col] = file
+            for idx in df.loc[cond].index:
+                self._append_to_cell(df, idx, 'automatic_transcription', text_auto + suffix)
+                self._append_to_cell(df, idx, col_name,      text_auto + suffix)
+        else:
             for (row_idx, _), _ in series.items():
                 self._append_to_cell(df, row_idx, 'automatic_transcription', text_auto + suffix)
-                self._append_to_cell(df, row_idx, col_name, text_auto + suffix)
-        else:
-            print(f"[DEBUG] File '{file}' not found directly in DataFrame, attempting block/task/trial match.")
-            if 'Block_Nr' in df.columns and 'Task_Nr' in df.columns and 'Trial_Nr' in df.columns:
-                match = filename_regexp.search(file)
-                if not match:
-                    print(f"File '{file}' not in DataFrame and doesn't match block/task/trial pattern. Skipping.")
-                    return
-                
-                blk = int(match['block'])
-                tsk = int(match['task'])
-                trl = int(match['trial'])
-                cond = (
-                    (df['Block_Nr'] == blk)
-                    & (df['Task_Nr'] == tsk)
-                    & (df['Trial_Nr'] == trl)
-                )
-                
-                if df.loc[cond].empty:
-                    print(f"No row for block {blk}, task {tsk}, trial {trl}. Skipping '{file}'.")
-                    return
-                
-                miss_col = next(
-                    f"missing_filename_{i}"
-                    for i in range(1, 10)
-                    if f"missing_filename_{i}" not in df.columns
-                    or df.loc[cond, f"missing_filename_{i}"].isna().all()
-                )
-                df.loc[cond, miss_col] = file
-                for idx in df.loc[cond].index:
-                    self._append_to_cell(df, idx, 'automatic_transcription', text_auto + suffix)
-                    self._append_to_cell(df, idx, col_name, text_auto + suffix)
-            else:
-                print(f"File '{file}' not found in DataFrame. Skipping.")
+                self._append_to_cell(df, row_idx, col_name,      text_auto + suffix)
     
     def process(self, input_dir: str):
         files = self._find_files(input_dir)
