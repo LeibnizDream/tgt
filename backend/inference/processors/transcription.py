@@ -105,7 +105,10 @@ class TranscriptionProcessor(DataProcessor):
             )
 
         for col in OBLIGATORY_COLUMNS:
-            df[col] = df.get(col, "")
+            if col not in df.columns:
+                df[col] = ""
+            else:
+                df[col] = df[col].fillna("").astype(str).replace("nan", "")
 
         if self.language not in NO_LATIN:
             df["transcription_original_script"] = ""
@@ -180,7 +183,7 @@ class TranscriptionProcessor(DataProcessor):
             log_path = os.path.join(path, log_name)
             print(f"[DEBUG] Writing log to: {log_path}")
 
-            fh = logging.FileHandler(log_path, mode="a")
+            fh = logging.FileHandler(log_path, mode="a", encoding="utf-8")
             fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s: %(message)s"))
             self.logger.addHandler(fh)
 
