@@ -14,7 +14,7 @@ def list_session_children(share_link: str, token: str):
     return [
         entry
         for entry in entries
-        if entry.get("folder") and entry["name"].startswith("Session_")
+        if entry.get("folder") and "Session_" in entry["name"]
     ]
 
 def encode_share_link(link):
