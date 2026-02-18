@@ -40,8 +40,8 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
             folder_path = os.path.join(temp_dir, relative_path, item['name'])
             os.makedirs(folder_path, exist_ok=True)
 
-            if item['name'].startswith("Session_"):
-                session_folder_id_map[item['name']] = item['id']
+            # Store folder ID for all folders (not just Session_*)
+            session_folder_id_map[item['name']] = item['id']
 
             children_url = (
                 f"https://graph.microsoft.com/v1.0/drives/"
