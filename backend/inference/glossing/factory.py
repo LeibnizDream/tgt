@@ -17,7 +17,7 @@ class GlossingStrategyFactory:
         elif language_code in []:
             return SpaCyGlossingStrategy(language_code)
         elif language_code in ['de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk',
-                               "tr", "vi", "uk", "ru", "en", "it", "pt", 'ja']:
+                               'tr', 'vi', 'uk', 'ru', 'en', 'it', 'pt', 'ja', 'hu']:
             return GeminiGlossingStrategy(language_code)
         elif language_code in []:
             return QwenGlossingStrategy(language_code)
@@ -28,4 +28,4 @@ class GlossingStrategyFactory:
         elif language_code in []:
             return JapaneseGlossingStrategy(language_code)
         else:
-            raise ValueError(f"No glossing strategy available for language code: {language_code}")
+            raise ValueError(f'No glossing strategy available for language code: {language_code}')
