@@ -17,7 +17,8 @@ class GlossingStrategyFactory:
         elif language_code in []:
             return SpaCyGlossingStrategy(language_code)
         elif language_code in ['de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk',
-                               'tr', 'vi', 'uk', 'ru', 'en', 'it', 'pt', 'ja', 'hu']:
+                               'tr', 'vi', 'uk', 'ru', 'en', 'it', 'pt', 'ja', 'hu',
+                               'el']:
             return GeminiGlossingStrategy(language_code)
         elif language_code in []:
             return QwenGlossingStrategy(language_code)
