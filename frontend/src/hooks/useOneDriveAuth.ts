@@ -52,6 +52,7 @@ export function useOneDriveAuth(
   const logout = () => {
     fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
       .catch(() => {});
+    localStorage.removeItem("access_token");
     setIsConnected(false);
     addLog("Logged out of OneDrive", "info");
   };

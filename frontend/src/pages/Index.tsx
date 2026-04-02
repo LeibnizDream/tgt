@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +12,11 @@ import { Brain, FileText } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    localStorage.removeItem("access_token");
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">

@@ -65,6 +65,11 @@ export default function Train() {
   const clearLogs = () => setLogs([]);
 
   const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
+
+  useEffect(() => {
+    logout();
+  }, []);
+
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsTraining,

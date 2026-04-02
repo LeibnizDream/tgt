@@ -78,6 +78,11 @@ export default function Inference() {
   const clearLogs = () => setLogs([]);
 
   const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
+
+  useEffect(() => {
+    logout();
+  }, []);
+
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsProcessing,
