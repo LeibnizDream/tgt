@@ -73,7 +73,7 @@ def get_fresh_token() -> str:
 async def auth_me():
     """Return whether a cached MSAL account exists."""
     cache = _load_cache()
-    app = _build_msal_app(cache)
+    app = _build_msal_app(cache) 
     accounts = app.get_accounts()
     if accounts:
         return {"authenticated": True, "account": accounts[0].get("username")}
@@ -82,10 +82,17 @@ async def auth_me():
 
 @router.post("/logout")
 async def auth_logout():
-    """Clear the MSAL token cache, forcing a fresh login on next connect."""
+    """Clear the MSAL token cache, unless it belongs to the configured ACCOUNT."""
     if CACHE_FILE.exists():
+        if ACCOUNT:
+            cache = _load_cache()
+            app = _build_msal_app(cache)
+            accounts = app.get_accounts()
+            if accounts and accounts[0].get("username") == ACCOUNT:
+                print(f"Cache belongs to configured account {ACCOUNT}, not deleting.")
+                return {"status": "protected"}
         CACHE_FILE.unlink()
-        print('cache deleted')
+        print("cache deleted")
     return {"status": "logged_out"}
 
 
