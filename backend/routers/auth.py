@@ -82,17 +82,20 @@ async def auth_me():
 
 @router.post("/logout")
 async def auth_logout():
-    """Clear the MSAL token cache, unless it belongs to the configured ACCOUNT."""
-    if CACHE_FILE.exists():
-        if ACCOUNT:
-            cache = _load_cache()
-            app = _build_msal_app(cache)
-            accounts = app.get_accounts()
-            if accounts and accounts[0].get("username") == ACCOUNT:
-                print(f"Cache belongs to configured account {ACCOUNT}, not deleting.")
-                return {"status": "protected"}
-        CACHE_FILE.unlink()
-        print("cache deleted")
+    """Remove all cached accounts except the configured ACCOUNT."""
+    if not CACHE_FILE.exists():
+        return {"status": "logged_out"}
+
+    cache = _load_cache()
+    app = _build_msal_app(cache)
+    accounts = app.get_accounts()
+
+    for account in accounts:
+        if not ACCOUNT or account.get("username") != ACCOUNT:
+            app.remove_account(account)
+            print(f"Removed account {account.get('username')} from cache.")
+
+    _save_cache(cache)
     return {"status": "logged_out"}
 
 
