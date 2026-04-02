@@ -1,5 +1,3 @@
-import { useEffect, useRef } from "react";
-
 const ONE_DRIVE_POPUP_URL = "/api/auth/start";
 
 type LogType = "info" | "success" | "error" | "warning";
@@ -8,8 +6,6 @@ export function useOneDriveAuth(
   setIsConnected: (v: boolean) => void,
   addLog: (message: string, type?: LogType) => void,
 ) {
-  const restoredRef = useRef(false);
-
   const checkAuthStatus = () => {
     return fetch("/api/auth/me", { credentials: "same-origin" })
       .then((r) => r.json())
@@ -19,16 +15,6 @@ export function useOneDriveAuth(
       })
       .catch(() => false);
   };
-
-  // On mount: check if MSAL cache has a valid account
-  useEffect(() => {
-    if (!restoredRef.current) {
-      restoredRef.current = true;
-      checkAuthStatus().then((authenticated) => {
-        if (authenticated) addLog("Restored OneDrive session", "success");
-      });
-    }
-  }, []);
 
   const connect = () => {
     addLog("Opening OneDrive auth…");

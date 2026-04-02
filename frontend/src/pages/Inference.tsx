@@ -78,17 +78,21 @@ export default function Inference() {
   const clearLogs = () => setLogs([]);
 
   const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
-
-  useEffect(() => {
-    logout();
-  }, []);
-
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsProcessing,
     "inference",
     (current, total) => setProgress(total > 0 ? { current, total } : null),
   );
+
+  const handleLogout = () => {
+    cancel();
+    logout();
+  };
+
+  useEffect(() => {
+    handleLogout();
+  }, []);
   const { fileInputRef, submit } = useJobSubmission(
     isProcessing,
     setIsProcessing,
@@ -376,7 +380,7 @@ export default function Inference() {
                 </Badge>
               </div>
               {isConnected ? (
-                <Button variant="outline" size="sm" onClick={logout}>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               ) : (

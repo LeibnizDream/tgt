@@ -65,16 +65,20 @@ export default function Train() {
   const clearLogs = () => setLogs([]);
 
   const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
-
-  useEffect(() => {
-    logout();
-  }, []);
-
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsTraining,
     "train",
   );
+
+  const handleLogout = () => {
+    cancel();
+    logout();
+  };
+
+  useEffect(() => {
+    handleLogout();
+  }, []);
 
   const { fileInputRef, submit } = useTrainSubmission(
     isTraining,
@@ -172,7 +176,7 @@ export default function Train() {
                 </Badge>
               </div>
               {isConnected ? (
-                <Button variant="outline" size="sm" onClick={logout}>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               ) : (
