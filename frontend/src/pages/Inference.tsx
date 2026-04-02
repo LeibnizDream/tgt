@@ -39,6 +39,7 @@ import {
 type LogType = "info" | "success" | "error" | "warning";
 
 import { useOneDriveAuth } from "@/hooks/useOneDriveAuth";
+import { LanguageCombobox } from "@/components/ui/language-combobox";
 import { useStreamer } from "@/hooks/useStreamer";
 import { useJobSubmission } from "@/hooks/useJobSubmission";
 
@@ -546,13 +547,8 @@ export default function Inference() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Input
-                id="language"
-                value={language || ""}
-                onChange={(e) => setLanguage(e.target.value)}
-                placeholder="Enter the language (e.g., English, Spanish, French...)"
-              />
+              <Label>Language</Label>
+              <LanguageCombobox value={language} onChange={setLanguage} />
             </div>
             <div className="flex gap-4">
               <Button

@@ -39,6 +39,7 @@ import {
 type LogType = "info" | "success" | "error" | "warning";
 
 import { useOneDriveAuth } from "@/hooks/useOneDriveAuth";
+import { LanguageCombobox } from "@/components/ui/language-combobox";
 import { useStreamer } from "@/hooks/useStreamer";
 import { useTrainSubmission } from "@/hooks/useTrainSubmission";
 
@@ -296,13 +297,8 @@ export default function Train() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <Input
-                  id="language"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  placeholder="Enter the language (e.g., Spanish, French)"
-                />
+                <Label>Language</Label>
+                <LanguageCombobox value={language} onChange={setLanguage} />
               </div>
 
               <div className="space-y-2">
