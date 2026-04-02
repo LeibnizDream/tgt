@@ -56,11 +56,14 @@ class TranscriptionProcessor(DataProcessor):
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         # iterate over audio files in 'binaries' and append transcriptions
         bin_dir = os.path.join(self._current_base_dir, 'binaries')
-        files = sorted(os.listdir(bin_dir))
+        audio_files = [
+            f for f in sorted(os.listdir(bin_dir))
+            if f.lower().endswith(('.mp3', '.mp4', '.m4a'))
+        ]
+        total = len(audio_files)
+        progress_cb = getattr(self, '_progress_callback', None)
         count = 0
-        for file in tqdm(files, desc="Transcribing audio"):
-            if not file.lower().endswith(('.mp3', '.mp4', '.m4a')):
-                continue
+        for file in tqdm(audio_files, desc="Transcribing audio"):
             count += 1
             path = os.path.join(bin_dir, file)
             try:
@@ -78,6 +81,8 @@ class TranscriptionProcessor(DataProcessor):
                 )
             except Exception as e:
                 self.logger.info(f"Error processing file '{file}': {e}")
+            if progress_cb:
+                progress_cb(count, total)
         return df
 
     def _write_file(self, _: str, df: pd.DataFrame):

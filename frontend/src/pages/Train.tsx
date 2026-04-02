@@ -64,7 +64,7 @@ export default function Train() {
   };
   const clearLogs = () => setLogs([]);
 
-  const { connect, logout, getToken } = useOneDriveAuth(setIsConnected, addLog);
+  const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsTraining,
@@ -76,7 +76,6 @@ export default function Train() {
     setIsTraining,
     addLog,
     streamerOpen,
-    getToken,
   );
 
   const handleTrainSubmit = async () => {

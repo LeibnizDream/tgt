@@ -27,11 +27,12 @@ class TranslationProcessor(DataProcessor):
         self,
         language: str,
         instruction: str,
+        translationModel: str = None,
         device: str = "cpu",
     ):
         super().__init__(language, instruction)
         self.device = device
-        self.strategy: TranslationStrategy = TranslationStrategyFactory.get_strategy(self.language)
+        self.strategy: TranslationStrategy = TranslationStrategyFactory.get_strategy(self.language, translationModel)
         print(f"Using translation strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = {
             "automatic": "automatic_translation_automatic_transcription",
@@ -134,6 +135,8 @@ class TranslationProcessor(DataProcessor):
 
         print(f"Source column for {self.instruction}: {source_col}")
 
+        progress_cb = getattr(self, '_progress_callback', None)
+
         if isinstance(self.strategy, GeminiTranslationStrategy):
             todo_items = self._separate_examples_and_todo(df, source_col)
 
@@ -141,7 +144,13 @@ class TranslationProcessor(DataProcessor):
                 self.file_changed = False
                 return df
 
+            if progress_cb:
+                progress_cb(0, len(todo_items))
+
             id_to_translation = self._translate_with_llm(todo_items)
+
+            if progress_cb:
+                progress_cb(len(todo_items), len(todo_items))
 
             for i in range(len(df)):
                 if i in id_to_translation:
@@ -150,6 +159,12 @@ class TranslationProcessor(DataProcessor):
 
         else:
             # Fallback: row-by-row for non-Gemini strategies
+            eligible = [
+                (idx, row) for idx, row in df.iterrows()
+                if idx < 100 and not pd.isna(row.get(source_col)) and str(row.get(source_col, "")).strip()
+            ]
+            total = len(eligible)
+            done = 0
             for idx, row in tqdm(df.iterrows(), desc="Translating rows"):
                 if idx >= 100:
                     self.logger.info(f"Reached max rows at {idx}")
@@ -157,13 +172,12 @@ class TranslationProcessor(DataProcessor):
                 text = row.get(source_col)
                 if pd.isna(text) or not str(text).strip():
                     continue
-                try:
-                    translation = self.strategy.translate(str(text))
-                    if not translation:
-                        continue
-                    for col in target_cols:
-                        df.at[idx, col] = translation
-                except Exception as e:
-                    self.logger.error(f"Row {idx} translation error: {e}")
+
+                translation = self.strategy.translate(str(text))
+                for col in target_cols:
+                    df.at[idx, col] = translation
+                done += 1
+                if progress_cb:
+                    progress_cb(done, total)
 
         return df

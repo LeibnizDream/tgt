@@ -75,6 +75,10 @@ class DataProcessor(ABC):
         self._orig_stdout = sys.stdout
         self._orig_stderr = sys.stderr
 
+    def set_progress_callback(self, callback):
+        """Optional callback(current, total) emitted during processing."""
+        self._progress_callback = callback
+
     def _attach_session_handler(self, session_path: str):
         log_name = f"{self.__class__.__name__}.log"
         log_path = os.path.join(Path(session_path).parent, log_name)

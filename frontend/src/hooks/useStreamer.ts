@@ -1,4 +1,3 @@
-import { add } from "date-fns";
 import { useEffect, useRef } from "react";
 
 type LogType = "info" | "success" | "error" | "warning";
@@ -8,7 +7,8 @@ const JOB_KEY = "job_id";
 export function useStreamer(
   addLog: (msg: string, type?: LogType) => void,
   setIsProcessing: (v: boolean) => void,
-  prefix: "inference" | "train"
+  prefix: "inference" | "train",
+  setProgress?: (current: number, total: number) => void
 ) {
   const evtRef = useRef<EventSource | null>(null);
 
@@ -16,6 +16,7 @@ export function useStreamer(
     evtRef.current?.close();
     evtRef.current = null;
     setIsProcessing(false);
+    setProgress?.(0, 0);
     localStorage.removeItem(JOB_KEY);
   };
 
@@ -23,6 +24,7 @@ export function useStreamer(
     localStorage.setItem(JOB_KEY, jobId);
     addLog(`Opened job ${jobId}`, "info");
     setIsProcessing(true);
+    setProgress?.(0, 0);
 
     const evt = new EventSource(`/api/${prefix}/${jobId}/stream`);
     evtRef.current = evt;
@@ -30,6 +32,12 @@ export function useStreamer(
     evt.onmessage = async (e) => {
     const data = e.data;
     if (data === "[PING]") return;
+
+    if (data.startsWith("[PROGRESS]")) {
+      const [cur, tot] = data.replace("[PROGRESS]", "").trim().split("/").map(Number);
+      setProgress?.(cur, tot);
+      return;
+    }
 
     if (data.includes("[ERROR]")) {
       addLog(data, "error");

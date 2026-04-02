@@ -89,6 +89,41 @@ class GlossingProcessor(DataProcessor):
         
         return todo_items
 
+    def _gloss_with_standard_strategy(
+        self,
+        df: pd.DataFrame,
+        source_col: str,
+        progress_cb=None,
+    ) -> pd.Series:
+        """
+        Apply the strategy row-by-row for non-LLM strategies (e.g. Stanza, SpaCy).
+        Rows with existing glosses or empty source are left as-is.
+        """
+        todo_indices = [
+            i for i in range(len(df))
+            if not (isinstance(df.at[i, "glossing_utterance_used"], str) and df.at[i, "glossing_utterance_used"].strip())
+            and isinstance(df.at[i, source_col], str) and df.at[i, source_col].strip()
+        ]
+        total = len(todo_indices)
+        done = 0
+
+        results = []
+        for i in range(len(df)):
+            source_text = df.at[i, source_col]
+            existing_gloss = df.at[i, "glossing_utterance_used"]
+
+            if isinstance(existing_gloss, str) and existing_gloss.strip():
+                results.append(existing_gloss)
+            elif isinstance(source_text, str) and source_text.strip():
+                results.append(self.strategy.gloss(source_text))
+                done += 1
+                if progress_cb:
+                    progress_cb(done, total)
+            else:
+                results.append("")
+
+        return pd.Series(results, index=df.index)
+
     def _gloss_with_llm(
         self, 
         todo_items: List[Dict[int, str]]
@@ -124,10 +159,18 @@ class GlossingProcessor(DataProcessor):
         if not todo_items:
             self.file_changed = False
             return df
-        
+
+        progress_cb = getattr(self, '_progress_callback', None)
+
         if isinstance(self.strategy, (GeminiGlossingStrategy, QwenGlossingStrategy)):
+            if progress_cb:
+                progress_cb(0, len(todo_items))
+
             id_to_gloss = self._gloss_with_llm(todo_items)
-            
+
+            if progress_cb:
+                progress_cb(len(todo_items), len(todo_items))
+
             glossed = []
             for i in range(len(df)):
                 if i in id_to_gloss:
@@ -135,14 +178,14 @@ class GlossingProcessor(DataProcessor):
                 else:
                     existing = df.at[i, "glossing_utterance_used"]
                     glossed.append(existing if isinstance(existing, str) else "")
-            
+
             df["automatic_glossing"] = glossed
             df["glossing_utterance_used"] = glossed
         else:
-            glossed_series = self._gloss_with_standard_strategy(df, source_col)
+            glossed_series = self._gloss_with_standard_strategy(df, source_col, progress_cb)
             if glossed_series.empty:
                 self.file_changed = False
             df["automatic_glossing"] = glossed_series
             df["glossing_utterance_used"] = glossed_series
-        
+
         return df

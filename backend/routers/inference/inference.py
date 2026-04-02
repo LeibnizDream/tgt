@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
 from routers.helpers.job_manager import JobManager, ProcessingService, JobCleanupService
+from routers.auth import get_fresh_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,14 +25,12 @@ async def process(
     glossingModel: Optional[str] = Form(None),
     translationModel: Optional[str] = Form(None),
     instruction: Optional[str] = Form(None),
-    access_token: Optional[str] = Form(None),
     zipfile: Optional[UploadFile] = File(None),
     base_dir: Optional[str] = Form(None),
 ):
     """Process files either from uploaded zip or OneDrive."""
     # Initialize job
     job = JobManager.create()
-    job.token = access_token
 
     # Normalize model names
     glossing_model = ProcessingService.normalize_model_name(glossingModel)
@@ -55,12 +54,14 @@ async def process(
             job.base_dir = tmp_dir
         else:
             # Handle OneDrive processing
-            if not base_dir or not access_token:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="Missing base_dir or access_token for online processing"
-                )
-            
+            if not base_dir:
+                raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
+            try:
+                access_token = get_fresh_token()
+            except RuntimeError as e:
+                raise HTTPException(status_code=401, detail=str(e))
+            job.token = access_token
+
             worker = ProcessingService.create_onedrive_worker(
                 base_dir, action, language, instruction,
                 translation_model, glossing_model, access_token, job

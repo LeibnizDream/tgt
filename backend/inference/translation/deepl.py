@@ -46,11 +46,15 @@ class DeeplStrategy(TranslationStrategy):
                     "Call _init_deepl_client() before translating."
                 )
 
-            result = self._deepl_client.translate_text(
-                text,
-                source_lang=self._deepl_source_lang,
-                target_lang="EN-US"
+            try:
+                result = self._deepl_client.translate_text(
+                    text,
+                    source_lang=self._deepl_source_lang,
+                    target_lang="EN-US"
                 )
+            except deepl.QuotaExceededException as e:
+                raise RuntimeError("DeepL character quota exceeded.") from e
+            
             print(f"Inside strategy {result}")
 
             if not result.text:

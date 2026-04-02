@@ -10,23 +10,21 @@ from inference.glossing.qwen import QwenGlossingStrategy
 class GlossingStrategyFactory:
     @staticmethod
     def get_strategy(language_code: str, glossingModel = None, translationModel = None) -> GlossingStrategy:
-        if glossingModel:
-            return SpaCyGlossingStrategy(language_code, 
-                                         glossingModel=glossingModel, 
-                                         translationModel=translationModel)
-        elif language_code in []:
-            return SpaCyGlossingStrategy(language_code)
-        elif language_code in ['de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk',
-                               'tr', 'vi', 'uk', 'ru', 'en', 'it', 'pt', 'ja', 'hu',
-                               'el']:
-            return GeminiGlossingStrategy(language_code)
-        elif language_code in []:
-            return QwenGlossingStrategy(language_code)
-        elif language_code in []:
+        # Explicit model selection from frontend
+        if glossingModel and glossingModel.lower() == "spacy":
+            return SpaCyGlossingStrategy(language_code, translationModel=translationModel)
+        elif glossingModel and glossingModel.lower() == "stanza":
             return StanzaGlossingStrategy(language_code)
-        elif language_code in []:
-            return PortugueseGlossingStrategy(language_code)
-        elif language_code in []:
-            return JapaneseGlossingStrategy(language_code)
+        elif glossingModel and glossingModel.lower() == "gemini":
+            return GeminiGlossingStrategy(language_code)
+        # Custom trained model
+        elif glossingModel and glossingModel.lower() not in ("default", ""):
+            return SpaCyGlossingStrategy(language_code,
+                                         glossingModel=glossingModel,
+                                         translationModel=translationModel)
+        # Default: pick by language
+        elif language_code in ['de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk',
+                               'tr', 'vi', 'en', 'pt', 'ja', 'hu', 'el']:
+            return GeminiGlossingStrategy(language_code)
         else:
             raise ValueError(f'No glossing strategy available for language code: {language_code}')

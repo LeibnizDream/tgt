@@ -8,7 +8,6 @@ export function useTrainSubmission(
   setIsProcessing: (v: boolean) => void,
   addLog: (m: string, t?: LogType) => void,
   streamerOpen: (jobId: string) => void,
-  getToken: () => string | null,
 ) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -54,14 +53,6 @@ export function useTrainSubmission(
     form.append("base_dir", baseDir);
     
     if (mode === "online") {
-      const token = getToken();
-      if (!token) {
-        addLog("No OneDrive token. Please connect.", "error");
-        setIsProcessing(false);
-        return;
-      }
-      form.append("access_token", token);
-      
       try {
         const res = await fetch("/api/train/process", {
           method: "POST",
@@ -70,8 +61,12 @@ export function useTrainSubmission(
         });
         
         if (!res.ok) {
-          const errorText = await res.text();
-          addLog(`Error: ${errorText}`, "error");
+          if (res.status === 401) {
+            addLog("OneDrive session expired. Please reconnect.", "error");
+          } else {
+            const errorText = await res.text();
+            addLog(`Error: ${errorText}`, "error");
+          }
           setIsProcessing(false);
           return;
         }
