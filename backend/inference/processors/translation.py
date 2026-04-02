@@ -107,7 +107,7 @@ class TranslationProcessor(DataProcessor):
         if not todo_items:
             return {}
 
-        examples = list(TranslationProcessor._shared_examples.values())[-10:]
+        examples = list(TranslationProcessor._shared_examples.values())[:10]
 
         payload = {
             "examples": examples,

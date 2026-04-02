@@ -99,7 +99,7 @@ class GlossingProcessor(DataProcessor):
         if not todo_items:
             return {}
         
-        examples = list(GlossingProcessor._shared_examples.values())[-10:]
+        examples = list(GlossingProcessor._shared_examples.values())[:10]
         
         payload = {
             'examples': examples,

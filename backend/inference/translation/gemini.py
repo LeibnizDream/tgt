@@ -45,7 +45,7 @@ class GeminiTranslationStrategy(TranslationStrategy):
                 "items": items,
             }, ensure_ascii=False)
         else:
-            human_payload = json.dumps({"items": items}, ensure_ascii=False)
+            raise Exception('No examples found or provided')
 
         messages = [
             ("system", system),

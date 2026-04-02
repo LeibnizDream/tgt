@@ -46,7 +46,7 @@ class GeminiGlossingStrategy(GlossingStrategy):
                 "items": items
             }, ensure_ascii=False)
         else:
-            human_payload = json.dumps({"items": items}, ensure_ascii=False)
+            raise Exception('No examples provided or recognized')
 
         messages = [
             ("system", system),
