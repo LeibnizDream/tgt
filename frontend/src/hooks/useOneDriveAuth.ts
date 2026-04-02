@@ -30,15 +30,6 @@ export function useOneDriveAuth(
     }
   }, []);
 
-  // Clear cache when the window/tab is closed
-  useEffect(() => {
-    const handleUnload = () => {
-      navigator.sendBeacon("/api/auth/logout");
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, []);
-
   const connect = () => {
     addLog("Opening OneDrive auth…");
     const popup = window.open(ONE_DRIVE_POPUP_URL, "authPopup", "width=600,height=700");
