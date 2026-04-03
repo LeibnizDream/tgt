@@ -12,6 +12,7 @@ from sse_starlette.sse import EventSourceResponse
 from multiprocessing import Process, Queue, Event
 from routers.training.train_workers import OneDriveWorker
 from routers.helpers.job_manager import JobManager
+from routers.auth import get_fresh_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,11 +32,9 @@ async def process(
     study: str | None = Form(None),
     action: str = Form(...),
     language: str = Form(...),
-    access_token: str | None = Form(None),
     zipfile: UploadFile | None = File(None),
 ):
     job = JobManager.create()
-    job.token = access_token
 
     if not language:
         job.queue.put("[ERROR] Missing language")
@@ -52,8 +51,13 @@ async def process(
 
         #TODO: Handle the case where multiple files are uploaded
     else:
-        if not base_dir or not access_token:
-            raise HTTPException(status_code=400, detail="Missing base_dir or access_token for online processing")
+        if not base_dir:
+            raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
+        try:
+            access_token = get_fresh_token()
+        except RuntimeError as e:
+            raise HTTPException(status_code=401, detail=str(e))
+        job.token = access_token
         worker_fn = OneDriveWorker(base_dir, language, action, study, access_token, job)
 
     job.process = await run_worker(worker_fn.run)

@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-ACCOUNT = os.getenv("ACCOUNT")
 
 if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     envf = Path(__file__).parent.parent / "materials" / "secrets.env"
@@ -56,6 +55,50 @@ def _build_msal_app(cache=None):
         token_cache=cache
     )
 
+def get_fresh_token() -> str:
+    """Get a valid access token from the MSAL cache, refreshing silently if needed."""
+    cache = _load_cache()
+    app = _build_msal_app(cache)
+    accounts = app.get_accounts()
+    if not accounts:
+        raise RuntimeError("No cached account. User must connect first.")
+    result = app.acquire_token_silent(SCOPES, account=accounts[0])
+    if not result or "access_token" not in result:
+        raise RuntimeError("Token refresh failed. User must reconnect.")
+    _save_cache(cache)
+    return result["access_token"]
+
+
+@router.get("/me")
+async def auth_me():
+    """Return whether a cached MSAL account exists."""
+    cache = _load_cache()
+    app = _build_msal_app(cache) 
+    accounts = app.get_accounts()
+    if accounts:
+        return {"authenticated": True, "account": accounts[0].get("username")}
+    return {"authenticated": False}
+
+
+@router.post("/logout")
+async def auth_logout():
+    """Remove all cached accounts except the configured ACCOUNT."""
+    if not CACHE_FILE.exists():
+        return {"status": "logged_out"}
+
+    cache = _load_cache()
+    app = _build_msal_app(cache)
+    accounts = app.get_accounts()
+
+    for account in accounts:
+        if not ACCOUNT or account.get("username") != ACCOUNT:
+            app.remove_account(account)
+            print(f"Removed account {account.get('username')} from cache.")
+
+    _save_cache(cache)
+    return {"status": "logged_out"}
+
+
 @router.get("/start")
 async def start_onedrive_auth(request: Request):
     host   = request.headers.get("host")
@@ -91,7 +134,7 @@ async def start_onedrive_auth(request: Request):
         redirect_uri=redirect_uri,
         response_mode="query",
         extra_query_parameters=eqp or None,
-        # prompt="none"  # optional: will error if no MS session; normally omit
+        prompt="select_account",
     )
     return RedirectResponse(url=auth_url, status_code=302)
 

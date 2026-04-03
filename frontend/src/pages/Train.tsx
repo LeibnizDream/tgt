@@ -39,6 +39,7 @@ import {
 type LogType = "info" | "success" | "error" | "warning";
 
 import { useOneDriveAuth } from "@/hooks/useOneDriveAuth";
+import { LanguageCombobox } from "@/components/ui/language-combobox";
 import { useStreamer } from "@/hooks/useStreamer";
 import { useTrainSubmission } from "@/hooks/useTrainSubmission";
 
@@ -64,19 +65,27 @@ export default function Train() {
   };
   const clearLogs = () => setLogs([]);
 
-  const { connect, logout, getToken } = useOneDriveAuth(setIsConnected, addLog);
+  const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsTraining,
     "train",
   );
 
+  const handleLogout = () => {
+    cancel();
+    logout();
+  };
+
+  useEffect(() => {
+    handleLogout();
+  }, []);
+
   const { fileInputRef, submit } = useTrainSubmission(
     isTraining,
     setIsTraining,
     addLog,
     streamerOpen,
-    getToken,
   );
 
   const handleTrainSubmit = async () => {
@@ -168,7 +177,7 @@ export default function Train() {
                 </Badge>
               </div>
               {isConnected ? (
-                <Button variant="outline" size="sm" onClick={logout}>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               ) : (
@@ -288,13 +297,8 @@ export default function Train() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <Input
-                  id="language"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  placeholder="Enter the language (e.g., Spanish, French)"
-                />
+                <Label>Language</Label>
+                <LanguageCombobox value={language} onChange={setLanguage} />
               </div>
 
               <div className="space-y-2">

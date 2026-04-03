@@ -2,6 +2,9 @@ import os
 import requests
 import base64
 
+from routers.auth import get_fresh_token
+
+
 def list_session_children(share_link: str, token: str):
     """
     Helper for the online worker: list all Session_* folders under a OneDrive share link.
@@ -9,6 +12,9 @@ def list_session_children(share_link: str, token: str):
     share_id = base64.urlsafe_b64encode(share_link.encode()).decode().rstrip("=")
     url = f"https://graph.microsoft.com/v1.0/shares/u!{share_id}/driveItem/children"
     resp = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+    if resp.status_code == 401:
+        token = get_fresh_token()
+        resp = requests.get(url, headers={"Authorization": f"Bearer {token}"})
     resp.raise_for_status()
     entries = resp.json().get("value", [])
     return [
@@ -22,12 +28,23 @@ def encode_share_link(link):
     return f"u!{encoded_url}"
 
 def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: list = None):
-    headers = {"Authorization": f"Bearer {access_token}"}
     share_id = encode_share_link(share_link)
     root_url = f"https://graph.microsoft.com/v1.0/shares/{share_id}/driveItem"
 
-    root_response = requests.get(root_url, headers=headers)
-    root_response.raise_for_status()
+    def get_headers():
+        return {"Authorization": f"Bearer {access_token}"}
+
+    def get_with_retry(url):
+        nonlocal access_token
+        resp = requests.get(url, headers=get_headers())
+        if resp.status_code == 401:
+            print('code has expired. Renewed automatically')
+            access_token = get_fresh_token()
+            resp = requests.get(url, headers=get_headers())
+        resp.raise_for_status()
+        return resp
+
+    root_response = get_with_retry(root_url)
     root_item = root_response.json()
 
     drive_id = root_item['parentReference']['driveId']
@@ -35,34 +52,23 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
     session_folder_id_map = {}
 
     def recursive_collect_files(item, relative_path):
-        # If this item is a folder, recurse into it
         if "folder" in item:
             folder_path = os.path.join(temp_dir, relative_path, item['name'])
             os.makedirs(folder_path, exist_ok=True)
-
-            # Store folder ID for all folders (not just Session_*)
             session_folder_id_map[item['name']] = item['id']
-
             children_url = (
                 f"https://graph.microsoft.com/v1.0/drives/"
                 f"{item['parentReference']['driveId']}/items/{item['id']}/children"
             )
-            resp = requests.get(children_url, headers=headers)
-            if resp.status_code == 401:
-                raise Exception("token might be expired. Could you try refreshing it?")
-            resp.raise_for_status()
+            resp = get_with_retry(children_url)
             for child in resp.json().get('value', []):
                 recursive_collect_files(child, os.path.join(relative_path, item['name']))
-
-        # Otherwise, it's a file—check suffix and download if allowed
         else:
             name = item['name']
-            # if no suffix filter given, or name ends with any of the allowed suffixes
             if file_suffix is None or any(name.lower().endswith(s.lower()) for s in file_suffix):
                 file_folder = os.path.join(temp_dir, relative_path)
                 os.makedirs(file_folder, exist_ok=True)
                 file_path = os.path.join(file_folder, name)
-
                 download_url = item.get("@microsoft.graph.downloadUrl")
                 if download_url:
                     r = requests.get(download_url, stream=True)
@@ -76,17 +82,22 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
 
 
 def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_folder_id, file_name_in_folder, access_token):
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/octet-stream"
-    }
-
     upload_url = f"https://graph.microsoft.com/v1.0/drives/{target_drive_id}/items/{parent_folder_id}:/{file_name_in_folder}:/content"
 
-    with open(local_file_path, "rb") as f:
-        resp = requests.put(upload_url, headers=headers, data=f)
+    def do_upload(token):
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/octet-stream"
+        }
+        with open(local_file_path, "rb") as f:
+            return requests.put(upload_url, headers=headers, data=f)
 
-    # intenta sacar el error estructurado de Graph
+    resp = do_upload(access_token)
+    if resp.status_code == 401:
+        print('fresh token has expired, renewing automatically')
+        access_token = get_fresh_token()
+        resp = do_upload(access_token)
+
     graph_msg = None
     try:
         j = resp.json()
@@ -102,9 +113,8 @@ def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_fol
     elif resp.status_code == 403:
         raise Exception(f"Forbidden (403): {graph_code or ''} {graph_msg or resp.text}")
     elif resp.status_code == 401:
-        raise Exception("token might be expired. Could you try refreshing it?")
+        raise Exception("Token refresh failed. Please reconnect to OneDrive.")
     else:
-        # si falla, que el error tenga contexto útil
         try:
             resp.raise_for_status()
         except requests.HTTPError as e:

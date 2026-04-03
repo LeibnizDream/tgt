@@ -117,6 +117,10 @@ class AbstractInferenceWorker(ABC):
                 )
                 print(f"Using processor: {self.processor.__class__.__name__}")
 
+                self.processor.set_progress_callback(
+                    lambda cur, tot: self._put(f"[PROGRESS] {cur}/{tot}")
+                )
+
                 # Run the processing logic
                 self.processor.process(self.current_folder)
 

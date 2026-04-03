@@ -39,6 +39,7 @@ import {
 type LogType = "info" | "success" | "error" | "warning";
 
 import { useOneDriveAuth } from "@/hooks/useOneDriveAuth";
+import { LanguageCombobox } from "@/components/ui/language-combobox";
 import { useStreamer } from "@/hooks/useStreamer";
 import { useJobSubmission } from "@/hooks/useJobSubmission";
 
@@ -56,6 +57,7 @@ export default function Inference() {
   const [instruction, setInstruction] = useState("automatic");
   const [language, setLanguage] = useState("");
   const [logsExpanded, setLogsExpanded] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [selectedGlossingModel, setSelectedGlossingModel] = useState("Default");
   const [selectedTranslationModel, setSelectedTranslationModel] = useState("Default");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -76,18 +78,27 @@ export default function Inference() {
 
   const clearLogs = () => setLogs([]);
 
-  const { connect, logout, getToken } = useOneDriveAuth(setIsConnected, addLog);
+  const { connect, logout } = useOneDriveAuth(setIsConnected, addLog);
   const { open: streamerOpen, cancel } = useStreamer(
     addLog,
     setIsProcessing,
     "inference",
+    (current, total) => setProgress(total > 0 ? { current, total } : null),
   );
+
+  const handleLogout = () => {
+    cancel();
+    logout();
+  };
+
+  useEffect(() => {
+    handleLogout();
+  }, []);
   const { fileInputRef, submit } = useJobSubmission(
     isProcessing,
     setIsProcessing,
     addLog,
     streamerOpen,
-    getToken,
   );
 
   const checkBackendStatus = async () => {
@@ -114,10 +125,9 @@ export default function Inference() {
           const data = await res.json();
           setBackendStatus("online");
           if (Array.isArray(data.models)) {
-            const models = [
-              "Default",
-              ...data.models.filter((m) => m !== "Default"),
-            ];
+            const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "marian", "m2m100"];
+            const custom = data.models.filter((m) => !FIXED_TRANSLATION.includes(m));
+            const models = [...FIXED_TRANSLATION, ...custom];
             setAvailableModels(models);
             setSelectedTranslationModel("Default");
             addLog(
@@ -155,10 +165,9 @@ export default function Inference() {
           if (glossRes.ok) {
             const glossData = await glossRes.json();
             if (Array.isArray(glossData.models)) {
-              const models = [
-                "Default",
-                ...glossData.models.filter((m) => m !== "Default"),
-              ];
+              const FIXED_GLOSSING = ["Default", "spacy", "stanza", "gemini"];
+              const custom = glossData.models.filter((m: string) => !FIXED_GLOSSING.includes(m));
+              const models = [...FIXED_GLOSSING, ...custom];
               setAvailableGlossingModels(models);
               setSelectedGlossingModel("Default");
               addLog(
@@ -171,10 +180,9 @@ export default function Inference() {
           if (transRes.ok) {
             const transData = await transRes.json();
             if (Array.isArray(transData.models)) {
-              const models = [
-                "Default",
-                ...transData.models.filter((m) => m !== "Default"),
-              ];
+              const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "marian", "m2m100"];
+              const custom = transData.models.filter((m: string) => !FIXED_TRANSLATION.includes(m));
+              const models = [...FIXED_TRANSLATION, ...custom];
               setAvailableTranslationModels(models);
               setSelectedTranslationModel("Default");
               addLog(
@@ -216,8 +224,12 @@ export default function Inference() {
 
   const handleSubmit = () => {
   // 1) Basic validation
-  if (!action || !instruction) {
-    addLog("Please select action and instruction", "error");
+  if (!action) {
+    addLog("Please select an action", "error");
+    return;
+  }
+  if (action !== "transcribe" && !instruction) {
+    addLog("Please select an instruction", "error");
     return;
   }
   if (!language.trim()) {
@@ -369,7 +381,7 @@ export default function Inference() {
                 </Badge>
               </div>
               {isConnected ? (
-                <Button variant="outline" size="sm" onClick={logout}>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               ) : (
@@ -469,7 +481,7 @@ export default function Inference() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${action !== "transcribe" && action !== "create columns" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
               <div className="space-y-2">
                 <Label htmlFor="action">Action</Label>
                 <Select value={action || "transcribe"} onValueChange={setAction}>
@@ -477,28 +489,30 @@ export default function Inference() {
                     <SelectValue placeholder="Select action" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="create columns">Create Columns</SelectItem>
                     <SelectItem value="transcribe">Transcribe</SelectItem>
                     <SelectItem value="translate">Translate</SelectItem>
                     <SelectItem value="gloss">Gloss</SelectItem>
                     <SelectItem value="transliterate">Transliterate</SelectItem>
-                    <SelectItem value="create columns">Create Columns</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="instruction">Instruction</Label>
-                <Select value={instruction || "automatic"} onValueChange={setInstruction}>
-                  <SelectTrigger id="instruction">
-                    <SelectValue placeholder="Select instruction" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="automatic">Automatic Transcription</SelectItem>
-                    <SelectItem value="corrected">Corrected Transcription</SelectItem>
-                    <SelectItem value="sentences">Chosen Sentences</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {action !== "transcribe" && action !== "create columns" && (
+                <div className="space-y-2">
+                  <Label htmlFor="instruction">Instruction</Label>
+                  <Select value={instruction || "automatic"} onValueChange={setInstruction}>
+                    <SelectTrigger id="instruction">
+                      <SelectValue placeholder="Select instruction" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="automatic">Automatic Transcription</SelectItem>
+                      <SelectItem value="corrected">Corrected Transcription</SelectItem>
+                      <SelectItem value="sentences">Chosen Sentences</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Model Selection for Translation */}
@@ -533,13 +547,8 @@ export default function Inference() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Input
-                id="language"
-                value={language || ""}
-                onChange={(e) => setLanguage(e.target.value)}
-                placeholder="Enter the language (e.g., English, Spanish, French...)"
-              />
+              <Label>Language</Label>
+              <LanguageCombobox value={language} onChange={setLanguage} />
             </div>
             <div className="flex gap-4">
               <Button
@@ -569,6 +578,36 @@ export default function Inference() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Progress */}
+        {isProcessing && (
+          <Card className="bg-white/80 backdrop-blur-sm">
+            <CardContent className="pt-6 pb-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  {progress && progress.total > 0 ? (
+                    <>
+                      <span>{progress.current} / {progress.total} rows processed</span>
+                      <span className="font-medium">{Math.round((progress.current / progress.total) * 100)}%</span>
+                    </>
+                  ) : (
+                    <span>Processing…</span>
+                  )}
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  {progress && progress.total > 0 ? (
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                    />
+                  ) : (
+                    <div className="bg-blue-600 h-2.5 rounded-full w-full animate-pulse" />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Logs */}
         <Card className="bg-white/80 backdrop-blur-sm">
