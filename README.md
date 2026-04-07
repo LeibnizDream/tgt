@@ -1,6 +1,6 @@
 # TGT – Overview
 
-![Watch video](documentation_diagrams/video.png)]
+![Watch video](documentation_diagrams/video.png)
 
 ## What is TGT?
 
