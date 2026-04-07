@@ -1,6 +1,6 @@
 # TGT – Overview
 
-[![Watch video](documentation_diagrams/video_thumbnail.png)](https://raw.githubusercontent.com/camelo-cruz/TGT/main/documentation_diagrams/video.mov)
+[![Watch video](documentation_diagrams/video.png)]
 
 ## What is TGT?
 
