@@ -1,5 +1,39 @@
-# Architecture overview
+# TGT – Overview
 
+## What is TGT?
+
+TGT (Transcription Glossing Translation) is an end-to-end system designed to support linguistic data processing workflows.
+
+It provides a unified pipeline that integrates:
+
+- **Automatic Speech Recognition (ASR)** for transcription
+- **Machine Translation (MT)** for translation
+- **Glossing models** for linguistic annotation
+- **Data handling utilities** for structured datasets (e.g., Excel/CSV)
+
+The system is built to be **usable by non-technical users**, while maintaining a modular and extensible backend architecture that allows developers to integrate new models or processing strategies.
+
+---
+
+## Key Capabilities
+
+- Process raw linguistic data (audio or text) into annotated formats
+- Automate repetitive annotation tasks (transcription, translation, glossing)
+- Support multiple model providers (local and API-based)
+- Handle structured datasets (e.g., spreadsheet-based workflows)
+- Provide a web-based interface for interaction
+
+---
+
+## Design Goals
+
+- **Modularity**: Clear separation between processing strategies (ASR, translation, glossing)
+- **Extensibility**: Easy integration of new models or providers
+- **Reproducibility**: Consistent processing pipelines
+- **Usability**: Accessible to linguists without programming experience
+- **Deployment flexibility**: Local, server-based, or containerized
+
+---
 ## Component diagram
 
 ![component_diagram](documentation_diagrams/component_diagram.png)
