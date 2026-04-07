@@ -66,6 +66,7 @@ CLIENT_SECRET=your_azure_client_secret_here
 # Optional: DeepL Translation API
 # Sign up at: https://www.deepl.com/pro-api
 DEEPL_API_KEY=your_deepl_api_key_here
+GOOGLE_API_KEY=your_google_gemini_api
 ```
 
 ## Installation & Deployment Options
@@ -170,6 +171,7 @@ If OneDrive is used, be sure to:
 | **Hugging Face** | 1. Create account at [huggingface.co](https://huggingface.co)<br>2. Go to Settings > Access Tokens<br>3. Create new token |
 | **Azure/OneDrive** | 1. Go to [Azure Portal](https://portal.azure.com)<br>2. Register new application<br>3. Note down Tenant ID, Client ID, and Client Secret |
 | **DeepL** | 1. Sign up at [DeepL Pro](https://www.deepl.com/pro-api)<br>2. Get API key from account dashboard |
+| **Google Gemini** | 1. Go to https://aistudio.google.com<br>2. Sign in with your Google account<br>3. Click “Get API key”<br>4. Create a new API key<br>5. Copy and store it securely |
 
 ## Support
 
