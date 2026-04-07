@@ -1,5 +1,7 @@
 # TGT – Overview
 
+[![Watch video](documentation_diagrams/video.mov)](documentation_diagrams/video.mov)
+
 ## What is TGT?
 
 TGT (Transcription Glossing Translation) is an end-to-end system designed to support linguistic data processing workflows.
