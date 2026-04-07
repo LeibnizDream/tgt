@@ -1,6 +1,6 @@
 # TGT – Overview
 
-[![Watch video](documentation_diagrams/video.mov)](documentation_diagrams/video.mov)
+[![Watch video](documentation_diagrams/video_thumbnail.png)](documentation_diagrams/video.mov)
 
 ## What is TGT?
 
