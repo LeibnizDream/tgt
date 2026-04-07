@@ -34,17 +34,6 @@ The system is built to be **usable by non-technical users**, while maintaining a
 - **Deployment flexibility**: Local, server-based, or containerized
 
 ---
-## Component diagram
-
-![component_diagram](documentation_diagrams/component_diagram.png)
-
-## Class diagram
-
-### Class diagram for the inference component
-![class_diagram_inference](documentation_diagrams/class_diagram_inference.png)
-
-### Class diagram for the training component
-![class_diagram_training](documentation_diagrams/class_diagram_training.png)
 
 # Setup Guide
 
