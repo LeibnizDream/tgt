@@ -25,6 +25,6 @@ class GlossingStrategyFactory:
         # Default: pick by language
         elif language_code in ['de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk',
                                'tr', 'vi', 'en', 'pt', 'ja', 'hu', 'el']:
-            return GeminiGlossingStrategy(language_code)
+            return LLMGlossingStrategy(language_code)
         else:
             raise ValueError(f'No glossing strategy available for language code: {language_code}')
