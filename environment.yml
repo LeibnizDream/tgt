@@ -8,6 +8,7 @@ dependencies:
   - python=3.11
   - cudnn=8.9.2
   - pip
+  - ollama  # installs the Ollama application (Mac & Windows via conda-forge)
   - pip:
       # MacOS-specific dependencies
       - torch==2.6.0; sys_platform == "darwin"
