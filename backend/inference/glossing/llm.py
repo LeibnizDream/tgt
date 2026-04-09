@@ -8,6 +8,7 @@ from inference.glossing.abstract import GlossingStrategy
 class LLMGlossingStrategy(GlossingStrategy):
 
     def load_model(self):
+        loaded = None
         if self.glossing_model == 'gemini':
             self.nlp = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
@@ -16,13 +17,16 @@ class LLMGlossingStrategy(GlossingStrategy):
                 timeout=120,
                 max_retries=2,
             )
+            loaded = "gemini-2.5-flash"
         elif self.glossing_model == 'qwen' or self.glossing_model is None:
             self.nlp = ChatOllama(
                 model="qwen3.5:9b",
                 temperature=0.0,
+                base_url="http://127.0.0.1:11434",
                 think=False,
             )
-        print(f"Loaded model for glossing: {self.glossing_model or 'gemini'}", file=sys.stderr)
+            loaded = "qwen3.5:9b"
+        print(f"Loaded model for glossing: {loaded}", file=sys.stderr)
 
     def gloss(self, payload: str) -> str:
         """

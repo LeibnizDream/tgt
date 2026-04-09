@@ -20,6 +20,7 @@ class LLMTranslationStrategy(TranslationStrategy):
             self.nlp = ChatOllama(
                 model="qwen3.5:9b",
                 temperature=0.0,
+                base_url="http://127.0.0.1:11434",
                 think=False,
             )
 
