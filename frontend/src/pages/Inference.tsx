@@ -125,7 +125,7 @@ export default function Inference() {
           const data = await res.json();
           setBackendStatus("online");
           if (Array.isArray(data.models)) {
-            const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "marian", "m2m100"];
+            const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "qwen", "marian", "m2m100"];
             const custom = data.models.filter((m) => !FIXED_TRANSLATION.includes(m));
             const models = [...FIXED_TRANSLATION, ...custom];
             setAvailableModels(models);
@@ -165,7 +165,7 @@ export default function Inference() {
           if (glossRes.ok) {
             const glossData = await glossRes.json();
             if (Array.isArray(glossData.models)) {
-              const FIXED_GLOSSING = ["Default", "spacy", "stanza", "gemini"];
+              const FIXED_GLOSSING = ["Default", "spacy", "stanza", "gemini", "qwen"];
               const custom = glossData.models.filter((m: string) => !FIXED_GLOSSING.includes(m));
               const models = [...FIXED_GLOSSING, ...custom];
               setAvailableGlossingModels(models);
@@ -180,7 +180,7 @@ export default function Inference() {
           if (transRes.ok) {
             const transData = await transRes.json();
             if (Array.isArray(transData.models)) {
-              const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "marian", "m2m100"];
+              const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "qwen", "marian", "m2m100"];
               const custom = transData.models.filter((m: string) => !FIXED_TRANSLATION.includes(m));
               const models = [...FIXED_TRANSLATION, ...custom];
               setAvailableTranslationModels(models);

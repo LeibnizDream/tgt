@@ -60,4 +60,4 @@ dependencies:
       - bntrans
       - langchain-google-genai
       - langchain-community
-
+      - langchain-ollama

@@ -3,7 +3,7 @@ from inference.glossing.spacy import SpaCyGlossingStrategy
 from inference.glossing.portuguese import PortugueseGlossingStrategy
 from inference.glossing.stanza import StanzaGlossingStrategy
 from inference.glossing.japanese import JapaneseGlossingStrategy
-from inference.glossing.gemini import GeminiGlossingStrategy
+from inference.glossing.llm import LLMGlossingStrategy
 from inference.glossing.qwen import QwenGlossingStrategy
 
 
@@ -15,8 +15,8 @@ class GlossingStrategyFactory:
             return SpaCyGlossingStrategy(language_code, translationModel=translationModel)
         elif glossingModel and glossingModel.lower() == "stanza":
             return StanzaGlossingStrategy(language_code)
-        elif glossingModel and glossingModel.lower() == "gemini":
-            return GeminiGlossingStrategy(language_code)
+        elif glossingModel and glossingModel.lower() in ['gemini', 'qwen']:
+            return LLMGlossingStrategy(language_code, glossingModel=glossingModel)
         # Custom trained model
         elif glossingModel and glossingModel.lower() not in ("default", ""):
             return SpaCyGlossingStrategy(language_code,

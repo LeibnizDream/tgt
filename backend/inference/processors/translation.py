@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from inference.translation.factory import TranslationStrategyFactory
 from inference.translation.abstract import TranslationStrategy
-from inference.translation.gemini import GeminiTranslationStrategy  # add this import
+from inference.translation.llm import LLMTranslationStrategy  # add this import
 from utils.functions import set_global_variables, find_ffmpeg
 from inference.processors.abstract import DataProcessor
 

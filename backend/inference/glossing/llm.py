@@ -1,19 +1,28 @@
 import json
 import sys
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from inference.glossing.abstract import GlossingStrategy
 
 
-class GeminiGlossingStrategy(GlossingStrategy):
+class LLMGlossingStrategy(GlossingStrategy):
 
     def load_model(self):
-        self.nlp = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.0,
-            max_tokens=None,
-            timeout=120,
-            max_retries=2,
-        )
+        if self.glossing_model == 'gemini':
+            self.nlp = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                temperature=0.0,
+                max_tokens=None,
+                timeout=120,
+                max_retries=2,
+            )
+        if self.glossing_model == 'qwen':
+            self.nlp = ChatOllama(
+                model="qwen3:latest",
+                temperature=0.0,
+                think=False,
+            )
+
 
     def gloss(self, payload: str) -> str:
         """

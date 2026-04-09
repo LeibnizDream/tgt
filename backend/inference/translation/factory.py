@@ -4,7 +4,7 @@ from inference.translation.deepl import DeeplStrategy
 from inference.translation.marian import MarianStrategy
 from inference.translation.M2M100 import M2M100Strategy
 from inference.translation.bengali import BengaliTranslationStrategy
-from inference.translation.gemini import GeminiTranslationStrategy
+from inference.translation.llm import LLMTranslationStrategy
 
 
 class TranslationStrategyFactory:
@@ -13,8 +13,8 @@ class TranslationStrategyFactory:
         # Explicit model selection from frontend
         if translationModel and translationModel.lower() == "deepl":
             return DeeplStrategy(language_code)
-        elif translationModel and translationModel.lower() == "gemini":
-            return GeminiTranslationStrategy(language_code)
+        elif translationModel and translationModel.lower() in ["gemini", "qwen"]:
+            return LLMTranslationStrategy(language_code, translationModel)
         elif translationModel and translationModel.lower() == "marian":
             return MarianStrategy(language_code)
         elif translationModel and translationModel.lower() == "m2m100":

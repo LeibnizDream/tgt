@@ -7,7 +7,7 @@ from collections import deque
 from utils.functions import set_global_variables
 from inference.glossing.factory import GlossingStrategyFactory
 from inference.glossing.abstract import GlossingStrategy
-from inference.glossing.gemini import GeminiGlossingStrategy
+from inference.glossing.llm import GeminiGlossingStrategy
 from inference.glossing.qwen import QwenGlossingStrategy
 from inference.processors.abstract import DataProcessor
 
