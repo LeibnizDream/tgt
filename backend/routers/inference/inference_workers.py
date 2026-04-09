@@ -1,3 +1,17 @@
+"""
+Concrete inference worker implementations for the TGT backend.
+
+This module provides two :class:`~inference.worker.AbstractInferenceWorker`
+subclasses that handle different input sources:
+
+- :class:`ZipWorker`      – Processes a locally extracted ZIP archive and
+  bundles the output files into a new ZIP for download.
+- :class:`OneDriveWorker` – Downloads session folders from a OneDrive share,
+  processes them, and uploads the results back to OneDrive.
+
+Both classes are instantiated by the inference router and run in isolated
+worker processes so that CPU-intensive ML work does not block the event loop.
+"""
 import os
 import tempfile
 import traceback
@@ -14,6 +28,14 @@ from routers.helpers.onedrive import (
 )
 
 class ZipWorker(AbstractInferenceWorker):
+    """
+    Inference worker that processes a locally extracted ZIP archive.
+
+    After the processor runs, the output files listed in
+    :attr:`ALLOWED_FILENAMES` are collected from the processed folder tree
+    and bundled into a new ZIP archive.  The archive path is reported via the
+    job queue so the SSE stream can relay it to the download endpoint.
+    """
     # allow-list for files to include in the zip
     ALLOWED_FILENAMES = {
         "trials_and_sessions_annotated.xlsx",
@@ -27,9 +49,11 @@ class ZipWorker(AbstractInferenceWorker):
     about and reports the zip path.
     """
     def _initial_message(self):
+        """Emit a start-up message before processing begins."""
         self._put("Preparing to process and zip outputs…")
     
     def _folder_to_process(self):
+        """Yield the single base directory extracted from the uploaded ZIP."""
         yield self.base_dir
 
     def _after_process(self):

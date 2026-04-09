@@ -1,3 +1,25 @@
+"""
+Universal Dependencies (UD) preprocessing for morphological glossing training.
+
+:class:`UDPreprocessor` converts annotated transcription/glossing spreadsheets
+into a tabular format suitable for training a spaCy morphology tagger.
+
+Workflow
+--------
+For each row in an annotated Excel file:
+
+1. Normalize and split multi-line text and gloss cells into individual lines.
+2. Tokenize each text line with a spaCy blank-language tokenizer.
+3. Align gloss tokens to text tokens (punctuation receives a ``_`` placeholder).
+4. Map each Leipzig gloss code (e.g. ``M``, ``3-SG``, ``NOM``) to UD feature
+   strings (e.g. ``Gender=Masc``, ``Person=3|Number=Sing``, ``Case=Nom``)
+   using :data:`LEIPZIG_GLOSSARY.json`.
+5. Emit one row per text line with columns
+   ``raw_text | clean_text | tokens | gloss | UDfeats``.
+
+After all files are processed, unknown codes and alignment mismatches are
+reported via :meth:`_after_write`.
+"""
 import re
 import unicodedata
 import pandas as pd

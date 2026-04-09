@@ -1,3 +1,26 @@
+"""
+spaCy-based morphological tagger trainer.
+
+:class:`SpacyTrainer` converts a preprocessed :class:`pandas.DataFrame` (with
+columns ``clean_text`` and ``UDfeats``) into a spaCy :class:`DocBin`, then
+trains a morphology tagger using the spaCy training configuration found in
+``spacy_configs/``.
+
+Training strategy
+-----------------
+- A 90/10 train / dev split is used.
+- If a pretrained spaCy model exists for the language (see
+  :attr:`DEFAULT_SPACY`), its word vectors are loaded and the config is
+  updated with the ``vectors`` path so the trained model can benefit from
+  them.
+- The trained model is saved to ``models/glossing/<lang>_<study>_custom_glossing/``.
+
+Supported pretrained spaCy models
+----------------------------------
+``de``, ``en``, ``fr``, ``zh``, ``el``, ``it``, ``ja``, ``pt``, ``ro``,
+``ru``, ``uk`` – all use the ``*_core_*_lg`` package.  All other languages
+use a blank pipeline without pretrained vectors.
+"""
 import math
 import random
 import tempfile

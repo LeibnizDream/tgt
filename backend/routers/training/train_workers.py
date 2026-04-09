@@ -1,3 +1,15 @@
+"""
+OneDrive-backed training worker for the TGT backend.
+
+Provides :class:`OneDriveWorker`, a concrete
+:class:`~training.worker.AbstractTrainingWorker` subclass that:
+
+1. Downloads annotated Excel files from a SharePoint / OneDrive share link.
+2. Runs the preprocessing pipeline (UD feature extraction).
+3. Trains a spaCy morphology model via the trainer.
+4. Uploads the preprocessing log back to OneDrive.
+5. Cleans up all temporary files.
+"""
 import logging
 import tempfile
 from pathlib import Path
@@ -17,6 +29,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OneDriveWorker(AbstractTrainingWorker):
+    """
+    Training worker that reads annotated data from a OneDrive share link.
+
+    Downloads ``*annotated.xlsx`` files from each ``Session_*`` subfolder,
+    passes them through the preprocessor and trainer, then uploads the
+    resulting log back to OneDrive before cleaning up temporary storage.
+
+    Args:
+        base_dir (str): OneDrive share URL used as the data root.
+        language (str): Language name or code (resolved via LANGUAGES map).
+        action (str): Training action, e.g. ``"gloss"``.
+        study (str): Study identifier appended to output file names.
+        token (str): OAuth2 access token for Microsoft Graph calls.
+        job: Optional :class:`~routers.helpers.job_manager.Job` object for
+            queue-based messaging.
+    """
     def __init__(self, base_dir, language, action, study, token, job):
         super().__init__(base_dir, language, action, study, job)
         self.share_link = base_dir

@@ -1,3 +1,19 @@
+"""
+Job lifecycle management helpers for the TGT backend.
+
+This module provides three service classes used by both the inference and
+training routers:
+
+- :class:`Job`              – Lightweight container that tracks a single
+  background processing job (ID, IPC queue, cancel event, temp paths, etc.).
+- :class:`JobManager`       – Class-level registry that creates, retrieves,
+  and removes ``Job`` instances by their UUID.
+- :class:`ProcessingService`– Factory helpers that normalize model names,
+  extract uploaded ZIP archives, and instantiate the correct worker type
+  (``ZipWorker`` or ``OneDriveWorker``).
+- :class:`JobCleanupService`– Removes temporary files and directories once a
+  job's results have been downloaded or cancelled.
+"""
 import os
 import shutil
 import tempfile
@@ -19,6 +35,20 @@ MODELS_BASE = Path(__file__).resolve().parent.parent / "models"
 DEFAULT_MODEL = "Default"
 
 class Job:
+    """
+    Container for a single background processing job.
+
+    Attributes:
+        id (str): UUID identifying this job.
+        queue (Queue): Multiprocessing queue used to stream status messages
+            to the SSE endpoint.
+        cancel_event (Event): Multiprocessing event that signals the worker
+            process to abort.
+        base_dir (str | None): Temporary directory holding the input files.
+        zip_path (str | None): Path to the output ZIP archive once created.
+        token (str | None): OAuth2 access token for OneDrive operations.
+        process (Process | None): The spawned worker process.
+    """
     def __init__(self, job_id: str):
         self.id = job_id
         self.queue: Queue = Queue()
@@ -29,10 +59,16 @@ class Job:
         self.process: Process | None = None
 
 class JobManager:
+    """
+    In-process registry of active :class:`Job` objects, keyed by UUID.
+
+    All methods are class-methods so no instance is needed.
+    """
     _jobs: dict[str, Job] = {}
 
     @classmethod
     def create(cls) -> Job:
+        """Create a new :class:`Job` with a fresh UUID and register it."""
         job_id = str(uuid.uuid4())
         job = Job(job_id)
         cls._jobs[job_id] = job
@@ -40,6 +76,7 @@ class JobManager:
 
     @classmethod
     def get(cls, job_id: str) -> Job:
+        """Return the :class:`Job` for *job_id*, or raise HTTP 404 if not found."""
         job = cls._jobs.get(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
@@ -47,6 +84,7 @@ class JobManager:
 
     @classmethod
     def remove(cls, job_id: str):
+        """Remove *job_id* from the registry (no-op if already absent)."""
         cls._jobs.pop(job_id, None)
 
 

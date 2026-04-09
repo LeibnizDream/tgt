@@ -1,3 +1,15 @@
+"""
+Training API router for the TGT backend.
+
+Exposes the following REST endpoints under ``/api/train``:
+
+- ``POST /process``        – Start a training job for a given language and
+  action.  Accepts either a ZIP file upload or a OneDrive share link.
+  Returns a ``job_id`` UUID.
+- ``GET /{job_id}/stream`` – Server-Sent Events stream that forwards training
+  progress messages (preprocessing → training metrics) to the browser.
+- ``POST /cancel``         – Signal a running training job to stop.
+"""
 import os
 import uuid
 import shutil
@@ -20,6 +32,7 @@ router = APIRouter()
 MODELS_BASE = Path(__file__).resolve().parent.parent / "models"
 
 async def run_worker(process_fn):
+    """Spawn a daemon worker process that calls *process_fn* and return it."""
     proc = Process(target=process_fn, daemon=True)
     proc.start()
     return proc
@@ -34,6 +47,13 @@ async def process(
     language: str = Form(...),
     zipfile: UploadFile | None = File(None),
 ):
+    """
+    Create and start a training job.
+
+    Accepts data either as an uploaded ZIP file or as a OneDrive share link
+    (*base_dir*).  Returns the ``job_id`` that the client should use to
+    stream progress via ``GET /{job_id}/stream``.
+    """
     job = JobManager.create()
 
     if not language:
@@ -66,6 +86,7 @@ async def process(
 
 @router.get("/{job_id}/stream")
 async def stream(job_id: str):
+    """Stream training progress as Server-Sent Events until ``[DONE ALL]`` is received."""
     job = JobManager.get(job_id)
 
     async def event_generator():
@@ -88,6 +109,7 @@ async def stream(job_id: str):
 
 @router.post("/cancel")
 async def cancel(payload: dict = Body(...)):
+    """Terminate a running training job and remove it from the job registry."""
     job_id = payload.get("job_id")
     job = JobManager.get(job_id)
     job.queue.put("[CANCELLED]")

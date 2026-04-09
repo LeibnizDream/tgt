@@ -1,3 +1,21 @@
+"""
+Abstract and concrete training worker classes for the TGT backend.
+
+A *training worker* orchestrates two sequential phases:
+
+1. **Preprocessing** – delegates to a :class:`~training.preprocessing.abstract.BasePreprocessor`
+   subclass (chosen by :class:`~training.preprocessing.factory.PreProcessorFactory`)
+   to convert annotated Excel files into a clean pandas DataFrame.
+2. **Training**      – delegates to an :class:`~training.training.abstract.AbstractTrainer`
+   subclass (chosen by :class:`~training.training.factory.TrainerFactory`) to
+   train a morphological model and persist it under ``models/glossing/``.
+
+Usage:
+    - In production the router instantiates an :class:`OneDriveWorker` and
+      calls :meth:`AbstractTrainingWorker.run` in a separate process.
+    - From the CLI the ``main`` function instantiates a :class:`TrainingWorker`
+      directly.
+"""
 from pathlib import Path
 import traceback
 import argparse

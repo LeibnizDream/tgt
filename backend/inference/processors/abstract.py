@@ -1,3 +1,31 @@
+"""
+Abstract base class and logging helpers for all inference data processors.
+
+:class:`DataProcessor` defines the shared file-discovery, read, process, and
+write pipeline used by every concrete processor (transcription, translation,
+glossing, transliteration, and column creation).
+
+Per-session logging
+-------------------
+When :meth:`~DataProcessor.process` iterates over discovered files it calls
+:meth:`_attach_session_handler` to:
+
+- Add a ``FileHandler`` that writes ``<ClassName>.log`` alongside the
+  annotated Excel file.
+- Redirect ``sys.stdout`` and ``sys.stderr`` via :class:`Tee` so all
+  ``print()`` calls and library output are captured in both the console
+  *and* the log file.
+
+After each file is processed :meth:`_detach_session_handler` restores the
+original streams.
+
+Utility classes
+---------------
+:class:`StreamToLogger` – file-like object that routes writes to a
+:class:`logging.Logger`.
+
+:class:`Tee` – file-like object that duplicates writes to multiple streams.
+"""
 from abc import ABC, abstractmethod
 import os
 import logging

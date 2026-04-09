@@ -1,3 +1,21 @@
+"""
+Microsoft Graph API helpers for OneDrive / SharePoint operations.
+
+This module provides low-level functions that wrap the Microsoft Graph REST
+API to list, download, and upload files in OneDrive / SharePoint document
+libraries.  All calls automatically retry with a refreshed OAuth2 token when
+a 401 Unauthorized response is received.
+
+Functions:
+    :func:`list_session_children`         – List ``Session_*`` child folders
+        under a share link.
+    :func:`encode_share_link`             – Base64-encode a share link for use
+        in Graph API URLs.
+    :func:`download_sharepoint_folder`    – Recursively download a SharePoint
+        folder to a local directory.
+    :func:`upload_file_replace_in_onedrive` – Upload (or replace) a local file
+        in a OneDrive drive item.
+"""
 import os
 import requests
 import base64
@@ -24,10 +42,39 @@ def list_session_children(share_link: str, token: str):
     ]
 
 def encode_share_link(link):
+    """
+    Base64url-encode a OneDrive share link for use in Graph API ``shares`` URLs.
+
+    Args:
+        link (str): A OneDrive / SharePoint share URL.
+
+    Returns:
+        str: Encoded share-link token prefixed with ``u!``.
+    """
     encoded_url = base64.urlsafe_b64encode(link.encode()).decode().rstrip("=")
     return f"u!{encoded_url}"
 
 def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: list = None):
+    """
+    Recursively download all files from a SharePoint / OneDrive folder.
+
+    The folder hierarchy is recreated under *temp_dir*. If *file_suffix* is
+    provided only files whose names end with one of the given suffixes are
+    downloaded (case-insensitive comparison).
+
+    Args:
+        share_link (str): OneDrive share URL pointing to the root folder.
+        temp_dir (str): Local directory where files will be written.
+        access_token (str): OAuth2 bearer token.  Refreshed automatically on
+            a 401 response.
+        file_suffix (list[str] | None): Whitelist of file extensions to
+            download.  ``None`` means download everything.
+
+    Returns:
+        tuple: ``(temp_dir, drive_id, parent_folder_id, session_folder_id_map)``
+            where *session_folder_id_map* maps each downloaded folder name to
+            its Graph API item ID (useful for subsequent uploads).
+    """
     share_id = encode_share_link(share_link)
     root_url = f"https://graph.microsoft.com/v1.0/shares/{share_id}/driveItem"
 
@@ -82,6 +129,28 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
 
 
 def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_folder_id, file_name_in_folder, access_token):
+    """
+    Upload a local file to OneDrive, replacing any existing file with the same name.
+
+    Uses the Graph API PUT endpoint which creates or replaces the item in a
+    single request.  Automatically retries with a refreshed token on a 401
+    response and raises descriptive exceptions for 423 (locked), 409
+    (conflict), and 403 (forbidden) status codes.
+
+    Args:
+        local_file_path (str): Absolute path to the file to upload.
+        target_drive_id (str): Graph API drive ID of the destination drive.
+        parent_folder_id (str): Graph API item ID of the destination folder.
+        file_name_in_folder (str): Name the file will have after upload.
+        access_token (str): OAuth2 bearer token.
+
+    Returns:
+        dict: The Graph API response JSON for the uploaded item.
+
+    Raises:
+        Exception: On HTTP 423 (file locked), 409 (conflict), 403 (forbidden),
+            or any other non-2xx response.
+    """
     upload_url = f"https://graph.microsoft.com/v1.0/drives/{target_drive_id}/items/{parent_folder_id}:/{file_name_in_folder}:/content"
 
     def do_upload(token):

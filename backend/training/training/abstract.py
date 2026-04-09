@@ -1,3 +1,18 @@
+"""
+Abstract base class for TGT model trainers.
+
+:class:`AbstractTrainer` defines the common contract and shared infrastructure
+(GPU setup, Weights & Biases logging) that all concrete trainers must satisfy.
+Concrete subclasses implement :meth:`training_step` to perform the actual model
+fitting and return evaluation metrics.
+
+The :meth:`train` method acts as the public entry point:
+
+1. :meth:`_setup_gpu` – configure the preferred GPU / CPU device.
+2. Optional Weights & Biases run initialization.
+3. :meth:`training_step` – fit the model and return ``{metric: value}`` dicts.
+4. Log metrics to W&B and finalize the run.
+"""
 from pathlib import Path
 from typing import Dict
 import pandas as pd

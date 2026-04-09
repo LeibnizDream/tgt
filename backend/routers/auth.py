@@ -1,3 +1,20 @@
+"""
+Microsoft OneDrive / Microsoft Graph OAuth2 authentication router.
+
+This module implements a three-step MSAL (Microsoft Authentication Library)
+OAuth2 flow for the application:
+
+1. ``GET /api/auth/start``    – Redirects the user to the Microsoft login page.
+   If a valid token is already cached, the redirect is skipped and the user is
+   sent straight to the success page.
+2. ``GET /api/auth/redirect`` – Handles the OAuth2 callback, exchanges the
+   authorization code for an access token, and caches it on disk.
+3. ``GET /api/auth/me``       – Returns whether a cached account exists.
+4. ``POST /api/auth/logout``  – Removes cached accounts from the token cache.
+
+Credentials are read from environment variables ``TENANT_ID``, ``CLIENT_ID``,
+and ``CLIENT_SECRET`` or from ``materials/secrets.env``.
+"""
 import os
 import logging
 from pathlib import Path
@@ -34,12 +51,14 @@ GRAPH     = "https://graph.microsoft.com/v1.0"
 CACHE_FILE = Path(__file__).parent.parent / "materials" / "token_cache.json"
 
 def _save_cache(cache: msal.SerializableTokenCache):
+    """Persist the MSAL token cache to ``materials/token_cache.json`` if it changed."""
     print("Saving token cache to", CACHE_FILE)
     if cache.has_state_changed:
         with open(CACHE_FILE, "w") as f:
             f.write(cache.serialize())
 
 def _load_cache() -> msal.SerializableTokenCache:
+    """Load and deserialize the MSAL token cache from disk, or return an empty cache."""
     print("Loading token cache from", CACHE_FILE)
     cache = msal.SerializableTokenCache()
     if CACHE_FILE.exists():
@@ -48,6 +67,7 @@ def _load_cache() -> msal.SerializableTokenCache:
     return cache
 
 def _build_msal_app(cache=None):
+    """Create an MSAL ``ConfidentialClientApplication`` using the configured credentials."""
     return msal.ConfidentialClientApplication(
         CLIENT_ID,
         authority=f"https://login.microsoftonline.com/{TENANT_ID}",
@@ -101,6 +121,14 @@ async def auth_logout():
 
 @router.get("/start")
 async def start_onedrive_auth(request: Request):
+    """
+    Begin the OneDrive OAuth2 login flow.
+
+    Attempts a silent token acquisition first. If a valid cached token is found,
+    the user is redirected directly to the frontend success page with the token
+    in the URL fragment. Otherwise the user is redirected to the Microsoft
+    consent/login page.
+    """
     host   = request.headers.get("host")
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
@@ -140,6 +168,13 @@ async def start_onedrive_auth(request: Request):
 
 @router.get("/redirect")
 async def onedrive_auth_redirect(request: Request):
+    """
+    Handle the OAuth2 callback from Microsoft.
+
+    Exchanges the authorization code present in the query string for an access
+    token, persists the token cache, and redirects the user to the frontend
+    success page with the token in the URL fragment.
+    """
     code = request.query_params.get("code")
     if not code:
         return JSONResponse({"error": "No code in callback"}, status_code=400)

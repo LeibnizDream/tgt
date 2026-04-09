@@ -1,3 +1,17 @@
+"""
+Abstract base class for training-data preprocessors.
+
+:class:`BasePreprocessor` defines the shared file-discovery, read, and write
+workflow that all concrete preprocessors reuse.  Subclasses only need to
+implement :meth:`_process_dataframe` to apply their language-specific or
+task-specific cleaning and feature-extraction logic.
+
+Typical output
+--------------
+The :meth:`preprocess` method produces a single CSV under
+``training/data/<ClassName>_<lang>_<study>.csv`` and returns the combined
+:class:`pandas.DataFrame`.
+"""
 import os
 import re
 import sys

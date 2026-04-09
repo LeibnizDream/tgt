@@ -1,3 +1,24 @@
+"""
+Glossing processor: applies a glossing strategy to annotated Excel files.
+
+:class:`GlossingProcessor` is a :class:`~inference.processors.abstract.DataProcessor`
+that uses a :class:`~inference.glossing.abstract.GlossingStrategy` (selected
+by :class:`~inference.glossing.factory.GlossingStrategyFactory`) to assign
+interlinear Leipzig glosses to transcription utterances.
+
+Few-shot learning (LLM strategies)
+-----------------------------------
+When an LLM-backed strategy is used (e.g. Gemini or Qwen), rows that already
+contain a gloss serve as few-shot examples.  These examples are accumulated in
+the class-level :attr:`_shared_examples` dict so that examples from earlier
+files in the same job are available when later files are processed.
+Call :meth:`GlossingProcessor.reset_examples` between jobs to clear the cache.
+
+Standard strategies (spaCy / Stanza)
+--------------------------------------
+Non-LLM strategies process rows one-by-one, skipping rows that already have a
+gloss, and report progress via the optional progress callback.
+"""
 import pandas as pd
 from tqdm import tqdm
 import json

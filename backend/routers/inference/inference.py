@@ -1,3 +1,17 @@
+"""
+Inference API router for the TGT backend.
+
+Exposes the following REST endpoints under ``/api/inference``:
+
+- ``POST /process``                  – Start a processing job for a ZIP upload
+  or a OneDrive share link.  Returns a ``job_id`` UUID.
+- ``GET /{job_id}/stream``           – Server-Sent Events (SSE) stream that
+  forwards progress messages from the worker process to the browser.
+- ``GET /{job_id}/download``         – Download the finished output ZIP archive.
+- ``POST /cancel``                   – Signal a running job to stop.
+- ``GET /models/{task}``             – List custom models available for a task.
+- ``DELETE /models/{task}/{model}``  – Delete a custom model directory.
+"""
 import os
 import shutil
 import asyncio
