@@ -27,6 +27,12 @@ class LLMGlossingStrategy(GlossingStrategy):
             )
             loaded = "qwen3.5:9b"
         print(f"Loaded model for glossing: {loaded}", file=sys.stderr)
+        if self.glossing_model in ('qwen', None):
+            try:
+                health = self.nlp.invoke([("human", "ping")])
+                print(f"Qwen glossing health check OK: {health.content[:80]}", file=sys.stderr)
+            except Exception as e:
+                raise RuntimeError(f"Qwen is not responding before glossing: {e}") from e
 
     def gloss(self, payload: str) -> str:
         """

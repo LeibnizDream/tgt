@@ -23,6 +23,11 @@ class LLMTranslationStrategy(TranslationStrategy):
                 base_url="http://127.0.0.1:11434",
                 think=False,
             )
+            try:
+                health = self.nlp.invoke([("human", "ping")])
+                print(f"Qwen translation health check OK: {health.content[:80]}", file=sys.stderr)
+            except Exception as e:
+                raise RuntimeError(f"Qwen is not responding before translation: {e}") from e
 
     def translate(self, payload: str) -> str:
         """
