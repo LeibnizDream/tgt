@@ -29,7 +29,6 @@ from utils.functions import set_global_variables
 from inference.glossing.factory import GlossingStrategyFactory
 from inference.glossing.abstract import GlossingStrategy
 from inference.glossing.llm import LLMGlossingStrategy
-from inference.glossing.qwen import QwenGlossingStrategy
 from inference.processors.abstract import DataProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()

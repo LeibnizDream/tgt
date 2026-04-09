@@ -4,7 +4,6 @@ from inference.glossing.portuguese import PortugueseGlossingStrategy
 from inference.glossing.stanza import StanzaGlossingStrategy
 from inference.glossing.japanese import JapaneseGlossingStrategy
 from inference.glossing.llm import LLMGlossingStrategy
-from inference.glossing.qwen import QwenGlossingStrategy
 
 
 class GlossingStrategyFactory:
