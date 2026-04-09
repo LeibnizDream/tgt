@@ -50,16 +50,16 @@ The system is built to be **usable by non-technical users**, while maintaining a
 
 Create a `.env` file in the `backend/materials/` directory to store your API keys and configuration secrets.
 
-> ⚠️ **Important**: Without this file, OneDrive integration will not be available nor using of some models for transcription and translation.
+> ⚠️ **Important**: Without this file, OneDrive integration will not be available, and some models for transcription and translation will not be accessible.
 
-### Required `.env` File Contents
+### `.env` File Contents
 
 ```env
-# Hugging Face API Key
+# Hugging Face API Key (required)
 # Get your key from: https://huggingface.co/settings/tokens
 HUGGING_KEY=your_huggingface_api_key_here
 
-# OneDrive Integration
+# OneDrive Integration (required for OneDrive support)
 # Register an app in Azure Portal and obtain these credentials
 TENANT_ID=your_azure_tenant_id_here
 CLIENT_ID=your_azure_client_id_here
@@ -68,7 +68,10 @@ CLIENT_SECRET=your_azure_client_secret_here
 # Optional: DeepL Translation API
 # Sign up at: https://www.deepl.com/pro-api
 DEEPL_API_KEY=your_deepl_api_key_here
-GOOGLE_API_KEY=your_google_gemini_api
+
+# Optional: Google Gemini API
+# Get your key from: https://aistudio.google.com
+GOOGLE_API_KEY=your_google_gemini_api_key_here
 ```
 
 ## Installation & Deployment Options
@@ -114,7 +117,7 @@ cd TGT
 
 #### 2. Create Conda Environment
 
-Create envirionment from root of TGT:
+Create environment from root of TGT:
 
 ```bash
 # Create environment from configuration file
@@ -152,12 +155,19 @@ The application will be available at: `http://127.0.0.1:8000`
 
 ### Optional Features
 
-- **DeepL Translation**: If you don't plan to use DeepL API, you can skip adding the `DEEPL_API_KEY` or modify the translation factory to remove the DeepL strategy
-- **OneDrive Integration**: Requires all Azure-related environment variables to be properly configured.
+- **DeepL Translation**: If you don't plan to use DeepL API, you can skip adding the `DEEPL_API_KEY` or modify the translation factory to remove the DeepL strategy.
+- **OneDrive Integration**: Requires all Azure-related environment variables to be properly configured. If OneDrive is used, be sure to:
+  - Add the correct paths for authentication in Azure.
+  - Give full permissions to users.
+- **Local Inference with Qwen (via Ollama)**: If you want to run Qwen models locally without an API key, you need to install [Ollama](https://ollama.com) and pull the desired Qwen model before starting the application:
 
-If OneDrive is used, be sure to:
-- Add the correct paths for authentication in Azure.
-- Give full permissions to users.
+  ```bash
+  # Install Ollama (see https://ollama.com for platform-specific instructions)
+  # Then pull the Qwen model you intend to use, for example:
+  ollama pull qwen2.5:7b
+  ```
+
+  Once Ollama is running and the model is available, the application will use it automatically for local inference. No API key is required for this option.
 
 ### Troubleshooting
 
