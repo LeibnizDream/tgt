@@ -85,23 +85,7 @@ If you're part of ZAS:
 
 > 🔒 **Security Note**: Server paths are not included in this documentation for security reasons.
 
-### Option 2: Docker Deployment
-
-For containerized deployment:
-
-1. Obtain the Docker command from the code owner
-2. Run the provided Docker command
-3. Set up Watchtower for automatic updates:
-
-```bash
-# Example Watchtower setup for auto-updates
-docker run -d \
-  --name watchtower \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower
-```
-
-### Option 3: Local Development Setup
+### Option 2: Local Development Setup
 
 For local development or custom server deployment (always pull the latest version of the code):
 
