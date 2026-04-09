@@ -23,7 +23,7 @@ class LLMTranslationStrategy(TranslationStrategy):
                 temperature=0.0,
                 base_url="http://127.0.0.1:11434",
                 think=False,
-                request_timeout=120,
+                keep_alive=-1,
             )
             try:
                 health = self.nlp.invoke([("human", "ping")])
@@ -43,6 +43,9 @@ class LLMTranslationStrategy(TranslationStrategy):
         examples = payload_data.get("examples", [])
         items = payload_data.get("items", [])
 
+        if not examples:
+            raise Exception('No examples found or provided')
+
         system = (
             "You are a translation engine.\n"
             "You will receive JSON with optional examples (showing source text and expected translation) "
@@ -52,29 +55,36 @@ class LLMTranslationStrategy(TranslationStrategy):
             "Output must contain exactly the same ids as input items."
         )
 
-        if examples:
-            human_payload = json.dumps({
-                "examples": [
-                    {"text": ex["source"], "translation": ex["translation"]}
-                    for ex in examples
-                ],
-                "items": items,
-            }, ensure_ascii=False)
-        else:
-            raise Exception('No examples found or provided')
-
-        messages = [
-            ("system", system),
-            ("human", human_payload),
+        formatted_examples = [
+            {"text": ex["source"], "translation": ex["translation"]}
+            for ex in examples
         ]
 
-        print(f"Sending translation request for item id={items[0]['id'] if items else '?'}", file=sys.stderr)
-        t0 = time.time()
-        response = self.nlp.invoke(messages)
-        print(f"Qwen translation response received in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
+        if self.translationModel == 'qwen':
+            result_items = []
+            for item in items:
+                human_payload = json.dumps({
+                    "examples": formatted_examples,
+                    "items": [item],
+                }, ensure_ascii=False)
+                messages = [("system", system), ("human", human_payload)]
+                print(f"Sending translation request for item id={item['id']}", file=sys.stderr)
+                t0 = time.time()
+                response = self.nlp.invoke(messages)
+                print(f"Qwen translation response in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
+                text = self._clean_and_validate(response.content.strip(), [item])
+                result_items.extend(json.loads(text)["items"])
+            return json.dumps({"items": result_items}, ensure_ascii=False)
+        else:
+            human_payload = json.dumps({
+                "examples": formatted_examples,
+                "items": items,
+            }, ensure_ascii=False)
+            messages = [("system", system), ("human", human_payload)]
+            response = self.nlp.invoke(messages)
+            return self._clean_and_validate(response.content.strip(), items)
 
-        text = response.content.strip()
-
+    def _clean_and_validate(self, text: str, items: list) -> str:
         if text.startswith("```"):
             lines = text.split("\n")
             if lines[0].startswith("```"):
@@ -87,7 +97,6 @@ class LLMTranslationStrategy(TranslationStrategy):
             parsed = json.loads(text)
             if "items" not in parsed:
                 raise ValueError("Response missing 'items' key")
-
             input_ids = {item["id"] for item in items}
             output_ids = {item["id"] for item in parsed["items"]}
             if input_ids != output_ids:

@@ -25,7 +25,7 @@ class LLMGlossingStrategy(GlossingStrategy):
                 temperature=0.0,
                 base_url="http://127.0.0.1:11434",
                 think=False,
-                request_timeout=120,
+                keep_alive=-1,
             )
             loaded = "qwen3.5:9b"
         print(f"Loaded model for glossing: {loaded}", file=sys.stderr)
@@ -48,6 +48,9 @@ class LLMGlossingStrategy(GlossingStrategy):
         examples = payload_data.get('examples', [])
         items = payload_data.get('items', [])
 
+        if not examples:
+            raise Exception('No examples provided or recognized')
+
         system = (
             "You are a linguistic glossing engine following Leipzig Glossing Rules.\n"
             "You will receive JSON with examples (showing input text and expected gloss output) "
@@ -57,31 +60,36 @@ class LLMGlossingStrategy(GlossingStrategy):
             "Output must contain exactly the same ids as input items."
         )
 
-        # Build payload with examples separate from items
-        if examples:
-            human_payload = json.dumps({
-                "examples": [
-                    {"text": ex['source'], "gloss": ex['gloss']}
-                    for ex in examples
-                ],
-                "items": items
-            }, ensure_ascii=False)
-        else:
-            raise Exception('No examples provided or recognized')
-
-        messages = [
-            ("system", system),
-            ("human", human_payload),
+        formatted_examples = [
+            {"text": ex['source'], "gloss": ex['gloss']}
+            for ex in examples
         ]
 
-        print(f"Sending glossing request for item id={items[0]['id'] if items else '?'}", file=sys.stderr)
-        t0 = time.time()
-        response = self.nlp.invoke(messages)
-        print(f"Qwen glossing response received in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
+        if self.glossing_model in ('qwen', None):
+            result_items = []
+            for item in items:
+                human_payload = json.dumps({
+                    "examples": formatted_examples,
+                    "items": [item],
+                }, ensure_ascii=False)
+                messages = [("system", system), ("human", human_payload)]
+                print(f"Sending glossing request for item id={item['id']}", file=sys.stderr)
+                t0 = time.time()
+                response = self.nlp.invoke(messages)
+                print(f"Qwen glossing response in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
+                text = self._clean_and_validate(response.content.strip(), [item])
+                result_items.extend(json.loads(text)["items"])
+            return json.dumps({"items": result_items}, ensure_ascii=False)
+        else:
+            human_payload = json.dumps({
+                "examples": formatted_examples,
+                "items": items,
+            }, ensure_ascii=False)
+            messages = [("system", system), ("human", human_payload)]
+            response = self.nlp.invoke(messages)
+            return self._clean_and_validate(response.content.strip(), items)
 
-        text = response.content.strip()
-
-        # Clean markdown
+    def _clean_and_validate(self, text: str, items: list) -> str:
         if text.startswith("```"):
             lines = text.split("\n")
             if lines[0].startswith("```"):
@@ -90,12 +98,10 @@ class LLMGlossingStrategy(GlossingStrategy):
                 lines = lines[:-1]
             text = "\n".join(lines).strip()
 
-        # Validate
         try:
             parsed = json.loads(text)
             if 'items' not in parsed:
                 raise ValueError("Response missing 'items' key")
-            
             input_ids = {item['id'] for item in items}
             output_ids = {item['id'] for item in parsed['items']}
             if input_ids != output_ids:
