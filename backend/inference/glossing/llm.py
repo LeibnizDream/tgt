@@ -16,13 +16,13 @@ class LLMGlossingStrategy(GlossingStrategy):
                 timeout=120,
                 max_retries=2,
             )
-        if self.glossing_model == 'qwen':
+        elif self.glossing_model == 'qwen' or self.glossing_model is None:
             self.nlp = ChatOllama(
-                model="qwen3:latest",
+                model="qwen3.5:9b",
                 temperature=0.0,
                 think=False,
             )
-
+        print(f"Loaded model for glossing: {self.glossing_model or 'gemini'}", file=sys.stderr)
 
     def gloss(self, payload: str) -> str:
         """
@@ -62,11 +62,11 @@ class LLMGlossingStrategy(GlossingStrategy):
             ("human", human_payload),
         ]
 
-        print("Sending Gemini request with messages:", messages, file=sys.stderr)
+        print("Sending request with messages:", messages, file=sys.stderr)
 
         response = self.nlp.invoke(messages)
 
-        print("Received Gemini response:", response)
+        print("Received response:", response)
 
         text = response.content.strip()
 

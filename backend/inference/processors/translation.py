@@ -137,7 +137,7 @@ class TranslationProcessor(DataProcessor):
 
         progress_cb = getattr(self, '_progress_callback', None)
 
-        if isinstance(self.strategy, GeminiTranslationStrategy):
+        if isinstance(self.strategy, LLMTranslationStrategy):
             todo_items = self._separate_examples_and_todo(df, source_col)
 
             if not todo_items:

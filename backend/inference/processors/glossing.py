@@ -7,7 +7,7 @@ from collections import deque
 from utils.functions import set_global_variables
 from inference.glossing.factory import GlossingStrategyFactory
 from inference.glossing.abstract import GlossingStrategy
-from inference.glossing.llm import GeminiGlossingStrategy
+from inference.glossing.llm import LLMGlossingStrategy
 from inference.glossing.qwen import QwenGlossingStrategy
 from inference.processors.abstract import DataProcessor
 
@@ -162,7 +162,7 @@ class GlossingProcessor(DataProcessor):
 
         progress_cb = getattr(self, '_progress_callback', None)
 
-        if isinstance(self.strategy, (GeminiGlossingStrategy, QwenGlossingStrategy)):
+        if isinstance(self.strategy, (LLMGlossingStrategy)):
             if progress_cb:
                 progress_cb(0, len(todo_items))
 

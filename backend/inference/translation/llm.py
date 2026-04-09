@@ -2,12 +2,13 @@ import json
 import sys
 from langchain_google_genai import ChatGoogleGenerativeAI
 from inference.translation.abstract import TranslationStrategy
+from langchain_ollama import ChatOllama
 
 
 class LLMTranslationStrategy(TranslationStrategy):
 
     def load_model(self):
-        if self.glossing_model == 'gemini':
+        if self.translationModel == 'gemini':
             self.nlp = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 temperature=0.0,
@@ -15,9 +16,9 @@ class LLMTranslationStrategy(TranslationStrategy):
                 timeout=120,
                 max_retries=2,
             )
-        if self.glossing_model == 'qwen':
+        elif self.translationModel == 'qwen':
             self.nlp = ChatOllama(
-                model="qwen3:latest",
+                model="qwen3.5:9b",
                 temperature=0.0,
                 think=False,
             )
@@ -59,11 +60,11 @@ class LLMTranslationStrategy(TranslationStrategy):
             ("human", human_payload),
         ]
 
-        print("Sending Gemini translation request:", messages, file=sys.stderr)
+        print("Sending translation request:", messages, file=sys.stderr)
 
         response = self.nlp.invoke(messages)
 
-        print("Received Gemini translation response:", response)
+        print("Received translation response:", response)
 
         text = response.content.strip()
 
