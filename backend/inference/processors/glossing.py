@@ -146,26 +146,32 @@ class GlossingProcessor(DataProcessor):
         return pd.Series(results, index=df.index)
 
     def _gloss_with_llm(
-        self, 
-        todo_items: List[Dict[int, str]]
+        self,
+        todo_items: List[Dict[int, str]],
+        progress_cb=None,
     ) -> Dict[int, str]:
         """
-        Send batch request with accumulated examples for few-shot learning.
+        Send one item at a time with accumulated examples for few-shot learning.
         """
         if not todo_items:
             return {}
-        
+
         examples = list(GlossingProcessor._shared_examples.values())[:10]
-        
-        payload = {
-            'examples': examples,
-            'items': todo_items
-        }
-        
-        response_text = self.strategy.gloss(json.dumps(payload, ensure_ascii=False))
-        response_json = json.loads(response_text)
-        
-        return {item['id']: item['gloss'] for item in response_json['items']}
+        id_to_gloss = {}
+
+        for done, item in enumerate(todo_items):
+            payload = {
+                'examples': examples,
+                'items': [item]
+            }
+            response_text = self.strategy.gloss(json.dumps(payload, ensure_ascii=False))
+            response_json = json.loads(response_text)
+            for result_item in response_json['items']:
+                id_to_gloss[result_item['id']] = result_item['gloss']
+            if progress_cb:
+                progress_cb(done + 1, len(todo_items))
+
+        return id_to_gloss
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -184,13 +190,7 @@ class GlossingProcessor(DataProcessor):
         progress_cb = getattr(self, '_progress_callback', None)
 
         if isinstance(self.strategy, (LLMGlossingStrategy)):
-            if progress_cb:
-                progress_cb(0, len(todo_items))
-
-            id_to_gloss = self._gloss_with_llm(todo_items)
-
-            if progress_cb:
-                progress_cb(len(todo_items), len(todo_items))
+            id_to_gloss = self._gloss_with_llm(todo_items, progress_cb)
 
             glossed = []
             for i in range(len(df)):
