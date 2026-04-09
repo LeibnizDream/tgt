@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from inference.translation.abstract import TranslationStrategy
 from langchain_ollama import ChatOllama
@@ -22,6 +23,7 @@ class LLMTranslationStrategy(TranslationStrategy):
                 temperature=0.0,
                 base_url="http://127.0.0.1:11434",
                 think=False,
+                request_timeout=120,
             )
             try:
                 health = self.nlp.invoke([("human", "ping")])
@@ -66,11 +68,10 @@ class LLMTranslationStrategy(TranslationStrategy):
             ("human", human_payload),
         ]
 
-        print("Sending translation request:", messages, file=sys.stderr)
-
+        print(f"Sending translation request for item id={items[0]['id'] if items else '?'}", file=sys.stderr)
+        t0 = time.time()
         response = self.nlp.invoke(messages)
-
-        print("Received translation response:", response)
+        print(f"Qwen translation response received in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
 
         text = response.content.strip()
 

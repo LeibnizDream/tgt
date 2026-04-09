@@ -2,3 +2,4 @@
 logs/uvicorn.log
 backend/materials/secrets.env
 *.pyc
+/frontend/dist

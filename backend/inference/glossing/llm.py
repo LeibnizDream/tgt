@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from inference.glossing.abstract import GlossingStrategy
@@ -24,6 +25,7 @@ class LLMGlossingStrategy(GlossingStrategy):
                 temperature=0.0,
                 base_url="http://127.0.0.1:11434",
                 think=False,
+                request_timeout=120,
             )
             loaded = "qwen3.5:9b"
         print(f"Loaded model for glossing: {loaded}", file=sys.stderr)
@@ -72,11 +74,10 @@ class LLMGlossingStrategy(GlossingStrategy):
             ("human", human_payload),
         ]
 
-        print("Sending request with messages:", messages, file=sys.stderr)
-
+        print(f"Sending glossing request for item id={items[0]['id'] if items else '?'}", file=sys.stderr)
+        t0 = time.time()
         response = self.nlp.invoke(messages)
-
-        print("Received response:", response)
+        print(f"Qwen glossing response received in {time.time() - t0:.1f}s: {response.content[:80]}", file=sys.stderr)
 
         text = response.content.strip()
 
