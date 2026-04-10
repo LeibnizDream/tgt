@@ -111,17 +111,16 @@ class TranslationProcessor(DataProcessor):
         examples = list(TranslationProcessor._shared_examples.values())[:10]
         id_to_translation = {}
 
-        for done, item in enumerate(todo_items):
-            payload = {
-                "examples": examples,
-                "items": [item],
-            }
-            response_text = self.strategy.translate(json.dumps(payload, ensure_ascii=False))
-            response_json = json.loads(response_text)
-            for result_item in response_json["items"]:
-                id_to_translation[result_item["id"]] = result_item["translation"]
-            if progress_cb:
-                progress_cb(done + 1, len(todo_items))
+        payload = {
+            "examples": examples,
+            "items": todo_items,
+        }
+        response_text = self.strategy.translate(json.dumps(payload, ensure_ascii=False))
+        response_json = json.loads(response_text)
+        for result_item in response_json["items"]:
+             id_to_translation[result_item["id"]] = result_item["translation"]
+        if progress_cb:
+            progress_cb(len(todo_items), len(todo_items))
 
         return id_to_translation
 
