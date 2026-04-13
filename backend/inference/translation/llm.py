@@ -99,23 +99,30 @@ class LLMTranslationStrategy(TranslationStrategy):
             keep_alive="10m",
             options={
                 "temperature": 0,
-                "num_predict": 300,
+                "num_predict": 8000,
                 "num_ctx": 4096,
             },
         )
 
         content = response["message"]["content"].strip()
 
+        eval_count = response.get('eval_count')
+        done_reason = response.get('done_reason')
         print(
-            "Ollama timings | "
+            "Ollama translation timings | "
             f"total={response.get('total_duration')} "
             f"load={response.get('load_duration')} "
             f"prompt_eval={response.get('prompt_eval_duration')} "
             f"eval={response.get('eval_duration')} "
             f"prompt_tokens={response.get('prompt_eval_count')} "
-            f"output_tokens={response.get('eval_count')}",
+            f"output_tokens={eval_count} "
+            f"done_reason={done_reason}",
             file=sys.stderr,
         )
+        print(f"[DEBUG] num_items={len(items)} num_predict=2000 output_chars={len(content)}", file=sys.stderr)
+        if done_reason == "length":
+            print(f"[DEBUG] WARNING: output was cut off because num_predict limit was reached", file=sys.stderr)
+        print(f"[DEBUG] raw ollama content: {content}", file=sys.stderr)
 
         parsed = self._validate_output_text(content, items)
         return parsed.model_dump_json(ensure_ascii=False)
