@@ -103,7 +103,7 @@ class LLMGlossingStrategy(GlossingStrategy):
             keep_alive="10m",
             options={
                 "temperature": 0,
-                "num_predict": 2000,
+                "num_predict": 10000,
                 "num_ctx": 4096,
             },
         )
