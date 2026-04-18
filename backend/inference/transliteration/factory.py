@@ -1,7 +1,11 @@
+import logging
 from inference.transliteration.abstract import TransliterationStrategy
 from inference.transliteration.japanese import JapaneseStrategy
 from inference.transliteration.chinese import ChineseStrategy
 from inference.transliteration.bengali import BengaliStrategy
+from inference.transliteration.llm import LLMTransliterationStrategy
+
+logger = logging.getLogger(__name__)
 
 class TransliterationStrategyFactory:
     @staticmethod
@@ -13,5 +17,7 @@ class TransliterationStrategyFactory:
         elif language_code == "bn":
             return BengaliStrategy()
         else:
-            raise ValueError(f"No transliteration strategy available for language code: {language_code}")
+            logger.warning(f"No rule-based transliteration strategy available for language {language_code},"
+                           f" falling back to LLM.")
+            return LLMTransliterationStrategy(language_code)
             
