@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from ollama import Client
 
 from inference.glossing.abstract import GlossingStrategy
+from utils.functions import ensure_ollama_running
 
 
 class GlossItem(BaseModel):
@@ -31,6 +32,7 @@ class LLMGlossingStrategy(GlossingStrategy):
             self.model_name = "gemini-2.5-flash"
 
         elif self.glossing_model == "qwen" or self.glossing_model is None:
+            ensure_ollama_running()
             self.nlp = Client(host="http://127.0.0.1:11434")
             self.model_name = "qwen3.5:9b"
 

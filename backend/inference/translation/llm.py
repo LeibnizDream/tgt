@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from ollama import Client
 
 from inference.translation.abstract import TranslationStrategy
+from utils.functions import ensure_ollama_running
 
 
 class TranslationItem(BaseModel):
@@ -29,6 +30,7 @@ class LLMTranslationStrategy(TranslationStrategy):
                 max_retries=2,
             )
         elif self.translationModel == "qwen":
+            ensure_ollama_running()
             self.nlp = Client(host="http://127.0.0.1:11434")
             self.model_name = "qwen3.5:9b"
         else:

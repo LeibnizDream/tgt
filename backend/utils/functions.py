@@ -187,6 +187,37 @@ def format_excel_output(excel_output_file, columns_to_highlight: list):
     wb.save(excel_output_file)
 
 
+def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 60) -> None:
+    import sys
+
+    def is_ready() -> bool:
+        try:
+            urllib.request.urlopen(host, timeout=2)
+            return True
+        except Exception:
+            return False
+
+    if is_ready():
+        return
+
+    print("Ollama not reachable — starting ollama serve...", file=sys.stderr)
+    subprocess.Popen(
+        ["ollama", "serve"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if is_ready():
+            print("Ollama is ready.", file=sys.stderr)
+            return
+        time.sleep(2)
+
+    raise RuntimeError("Ollama did not start within the timeout period")
+
+
 def setup_logging(logger, log_path):
     logger.setLevel(logging.DEBUG)
 
