@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+ACCOUNT = os.getenv("ACCOUNT")
 
 if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     envf = Path(__file__).parent.parent / "materials" / "secrets.env"
