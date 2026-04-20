@@ -5,18 +5,23 @@ chcp 65001 >nul
 REM ==== Kill any existing Nginx processes ====
 taskkill /f /im nginx.exe >nul 2>&1
 
-REM ==== Optional: kill existing Ollama process ====
-taskkill /f /im ollama.exe >nul 2>&1
-
 REM ==== Start Nginx ====
 cd /d C:\nginx
 start "" nginx
 
-REM ==== Start Ollama server in background ====
-start "" "C:\Users\camelo.cruz\AppData\Local\Programs\Ollama\ollama.exe" serve
+REM ==== Start Ollama if not already running ====
+tasklist /fi "imagename eq ollama.exe" 2>nul | find /i "ollama.exe" >nul
+if errorlevel 1 (
+    start "" "C:\Users\camelo.cruz\AppData\Local\Programs\Ollama\ollama.exe" serve
+)
 
-REM ==== Wait a few seconds so Ollama can bind to 11434 ====
-timeout /t 5 /nobreak >nul
+REM ==== Wait until Ollama is actually ready on 11434 ====
+:wait_ollama
+curl -s http://127.0.0.1:11434 >nul 2>&1
+if errorlevel 1 (
+    timeout /t 2 /nobreak >nul
+    goto wait_ollama
+)
 
 REM ==== Switch to project root ====
 cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT
