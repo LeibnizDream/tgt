@@ -23,7 +23,7 @@ class LLMTranslationStrategy(TranslationStrategy):
     def load_model(self):
         if self.translationModel == "gemini":
             self.nlp = ChatGoogleGenerativeAI(
-                model="	gemini-2.5-flash-lite",
+                model="gemini-2.5-flash-lite",
                 temperature=0.0,
                 max_tokens=None,
                 timeout=120,
@@ -62,7 +62,7 @@ class LLMTranslationStrategy(TranslationStrategy):
         raise ValueError(f"Unsupported translation model: {self.translationModel}")
 
     def _translate_with_gemini(self, items: list, examples: list) -> str:
-        system = self._build_system_prompt()
+        system = self._build_system_prompt(include_schema_hint=True)
         human_payload = json.dumps(
             {
                 "examples": self._normalize_examples(examples),
@@ -140,8 +140,15 @@ class LLMTranslationStrategy(TranslationStrategy):
 
         if include_schema_hint:
             prompt += (
-                "\nReturn JSON with exactly this structure:\n"
-                '{"items": [{"id": 0, "translation": "..." }]}'
+                "\n\nYou MUST return JSON with exactly this structure:"
+                '\n{"items": [{"id": <integer>, "translation": "<translated string>"}, ...]}'
+                "\n\nExample input:"
+                '\n{"items": [{"id": 4, "text": "der Löwe"}, {"id": 5, "text": "die Schokolade"}]}'
+                "\nExample output:"
+                '\n{"items": [{"id": 4, "translation": "the lion"}, {"id": 5, "translation": "the chocolate"}]}'
+                "\n\nDo NOT return a flat dictionary like {\"4\": \"translation\", \"5\": \"translation\"}."
+                "\nDo NOT use string keys for IDs. Each entry must be an object with an integer 'id' and a string 'translation'."
+                "\nThe 'items' array must contain exactly the same IDs as the input, no more, no less."
             )
 
         return prompt
