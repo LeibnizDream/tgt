@@ -62,3 +62,4 @@ dependencies:
       - langchain-google-genai
       - langchain-community
       - langchain-ollama
+      - transliterate
