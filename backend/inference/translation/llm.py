@@ -23,7 +23,7 @@ class LLMTranslationStrategy(TranslationStrategy):
     def load_model(self):
         if self.translationModel == "gemini":
             self.nlp = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
+                model="	gemini-2.5-flash-lite",
                 temperature=0.0,
                 max_tokens=None,
                 timeout=120,
