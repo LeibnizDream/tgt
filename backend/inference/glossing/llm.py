@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from ollama import Client
 
 from inference.glossing.abstract import GlossingStrategy
+from utils.functions import ensure_ollama_running
 
 
 class GlossItem(BaseModel):
@@ -22,7 +23,7 @@ class LLMGlossingStrategy(GlossingStrategy):
     def load_model(self):
         if self.glossing_model == "gemini":
             self.nlp = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-flash-lite",
                 temperature=0.0,
                 max_tokens=None,
                 timeout=120,
@@ -31,6 +32,7 @@ class LLMGlossingStrategy(GlossingStrategy):
             self.model_name = "gemini-2.5-flash"
 
         elif self.glossing_model == "qwen" or self.glossing_model is None:
+            ensure_ollama_running()
             self.nlp = Client(host="http://127.0.0.1:11434")
             self.model_name = "qwen3.5:9b"
 
@@ -65,7 +67,7 @@ class LLMGlossingStrategy(GlossingStrategy):
         raise ValueError(f"Unsupported glossing model: {self.glossing_model}")
 
     def _gloss_with_gemini(self, items: list, examples: list) -> str:
-        system = self._build_system_prompt()
+        system = self._build_system_prompt(include_schema_hint=True)
         human_payload = json.dumps(
             {
                 "examples": self._normalize_examples(examples),
@@ -142,8 +144,15 @@ class LLMGlossingStrategy(GlossingStrategy):
 
         if include_schema_hint:
             prompt += (
-                "\nReturn JSON with exactly this structure:\n"
-                '{"items": [{"id": 0, "gloss": "..."}]}'
+                "\n\nYou MUST return JSON with exactly this structure:"
+                '\n{"items": [{"id": <integer>, "gloss": "<gloss string>"}, ...]}'
+                "\n\nExample input:"
+                '\n{"items": [{"id": 4, "text": "der Löwe"}, {"id": 5, "text": "die Schokolade"}]}'
+                "\nExample output:"
+                '\n{"items": [{"id": 4, "gloss": "DET.DEF.M.SG.NOM lion"}, {"id": 5, "gloss": "DET.DEF.F.SG.NOM chocolate"}]}'
+                "\n\nDo NOT return a flat dictionary like {\"4\": \"gloss\", \"5\": \"gloss\"}."
+                "\nDo NOT use string keys for IDs. Each entry must be an object with an integer 'id' and a string 'gloss'."
+                "\nThe 'items' array must contain exactly the same IDs as the input, no more, no less."
             )
 
         return prompt

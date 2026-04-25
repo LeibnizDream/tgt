@@ -5,3 +5,4 @@ backend/materials/secrets.env
 /frontend/dist
 backend/materials/token_cache.json
 backend/materials/token_cache.json
+*.log
