@@ -38,6 +38,6 @@ set PYTHONUTF8=1
 
 REM ==== Launch Uvicorn in background ====
 cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT\backend
-start "" /b python -m uvicorn app:app --host 127.0.0.1 --port 8000 >> "..\logs\uvicorn.log" 2>&1
+python -m uvicorn app:app --host 127.0.0.1 --port 8000 >> "..\logs\uvicorn.log" 2>&1
 
 exit
