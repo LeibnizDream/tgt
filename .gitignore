@@ -1,8 +1,6 @@
 /frontend/node_modules
 logs/uvicorn.log
-backend/materials/secrets.env
 *.pyc
 /frontend/dist
-backend/materials/token_cache.json
 backend/materials/token_cache.json
 *.log
