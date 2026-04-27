@@ -35,11 +35,32 @@ class LLMGlossingStrategy(GlossingStrategy):
             ensure_ollama_running()
             self.nlp = Client(host="http://127.0.0.1:11434")
             self.model_name = "qwen3.5:9b"
+            self._warmup()
 
         else:
             raise ValueError(f"Unsupported glossing model: {self.glossing_model}")
 
         print(f"Loaded model for glossing: {self.model_name}", file=sys.stderr)
+
+    def _warmup(self) -> None:
+        print(f"[Ollama] Warming up model {self.model_name} (loading into GPU)...", file=sys.stderr)
+        try:
+            resp = self.nlp.chat(
+                model=self.model_name,
+                messages=[
+                    {"role": "user", "content": '{"items": [{"id": 0, "text": "test"}]}'},
+                ],
+                format=GlossResponse.model_json_schema(),
+                stream=False,
+                think=False,
+                keep_alive="10m",
+                options={"temperature": 0, "num_predict": 50, "num_ctx": 512},
+            )
+            load_ms = resp.get("load_duration", 0) / 1e6
+            eval_ms = resp.get("eval_duration", 0) / 1e6
+            print(f"[Ollama] Warmup done — model load: {load_ms:.0f}ms, inference: {eval_ms:.0f}ms", file=sys.stderr)
+        except Exception as e:
+            print(f"[Ollama] Warmup failed (non-fatal): {e}", file=sys.stderr)
 
     def gloss(self, payload: str) -> str:
         """

@@ -190,32 +190,61 @@ def format_excel_output(excel_output_file, columns_to_highlight: list):
 def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 60) -> None:
     import sys
 
-    def is_ready() -> bool:
+    def is_ready() -> tuple:
         try:
-            urllib.request.urlopen(host, timeout=2)
-            return True
-        except Exception:
-            return False
+            resp = urllib.request.urlopen(host, timeout=2)
+            return True, f"HTTP {resp.status}"
+        except urllib.error.URLError as e:
+            return False, str(e.reason)
+        except Exception as e:
+            return False, str(e)
 
-    if is_ready():
+    ready, status = is_ready()
+    if ready:
+        print(f"[Ollama] Already running at {host} ({status})", file=sys.stderr)
         return
 
-    print("Ollama not reachable — starting ollama serve...", file=sys.stderr)
-    subprocess.Popen(
-        ["ollama", "serve"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
+    print(f"[Ollama] Not reachable at {host} — reason: {status}", file=sys.stderr)
+    print("[Ollama] Launching 'ollama serve'...", file=sys.stderr)
+
+    try:
+        proc = subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        print(f"[Ollama] Process started with PID {proc.pid}", file=sys.stderr)
+    except FileNotFoundError:
+        raise RuntimeError("[Ollama] 'ollama' executable not found in PATH. Is Ollama installed?")
+    except Exception as e:
+        raise RuntimeError(f"[Ollama] Failed to launch process: {e}")
 
     deadline = time.time() + timeout
+    attempt = 0
     while time.time() < deadline:
-        if is_ready():
-            print("Ollama is ready.", file=sys.stderr)
-            return
+        attempt += 1
         time.sleep(2)
+        ready, status = is_ready()
+        print(f"[Ollama] Attempt {attempt} — {status}", file=sys.stderr)
+        if ready:
+            print(f"[Ollama] Ready after {attempt} attempts.", file=sys.stderr)
+            return
 
-    raise RuntimeError("Ollama did not start within the timeout period")
+        if proc.poll() is not None:
+            out, err = proc.communicate()
+            raise RuntimeError(
+                f"[Ollama] Process exited early (code {proc.returncode}).\n"
+                f"stdout: {out.decode(errors='replace')}\n"
+                f"stderr: {err.decode(errors='replace')}"
+            )
+
+    out, err = proc.communicate(timeout=2)
+    raise RuntimeError(
+        f"[Ollama] Did not become ready within {timeout}s.\n"
+        f"stdout: {out.decode(errors='replace')}\n"
+        f"stderr: {err.decode(errors='replace')}"
+    )
 
 
 def setup_logging(logger, log_path):
