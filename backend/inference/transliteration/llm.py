@@ -10,7 +10,7 @@ from typing import List
 
 class TranslitItem(BaseModel):
     id: int
-    gloss: str
+    transliteration: str
 
 
 class TranslitResponse(BaseModel):
@@ -171,7 +171,7 @@ class LLMTransliterationStrategy(TransliterationStrategy):
             normalized.append(
                 {
                     "text": source,
-                    "translation": transliteration,
+                    "transliteration": transliteration,
                 }
             )
         return normalized
