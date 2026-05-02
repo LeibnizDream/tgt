@@ -23,7 +23,13 @@ class ProcessorFactory:
     """Factory that returns a :class:`~inference.processors.abstract.DataProcessor` for a given action."""
 
     @staticmethod
-    def get_processor(language: str, action: str, instruction: str, translationModel = None, glossingModel = None) -> DataProcessor:
+    def get_processor(language: str,
+                      action: str,
+                      instruction: str,
+                      translationModel = None,
+                      glossingModel = None,
+                      transliterate_model = None,
+    ) -> DataProcessor:
         """
         Return the correct processor for the given action.
 
@@ -52,7 +58,7 @@ class ProcessorFactory:
         elif action == "gloss":
             return GlossingProcessor(language, instruction, translationModel, glossingModel)
         elif action == "transliterate":
-            return TransliteratorProcessor(language, instruction)
+            return TransliteratorProcessor(language, instruction, transliterate_model)
         elif action == "create columns":
             return ColumnCreationProcessor(language, instruction)
         else:

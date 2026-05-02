@@ -56,10 +56,10 @@ class LLMTransliterationStrategy(TransliterationStrategy):
             self._validate_input_items(items)
 
             if self.transliterate_model == "gemini":
-                return self._translate_with_gemini(items, examples)
+                return self._transliterate_with_gemini(items, examples)
 
             if self.transliterate_model == "qwen":
-                return self._translate_with_ollama(items, examples)
+                return self._transliterate_with_ollama(items, examples)
 
             raise ValueError(f"Unsupported transliteration model: {self.transliterate_model}")
 
@@ -69,7 +69,7 @@ class LLMTransliterationStrategy(TransliterationStrategy):
                 f"Transliterate the following {self.language_code} text into Latin script. "
                 f"Return only the transliteration, nothing else.\n\n{text}"
             )
-    def _translate_with_gemini(self, items: list, examples: list) -> str:
+    def _transliterate_with_gemini(self, items: list, examples: list) -> str:
         system = self._build_system_prompt(include_schema_hint=True)
         human_payload = json.dumps(
             {
@@ -89,7 +89,7 @@ class LLMTransliterationStrategy(TransliterationStrategy):
         parsed = self._validate_output_text(text, items)
         return parsed.model_dump_json(ensure_ascii=False)
 
-    def _translate_with_ollama(self, items: list, examples: list) -> str:
+    def _transliterate_with_ollama(self, items: list, examples: list) -> str:
         system = self._build_system_prompt(include_schema_hint=True)
 
         user_payload = {

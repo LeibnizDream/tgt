@@ -18,7 +18,8 @@ class AbstractInferenceWorker(ABC):
     """
 
     def __init__(self, base_dir: str, action: str, language: str, instruction: str,
-                 translationModel: str = None, glossingModel: str = None, job=None):
+                 translationModel: str = None, glossingModel: str = None,
+                 transliterate_model: str = None, job=None):
         """
         Initialize the inference worker with configuration parameters.
 
@@ -29,6 +30,7 @@ class AbstractInferenceWorker(ABC):
             instruction (str): Instruction mode (e.g., 'automatic', 'corrected').
             translationModel (str, optional): Name of translation model to use.
             glossingModel (str, optional): Name of glossing model to use.
+            transliterate_model (str, optional): Name of transliteration model to use.
             job (optional): Job object providing id, queue, and cancel_event.
         """
         self.base_dir = base_dir
@@ -38,6 +40,7 @@ class AbstractInferenceWorker(ABC):
         self.instruction = instruction
         self.translationModel = translationModel
         self.glossingModel = glossingModel
+        self.transliterate_model = transliterate_model
         self.job = job
 
         # Setup job identification and messaging queue
@@ -107,13 +110,18 @@ class AbstractInferenceWorker(ABC):
 
                 # This needs to be created here because of the multiprocessing context
                 # Create a processor based on configuration
-                print(f"Creating processor for action: {self.action}, language: {self.language}, instruction: {self.instruction}, translationModel: {self.translationModel}, glossingModel: {self.glossingModel}")
+                print(f"Creating processor for action: {self.action}, "
+                      f"language: {self.language}, instruction: {self.instruction}, "
+                      f"translationModel: {self.translationModel}, "
+                      f"glossingModel: {self.glossingModel}, "
+                      f"transliteration Model: {self.transliterate_model}")
                 self.processor = ProcessorFactory.get_processor(
                     self.language,
                     self.action,
                     self.instruction,
                     self.translationModel,
                     self.glossingModel,
+                    self.transliterate_model
                 )
                 print(f"Using processor: {self.processor.__class__.__name__}")
 
@@ -202,6 +210,10 @@ def main() -> None:
         help="Name of glossing model (optional)"
     )
     parser.add_argument(
+        "--transliteration-model", default=None,
+        help="Name of transliteration model (optional)"
+    )
+    parser.add_argument(
         "--job-id", type=int, default=0,
         help="Numeric job identifier"
     )
@@ -216,6 +228,7 @@ def main() -> None:
         instruction=args.instruction,
         translationModel=args.translation_model,
         glossingModel=args.glossing_model,
+        transliterate_model=args.transliteration_model,
         job=None  # CLI usage, no job object
     )
     worker.run() 

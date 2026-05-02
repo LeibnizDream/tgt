@@ -23,14 +23,14 @@ class TransliteratorProcessor(DataProcessor):
     _shared_examples = {}
     _shared_index = 0
 
-    def __init__(self, language: str, instruction: str, device: str = "cpu"):
+    def __init__(self, language: str, instruction: str, transliterate_model: str = None, device: str = "cpu"):
         # initialize base with language & instruction
         super().__init__(language, instruction)
         self.device = device
         # pick strategy based on resolved language code
         print(f"Getting transliteration strategy for language: {self.language}")
         self.strategy: TransliterationStrategy = TransliterationStrategyFactory.get_strategy(
-            self.language
+            self.language, transliterate_model
         )
         print('initialized transliteration strategy:', self.strategy.__class__.__name__)
         self.columns_to_highlight = (
