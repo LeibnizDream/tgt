@@ -6,4 +6,3 @@ backend/materials/secrets.env
 backend/materials/token_cache.json
 backend/materials/token_cache.json
 *.log
-.idea/
