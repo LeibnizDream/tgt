@@ -205,7 +205,7 @@ def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 6
         ["ollama", "serve"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NO_WINDOW,
+        creationflags=subprocess.CREATE_NO_WINDOW, # only works for Windows? not for linux
     )
 
     deadline = time.time() + timeout
