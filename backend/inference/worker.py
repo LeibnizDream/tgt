@@ -2,10 +2,23 @@ import os
 import traceback
 import argparse
 from abc import ABC, abstractmethod
+from pathlib import Path
+from dotenv import load_dotenv
 from utils.functions import find_language, set_global_variables
 
 from inference.processors.factory import ProcessorFactory
 from inference.processors.labvanced.glossing import GlossingProcessor
+
+_SECRETS = Path(__file__).resolve().parent.parent / "materials" / "secrets.env"
+REQUIRED_ENV_KEYS = [
+    "HUGGING_KEY",
+    "TENANT_ID",
+    "CLIENT_ID",
+    "CLIENT_SECRET",
+    "DEEPL_API_KEY",
+    "GOOGLE_API_KEY",
+]
+
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -91,6 +104,17 @@ class AbstractInferenceWorker(ABC):
             self.q.put(msg)
         else:
             print(msg)
+    
+    @staticmethod
+    def validate_env_keys(required_keys: list[str]) -> None:
+        missing = [key for key in required_keys if key not in os.environ]
+
+        if missing:
+            raise EnvironmentError(
+                "Missing required environment variable(s): "
+                + ", ".join(missing)
+                + "\nThey must exist in secrets.env, even if left empty."
+            )
 
     def run(self) -> None:
         """
@@ -98,6 +122,17 @@ class AbstractInferenceWorker(ABC):
         folders, instantiate the appropriate processor, and process each folder.
         Handles cancellation and exceptions.
         """
+        load_dotenv(_SECRETS, override=True)
+
+        print("SECRETS PATH:", _SECRETS)
+        print("SECRETS EXISTS:", _SECRETS.exists())
+
+        google_key = os.getenv("GOOGLE_API_KEY", "")
+        print("GOOGLE_API_KEY:", repr(google_key[:8] + "..." if google_key else google_key))
+
+        self.validate_env_keys(REQUIRED_ENV_KEYS)
+        
+
         try:
             self._initial_message()
 

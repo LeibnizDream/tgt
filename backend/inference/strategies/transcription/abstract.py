@@ -1,54 +1,22 @@
 import os
 from abc import ABC, abstractmethod
-from pathlib import Path
-from dotenv import load_dotenv
 import torch
 from huggingface_hub import login
 
-_this_file = Path(__file__).resolve()
-parent_dir = _this_file.parent.parent.parent.parent
 
 class TranscriptionStrategy(ABC):
     def __init__(self, language_code: str):
-        print("Initializing inside TranscriptionStrategy")
         self.language_code = language_code.lower()
-        mps_available = torch.backends.mps.is_available()
         cuda_available = torch.cuda.is_available()
         cudnn_available = torch.backends.cudnn.is_available() if cuda_available else False
+        self.device = "cuda" if (cuda_available and cudnn_available) else "cpu"
 
-        if cuda_available and cudnn_available:
-            device = "cuda"
-            cudnn_version = torch.backends.cudnn.version()
-            print(f"Using CUDA with cuDNN {cudnn_version}")
-        else:
-            device = "cpu"
-            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN available: {cudnn_available})")
-
-        self.device = device
-        print(f"TranscriptionStrategy initialized with device: {self.device}, language_code: {self.language_code}")
-        self.hugging_key = self._load_hugging_face_token()
-        login(token=self.hugging_key)
-        
-        self.load_model()
-    
-    def _load_hugging_face_token(self):
         token = os.getenv("HUGGING_KEY", "").strip()
-
         if not token:
-            secrets_path = os.path.join(parent_dir, "materials", "secrets.env")
-            print(f"Loading Hugging Face token from {secrets_path}")
-            print("SECRETS EXISTS:", os.path.exists(secrets_path))
+            raise ValueError("HUGGING_KEY not set — load secrets before starting the worker")
+        login(token=token)
 
-            if os.path.exists(secrets_path):
-                loaded = load_dotenv(secrets_path, override=True)
-                print("DOTENV LOADED:", loaded)
-
-                token = os.getenv("HUGGING_KEY", "").strip()
-
-        if not token:
-            raise ValueError("Hugging Face key not found. Set it in HUGGING_KEY")
-
-        return token
+        self.load_model()
     
     @abstractmethod
     def load_model(self):
