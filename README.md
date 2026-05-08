@@ -103,8 +103,6 @@ cd TGT
 #### 2. Set up the Python environment
 
 ```bash
-cd backend
-
 # Create virtual environment and install all dependencies from the lock file
 uv sync
 
