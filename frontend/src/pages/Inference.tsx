@@ -58,6 +58,7 @@ export default function Inference() {
   const [language, setLanguage] = useState("");
   const [logsExpanded, setLogsExpanded] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [format, setFormat] = useState<"labvanced" | "plain">("labvanced");
   const [selectedGlossingModel, setSelectedGlossingModel] = useState("Default");
   const [selectedTranslationModel, setSelectedTranslationModel] = useState("Default");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -228,7 +229,7 @@ export default function Inference() {
     addLog("Please select an action", "error");
     return;
   }
-  if (action !== "transcribe" && !instruction) {
+  if (format === "labvanced" && action !== "transcribe" && action !== "create columns" && !instruction) {
     addLog("Please select an instruction", "error");
     return;
   }
@@ -268,6 +269,7 @@ export default function Inference() {
     action: string;
     instruction: string;
     language: string;
+    format: string;
     model?: string;
     glossingModel?: string;
     translationModel?: string;
@@ -277,6 +279,7 @@ export default function Inference() {
     action,
     instruction,
     language,
+    format,
   };
 
   if (action === "translate") {
@@ -481,7 +484,20 @@ export default function Inference() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`grid gap-4 ${action !== "transcribe" && action !== "create columns" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="format">Format</Label>
+                <Select value={format} onValueChange={(v) => setFormat(v as "labvanced" | "plain")}>
+                  <SelectTrigger id="format">
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="labvanced">Labvanced</SelectItem>
+                    <SelectItem value="plain">Plain</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="action">Action</Label>
                 <Select value={action || "transcribe"} onValueChange={setAction}>
@@ -498,7 +514,7 @@ export default function Inference() {
                 </Select>
               </div>
 
-              {action !== "transcribe" && action !== "create columns" && (
+              {format === "labvanced" && action !== "transcribe" && action !== "create columns" && (
                 <div className="space-y-2">
                   <Label htmlFor="instruction">Instruction</Label>
                   <Select value={instruction || "automatic"} onValueChange={setInstruction}>

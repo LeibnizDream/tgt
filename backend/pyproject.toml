@@ -1,3 +1,87 @@
+[project]
+name = "tgt"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    # Web
+    "fastapi==0.121.2",
+    "uvicorn==0.38.0",
+    "sse-starlette==3.0.3",
+    "python-multipart==0.0.20",
+    "starlette==0.49.3",
+
+    # Data
+    "pandas==2.3.3",
+    "openpyxl==3.1.5",
+    "tqdm==4.67.1",
+    "numpy==2.3.5",
+
+    # PyTorch (platform-specific via [tool.uv.sources])
+    "torch==2.6.0",
+    "torchvision==0.21.0",
+    "torchaudio==2.6.0",
+
+    # Speech / transcription
+    "openai-whisper==20250625",
+    "whisperx==3.4.3",
+    "faster-whisper==1.2.1",
+    "pyannote-audio==3.4.0",
+
+    # NLP
+    "spacy==3.8.11",
+    "spacy-stanza==1.0.4",
+    "stanza==1.6.1",
+    "transformers==4.57.1",
+    "sentencepiece==0.1.99",
+    "sacremoses==0.0.53",
+
+    # LLM integrations
+    "langchain-google-genai==4.2.0",
+    "langchain-community==0.4.1",
+    "langchain-ollama==1.1.0",
+    "langchain-core==1.2.28",
+    "ollama==0.6.1",
+
+    # Translation
+    "deepl==1.25.0",
+
+    # Transliteration
+    "indic-transliteration==2.3.75",
+    "pykakasi==2.3.0",
+    "pypinyin==0.55.0",
+    "transliterate==1.10.2",
+    "bntrans==0.0.5",
+    "bengali-romanizer",
+
+    # Auth / cloud
+    "msal==1.34.0",
+    "requests==2.32.5",
+
+    # Utils
+    "python-dotenv==1.2.1",
+    "pydantic==2.12.4",
+    "setuptools==78.1.1",
+]
+
+[tool.uv.sources]
+# Windows: CUDA 12.4 build from PyTorch index
+torch = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+]
+torchaudio = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+]
+# Bengali romanizer — no PyPI release
+bengali-romanizer = { git = "https://github.com/apakabarfm/bengali-romanizer" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

@@ -41,8 +41,12 @@ The system is built to be **usable by non-technical users**, while maintaining a
 
 ## Prerequisites
 
-- **Python**: Version `3.11.0`  (ensures compatibility with the installed PyTorch and CUDA versions)
-- **Conda**: For environment management (recommended)
+- **Python**: `3.11+`
+- **uv**: Fast Python package manager — install from [astral.sh/uv](https://astral.sh/uv)
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+- **Node.js**: `18+` (for the frontend build)
 
 ## Configuration
 
@@ -99,35 +103,95 @@ git clone https://github.com/camelo-cruz/TGT.git
 cd TGT
 ```
 
-#### 2. Create Conda Environment
-
-Create environment from root of TGT:
+#### 2. Set up the Python environment
 
 ```bash
-# Create environment from configuration file
-conda env create -f environment.yml
+cd backend
+
+# Create virtual environment and install all dependencies from the lock file
+uv sync
 
 # Activate the environment
-conda activate tgt
+source .venv/bin/activate          # macOS / Linux
+.venv\Scripts\activate             # Windows
 ```
 
-#### 3. Start the Application
+All exact package versions are pinned in `backend/uv.lock` — no version conflicts, reproducible across machines.
 
-Deploy frontend `dist` by running inside the `frontend` folder:
+#### 3. Build the frontend
 
 ```bash
+cd ../frontend
 npm install
 npm run build
 ```
 
-Then, navigate to the `backend` directory and run:
+#### 4. Start the Application
+
+From the `backend` directory:
 
 ```bash
-# Start the FastAPI server
 python -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
 The application will be available at: `http://127.0.0.1:8000`
+
+---
+
+## CLI Usage
+
+The backend can also be used directly from the terminal without the web interface, using `backend/inference/worker.py`.
+
+### Syntax
+
+```bash
+python -m inference.worker <action> <language> <base_dir> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `action` | `transcribe` \| `translate` \| `gloss` \| `transliterate` |
+| `language` | Language name or code (e.g. `english`, `german`, `zh`) |
+| `base_dir` | Path to the folder containing the data to process |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--format` | `plain` (default) or `labvanced` |
+| `--instruction` | Required for labvanced: `automatic` \| `corrected` \| `sentences` |
+| `--translation-model` | Translation model name (e.g. `gemini`, `deepl`, `qwen`) |
+| `--glossing-model` | Glossing model name (e.g. `gemini`, `qwen`, `spacy`) |
+
+### Examples
+
+**Transcribe audio files in a folder (plain format):**
+```bash
+python -m inference.worker transcribe english /data/recordings
+```
+
+**Translate an already-transcribed folder:**
+```bash
+python -m inference.worker translate german /data/recordings --translation-model gemini
+```
+
+**Process a Labvanced export:**
+```bash
+python -m inference.worker transcribe greek /data/experiment --format labvanced --instruction automatic
+```
+
+**Gloss a Labvanced dataset using a local model:**
+```bash
+python -m inference.worker gloss turkish /data/experiment \
+  --format labvanced \
+  --instruction sentences \
+  --glossing-model qwen \
+  --translation-model qwen
+```
+
+> For labvanced format, `base_dir` should contain one or more folders named `Session_*`. The CLI will only process those.
 
 ## Important Notes
 
@@ -156,7 +220,8 @@ The application will be available at: `http://127.0.0.1:8000`
 ### Troubleshooting
 
 - Verify Python version: `python --version`
-- Check if all required packages are installed: `conda list`
+- Check installed packages: `uv pip list`
+- Re-sync the environment: `uv sync` (run from `backend/`)
 - Ensure the `.env` file is in the correct location: `backend/materials/.env`
 - Validate API keys are correctly formatted and have necessary permissions
 

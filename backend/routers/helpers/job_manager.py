@@ -127,23 +127,24 @@ class ProcessingService:
             raise HTTPException(status_code=400, detail=f"Failed to extract zip file: {str(e)}")
     
     @staticmethod
-    def create_zip_worker(tmp_dir: str, action: str, language: str, 
-                         instruction: Optional[str], translation_model: Optional[str], 
-                         glossing_model: Optional[str], job) -> ZipWorker:
+    def create_zip_worker(tmp_dir: str, action: str, language: str,
+                         instruction: Optional[str], translation_model: Optional[str],
+                         glossing_model: Optional[str], data_format: str, job) -> ZipWorker:
         """Create a ZipWorker instance."""
         return ZipWorker(
             tmp_dir, action, language, instruction,
-            translation_model, glossing_model, job
+            translation_model, glossing_model, data_format, job
         )
-    
+
     @staticmethod
     def create_onedrive_worker(base_dir: str, action: str, language: str,
                               instruction: Optional[str], translation_model: Optional[str],
-                              glossing_model: Optional[str], access_token: str, job) -> OneDriveWorker:
+                              glossing_model: Optional[str], data_format: str,
+                              access_token: str, job) -> OneDriveWorker:
         """Create an OneDriveWorker instance."""
         return OneDriveWorker(
             base_dir, action, language, instruction,
-            translation_model, glossing_model, access_token, job
+            translation_model, glossing_model, data_format, access_token, job
         )
 
 

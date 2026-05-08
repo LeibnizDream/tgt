@@ -39,6 +39,7 @@ async def process(
     glossingModel: Optional[str] = Form(None),
     translationModel: Optional[str] = Form(None),
     instruction: Optional[str] = Form(None),
+    format: Optional[str] = Form(None),
     zipfile: Optional[UploadFile] = File(None),
     base_dir: Optional[str] = Form(None),
 ):
@@ -50,7 +51,7 @@ async def process(
     glossing_model = ProcessingService.normalize_model_name(glossingModel)
     translation_model = ProcessingService.normalize_model_name(translationModel)
 
-    logger.info(f"Processing job {job.id} - action {action}, - glossingModel: {glossing_model}, translationModel: {translation_model}")
+    logger.info(f"Processing job {job.id} - action {action}, format {format}, glossingModel: {glossing_model}, translationModel: {translation_model}")
 
     # Validate required parameters
     if not language:
@@ -63,7 +64,7 @@ async def process(
             tmp_dir = await ProcessingService.extract_zipfile(zipfile)
             worker = ProcessingService.create_zip_worker(
                 tmp_dir, action, language, instruction,
-                translation_model, glossing_model, job
+                translation_model, glossing_model, format, job
             )
             job.base_dir = tmp_dir
         else:
@@ -78,7 +79,7 @@ async def process(
 
             worker = ProcessingService.create_onedrive_worker(
                 base_dir, action, language, instruction,
-                translation_model, glossing_model, access_token, job
+                translation_model, glossing_model, format, access_token, job
             )
 
         # Start worker process

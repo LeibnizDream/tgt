@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from utils.functions import find_language, set_global_variables
 
 from inference.processors.factory import ProcessorFactory
-from inference.processors.glossing import GlossingProcessor
+from inference.processors.labvanced.glossing import GlossingProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -17,8 +17,10 @@ class AbstractInferenceWorker(ABC):
     lifecycle hooks: initial_message, folder_to_process, and after_process.
     """
 
-    def __init__(self, base_dir: str, action: str, language: str, instruction: str,
-                 translationModel: str = None, glossingModel: str = None, job=None):
+    def __init__(self, base_dir: str, action: str, language: str,
+                 instruction: str | None = None,
+                 translationModel: str = None, glossingModel: str = None,
+                 format: str | None = None, job=None):
         """
         Initialize the inference worker with configuration parameters.
 
@@ -26,7 +28,8 @@ class AbstractInferenceWorker(ABC):
             base_dir (str): Path to the root directory for processing.
             action (str): Action type (e.g., 'transcribe', 'translate', 'gloss').
             language (str): Language code or name.
-            instruction (str): Instruction mode (e.g., 'automatic', 'corrected').
+            instruction (str, optional): Sub-mode for labvanced ('automatic',
+                'corrected', 'sentences'). Not used for plain format.
             translationModel (str, optional): Name of translation model to use.
             glossingModel (str, optional): Name of glossing model to use.
             job (optional): Job object providing id, queue, and cancel_event.
@@ -38,6 +41,7 @@ class AbstractInferenceWorker(ABC):
         self.instruction = instruction
         self.translationModel = translationModel
         self.glossingModel = glossingModel
+        self.format = format or "plain"
         self.job = job
 
         # Setup job identification and messaging queue
@@ -53,15 +57,20 @@ class AbstractInferenceWorker(ABC):
         """
         raise NotImplementedError("Subclasses must implement initial_message()")
 
-    @abstractmethod
     def _folder_to_process(self):
-        """
-        Hook for yielding or listing directories to process.
+        """Yield immediate subdirectories of base_dir, or base_dir itself if flat.
 
-        Returns:
-            Iterable[str]: A sequence of folder paths.
+        For labvanced format, only yields folders whose name starts with 'Session'
+        (case-insensitive). Override in subclasses that need custom discovery.
         """
-        yield self.current_folder
+        subdirs = sorted(e.path for e in os.scandir(self.base_dir) if e.is_dir())
+        if not subdirs:
+            yield self.base_dir
+            return
+        for path in subdirs:
+            if self.format == "labvanced" and not os.path.basename(path).lower().startswith("session"):
+                continue
+            yield path
 
     @abstractmethod
     def _after_process(self) -> None:
@@ -90,49 +99,37 @@ class AbstractInferenceWorker(ABC):
         Handles cancellation and exceptions.
         """
         try:
-            # Notify start
             self._initial_message()
 
-            # Iterate through target directories
+            # Processor is created once inside run() — multiprocessing requires
+            # heavy objects (ML models) to be instantiated in the worker process.
+            self.processor = ProcessorFactory.get_processor(
+                language=self.language,
+                action=self.action,
+                format=self.format,
+                instruction=self.instruction,
+                translationModel=self.translationModel,
+                glossingModel=self.glossingModel,
+            )
+            self.processor.set_progress_callback(
+                lambda cur, tot: self._put(f"[PROGRESS] {cur}/{tot}")
+            )
+            self._put(f"Using processor: {self.processor.__class__.__name__}")
+
             for folder in self._folder_to_process():
                 self.current_folder = folder
-                # Check for cancellation
                 if self.cancel and self.cancel.is_set():
                     self._put("[CANCELLED]")
                     break
 
-                # Report current session folder
-                session_name = os.path.basename(os.path.normpath(self.current_folder))
-                self._put(f"Processing session: {session_name}")
-
-                # This needs to be created here because of the multiprocessing context
-                # Create a processor based on configuration
-                print(f"Creating processor for action: {self.action}, language: {self.language}, instruction: {self.instruction}, translationModel: {self.translationModel}, glossingModel: {self.glossingModel}")
-                self.processor = ProcessorFactory.get_processor(
-                    self.language,
-                    self.action,
-                    self.instruction,
-                    self.translationModel,
-                    self.glossingModel,
-                )
-                print(f"Using processor: {self.processor.__class__.__name__}")
-
-                self.processor.set_progress_callback(
-                    lambda cur, tot: self._put(f"[PROGRESS] {cur}/{tot}")
-                )
-
-                # Run the processing logic
-                self.processor.process(self.current_folder)
-
-                # Post-processing hook
+                self._put(f"Processing folder: {os.path.basename(os.path.normpath(folder))}")
+                self.processor.process(folder)
                 self._after_process()
 
         except Exception as e:
-            # Report errors and stack trace
             self._put(f"[ERROR] {e}")
             self._put(traceback.format_exc())
         finally:
-            # Always signal completion
             if isinstance(self.processor, GlossingProcessor):
                 GlossingProcessor.reset_examples()
             self._put("[DONE ALL]")
@@ -150,15 +147,6 @@ class LocalWorker(AbstractInferenceWorker):
         """
         self._put(f"Starting job {self.job_id} – action: {self.action}")
 
-    def _folder_to_process(self):
-        """
-        Yield the single base directory for processing.
-
-        Yields:
-            str: The base directory path.
-        """
-        yield self.base_dir
-
     def _after_process(self) -> None:
         """
         Print or queue a message after processing a folder.
@@ -170,56 +158,84 @@ def main() -> None:
     """
     Command-line interface entry point for running inference workers.
 
-    Parses arguments, initializes LocalWorker, and invokes run().
+    Positional arguments:
+        action      : transcribe | translate | transliterate | gloss
+        language    : language name/code
+        base_dir    : directory to process
+
+    Optional arguments:
+        --format
+        --instruction
+        --translation-model
+        --glossing-model
     """
+
+    print('corriendo main')
+
     parser = argparse.ArgumentParser(
         description="Run inference worker from the command line."
     )
+
+    # Positional arguments
     parser.add_argument(
-        "--base-dir", required=True,
-        help="Path to the folder to process"
-    )
-    parser.add_argument(
-        "--action", required=True,
-        choices=['transcribe', 'translate', 'transliterate', 'gloss'],
+        "action",
+        choices=["transcribe", "translate", "transliterate", "gloss"],
         help="Action to perform"
     )
+
     parser.add_argument(
-        "--language", required=True,
-        help="Language code (e.g., 'spanish', 'english')"
+        "language",
+        help="Language name or code"
     )
+
     parser.add_argument(
-        "--instruction", default=None,
-        choices=['automatic', 'corrected', 'sentences'],
-        help="Instruction for translation or glossing"
+        "base_dir",
+        help="Directory to process"
     )
+
+    # Optional arguments
     parser.add_argument(
-        "--translation-model", default=None,
-        help="Name of translation model (optional)"
+        "--format",
+        default="plain",
+        choices=["labvanced", "plain"],
+        help="Input/output format"
     )
+
     parser.add_argument(
-        "--glossing-model", default=None,
-        help="Name of glossing model (optional)"
+        "--instruction",
+        default=None,
+        choices=["automatic", "corrected", "sentences"],
+        help="Required for labvanced format"
     )
+
     parser.add_argument(
-        "--job-id", type=int, default=0,
-        help="Numeric job identifier"
+        "--translation-model",
+        default=None,
+        help="Translation model name"
+    )
+
+    parser.add_argument(
+        "--glossing-model",
+        default=None,
+        help="Glossing model name"
     )
 
     args = parser.parse_args()
 
-    # Instantiate and run the local worker
+    if args.format == "labvanced" and not args.instruction:
+        parser.error("--instruction is required when --format is labvanced")
+
     worker = LocalWorker(
         base_dir=args.base_dir,
         action=args.action,
         language=args.language,
+        format=args.format,
         instruction=args.instruction,
         translationModel=args.translation_model,
         glossingModel=args.glossing_model,
-        job=None  # CLI usage, no job object
     )
-    worker.run() 
 
+    worker.run()
 
 if __name__ == "__main__":
     main()

@@ -39,6 +39,7 @@ class ZipWorker(AbstractInferenceWorker):
     # allow-list for files to include in the zip
     ALLOWED_FILENAMES = {
         "trials_and_sessions_annotated.xlsx",
+        "transcribed.xlsx",
         "transcription.log",
         "translation.log",
     }
@@ -88,21 +89,22 @@ class OneDriveWorker(AbstractInferenceWorker):
     then uploads the outputs back to OneDrive and cleans up.
     """
     def __init__(self, base_dir, action, language, instruction,
-                 translationModel, glossingModel, token, job):
+                 translationModel, glossingModel, data_format, token, job):
         super().__init__(base_dir, action, language, instruction,
-                         translationModel, glossingModel, job)
+                         translationModel, glossingModel, data_format, job)
         self.share_link = base_dir
         self.token = token
         self.sessions_meta = []
+        self.current_info = {}
 
     def _initial_message(self):
-        self._put("Checking for sessions on OneDrive…")
-        self.sessions_meta = list_session_children(self.share_link, self.token)
+        self._put("Checking for folders on OneDrive…")
+        name_filter = "Session_" if self.format == "labvanced" else None
+        self.sessions_meta = list_session_children(self.share_link, self.token, name_filter=name_filter)
 
         if not self.sessions_meta:
-            # if there are no nested Session_ folders, assume share_link points directly to a single Session
             self.sessions_meta = [{"webUrl": self.share_link}]
-        self._put(f"Found {len(self.sessions_meta)} session(s).")
+        self._put(f"Found {len(self.sessions_meta)} folder(s).")
 
     def _folder_to_process(self):
         for meta in self.sessions_meta:
@@ -133,9 +135,7 @@ class OneDriveWorker(AbstractInferenceWorker):
             else:
                 self._put(f"Warning: expected session folder '{name}' not found; using {self.current_folder}")
 
-            # stash state for upload step
-            global current_info
-            current_info = {
+            self.current_info = {
                 "drive_id": drive_id,
                 "sess_map": sess_map,
                 "session_name": name,
@@ -144,29 +144,20 @@ class OneDriveWorker(AbstractInferenceWorker):
             yield self.current_folder
 
     def _after_process(self):
-        name = current_info["session_name"]
-        drive_id = current_info["drive_id"]
-        sess_map = current_info["sess_map"]
+        name = self.current_info["session_name"]
+        drive_id = self.current_info["drive_id"]
+        sess_map = self.current_info["sess_map"]
+        parent_id = sess_map.get(name, "")
 
-        # upload any relevant outputs
-        uploads = [
-            "trials_and_sessions_annotated.xlsx",
-            f"{self.processor.__class__.__name__}.log"
-        ]
-        print(f"Contents of current folder: {self.current_folder}")
-        for f in os.listdir(self.current_folder):
-            print(" -", f)
+        files_to_upload = self._collect_output_files()
 
-        for fname in uploads:
+        for local_fp in files_to_upload:
             if self.cancel.is_set():
                 self._put("[CANCELLED UPLOAD]")
                 break
-            local_fp = os.path.join(self.current_folder, fname)
             if not os.path.exists(local_fp):
-                self._put(f"Skipping missing file: {fname}")
                 continue
-
-            parent_id = sess_map.get(name, "")
+            fname = os.path.basename(local_fp)
             self._put(f"Uploading '{fname}' for session '{name}'")
             upload_file_replace_in_onedrive(
                 local_file_path=local_fp,
@@ -181,4 +172,25 @@ class OneDriveWorker(AbstractInferenceWorker):
 
         self._tempdir_obj.cleanup()
         self._put(f"[INFO] Deleted temporary directory {self.temp_root}")
+
+    def _collect_output_files(self) -> list[str]:
+        """Return local paths of all output files that should be uploaded."""
+        if self.format == "labvanced":
+            candidates = [
+                "trials_and_sessions_annotated.xlsx",
+                f"{self.processor.__class__.__name__}.log",
+            ]
+            return [
+                os.path.join(self.current_folder, f)
+                for f in candidates
+                if os.path.exists(os.path.join(self.current_folder, f))
+            ]
+
+        # plain format: walk and collect all transcribed.xlsx and log files
+        results = []
+        for root, _, files in os.walk(self.current_folder):
+            for f in files:
+                if f in ("transcribed.xlsx", f"{self.processor.__class__.__name__}.log"):
+                    results.append(os.path.join(root, f))
+        return results
 

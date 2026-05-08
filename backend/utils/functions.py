@@ -207,12 +207,16 @@ def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 6
     print(f"[Ollama] Not reachable at {host} — reason: {status}", file=sys.stderr)
     print("[Ollama] Launching 'ollama serve'...", file=sys.stderr)
 
+    kwargs = {}
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
     try:
         proc = subprocess.Popen(
             ["ollama", "serve"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NO_WINDOW,
+            **kwargs,
         )
         print(f"[Ollama] Process started with PID {proc.pid}", file=sys.stderr)
     except FileNotFoundError:

@@ -1,0 +1,75 @@
+import os
+import pandas as pd
+from tqdm import tqdm
+
+from utils.functions import (
+    set_global_variables,
+)
+from inference.strategies.transliteration.abstract import TransliterationStrategy
+from inference.strategies.transliteration.factory import TransliterationStrategyFactory
+
+from inference.processors.labvanced.base import LabvancedBaseProcessor
+
+LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
+
+
+class TransliteratorProcessor(LabvancedBaseProcessor):
+    """
+    Processes all '*.annotated.xlsx' files in a directory,
+    applying a TransliterationStrategy to each DataFrame.
+    """
+
+    def __init__(self, language: str, instruction: str, device: str = "cpu"):
+        # initialize base with language & instruction
+        super().__init__(language, instruction)
+        self.device = device
+        # pick strategy based on resolved language code
+        print(f"Getting transliteration strategy for language: {self.language}")
+        self.strategy: TransliterationStrategy = TransliterationStrategyFactory.get_strategy(
+            self.language
+        )
+        print('initialized transliteration strategy:', self.strategy.__class__.__name__)
+        self.columns_to_highlight = (
+            "latin_transcription_utterance_used"
+            if self.instruction == "sentences"
+            else "latin_transcription_everything"
+        )
+
+    def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        # determine source/target columns by instruction
+        if self.instruction == "sentences":
+            source = "transcription_original_script_utterance_used"
+            target = "latin_transcription_utterance_used"
+        elif self.instruction == "corrected":
+            source = "transcription_original_script"
+            target = "latin_transcription_everything"
+        else:
+            raise ValueError(f"Unsupported instruction: {self.instruction}")
+
+        # ensure target column exists with proper string dtype
+        if target not in df.columns:
+            df[target] = ""
+        df[target] = df[target].astype(str).replace('nan', '')
+
+        # transliterate every non-null source sentence
+        for sentence in tqdm(
+            df[source].dropna(), desc="Transliterating sentences", leave=False
+        ):
+            # ensure sentence is properly decoded as UTF-8 string
+            if isinstance(sentence, bytes):
+                sentence = sentence.decode('utf-8')
+            
+            # find all rows where this sentence occurs
+            hits = df[df[source] == sentence].index
+            for idx in hits:
+                # initialize cell if empty
+                if pd.isna(df.at[idx, target]) or df.at[idx, target] == "":
+                    df.at[idx, target] = ""
+                # apply strategy and append if new
+                translit = self.strategy.transliterate(sentence)
+                # ensure transliteration result is UTF-8 string
+                if isinstance(translit, bytes):
+                    translit = translit.decode('utf-8')
+                df.at[idx, target] = translit
+        
+        return df

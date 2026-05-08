@@ -21,6 +21,7 @@ export function useJobSubmission(
     language,
     glossingModel,
     translationModel,
+    format,
   }: {
     mode: "online" | "upload";
     baseDir: string;
@@ -29,6 +30,7 @@ export function useJobSubmission(
     language: string;
     glossingModel?: string;
     translationModel?: string;
+    format?: string;
   }) => {
     // Hosts where offline uploads are NOT allowed
     const OFFLINE_BLOCKED_HOSTS = new Set<string>([
@@ -55,6 +57,9 @@ export function useJobSubmission(
     form.append("action", action);
     form.append("instruction", instruction);
     form.append("language", language);
+    if (format) {
+      form.append("format", format);
+    }
     if (glossingModel) {
       form.append("glossingModel", glossingModel);
     }
