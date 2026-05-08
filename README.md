@@ -42,10 +42,7 @@ The system is built to be **usable by non-technical users**, while maintaining a
 ## Prerequisites
 
 - **Python**: `3.11+`
-- **uv**: Fast Python package manager — install from [astral.sh/uv](https://astral.sh/uv)
-  ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
+- **uv**: Fast Python package manager
 - **Node.js**: `18+` (for the frontend build)
 
 ## Configuration
