@@ -18,7 +18,14 @@ class PlainTranscriber(BasePlainProcessor):
 
         for root, _, files in os.walk(base_dir):
             if any(f.lower().endswith((".mp3", ".mp4", ".m4a")) for f in files):
-                output_files.append(os.path.join(root, "transcribed.xlsx"))
+
+                out_path = os.path.join(root, "transcribed.xlsx")
+
+                if os.path.exists(out_path):
+                    self.logger.warning(f"[bold red]Skipping existing output: {out_path}")
+                    continue
+
+                output_files.append(out_path)
 
         self.logger.info(f"Found {len(output_files)} audio folder(s) under {base_dir}")
         return sorted(output_files)
