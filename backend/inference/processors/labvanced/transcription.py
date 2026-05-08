@@ -3,8 +3,6 @@ import re
 import warnings
 import pandas as pd
 from tqdm import tqdm
-from abc import ABC
-from inference.strategies.pii_identifier.factory import PIIIdentifierFactory
 from inference.strategies.transcription.factory import TranscriptionStrategyFactory
 from utils.functions import (
     set_global_variables,
@@ -27,7 +25,6 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction, device)
-        self.pii_identifier = PIIIdentifierFactory.get_strategy(self.language)
         self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
         self.filename_regexp = re.compile(
@@ -64,8 +61,6 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
             path = os.path.join(bin_dir, file)
             try:
                 text = self.strategy.transcribe(path)
-                if self.pii_identifier:
-                    _, text = self.pii_identifier.identify_and_annotate(text)
                 if self.language == 'de':
                     text = clean_german_transcription(text)
                 self.add_transcription_to_df(

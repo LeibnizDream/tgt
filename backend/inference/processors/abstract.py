@@ -129,19 +129,29 @@ class AbstractProcessor(ABC):
         """Process a single folder: read → transform → write."""
         self.file_changed = True
         fh = self._attach_session_handler(folder)
+
         try:
-            self.logger.info(f"Processing {folder}")
-            df = self._read_file(folder)
-            self.logger.info(f"Loaded {len(df)} rows")
-            df = self._process_dataframe(df)
-            if self.file_changed:
-                self._write_file(folder, df)
-        except FileNotFoundError as e:
-            self.logger.warning(f"Skipping {folder}: {e}")
+            files = self._find_files(folder)
+
+            for file in files:
+                self.file_changed = True
+
+                try:
+                    self.logger.info(f"Processing {file}")
+                    df = self._read_file(file)
+                    self.logger.info(f"Loaded {len(df)} rows")
+                    df = self._process_dataframe(df)
+
+                    if self.file_changed:
+                        self._write_file(file, df)
+
+                except FileNotFoundError as e:
+                    self.logger.warning(f"Skipping {file}: {e}")
+
         finally:
             self.logger.info(f"Finished {folder}")
             self._detach_session_handler(fh)
-    
+        
     def _read_file(self, path: str) -> pd.DataFrame:
         """Load the Excel workbook at *path* into a DataFrame."""
         return pd.read_excel(path)

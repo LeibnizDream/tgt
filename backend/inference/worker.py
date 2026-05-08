@@ -170,8 +170,6 @@ def main() -> None:
         --glossing-model
     """
 
-    print('corriendo main')
-
     parser = argparse.ArgumentParser(
         description="Run inference worker from the command line."
     )

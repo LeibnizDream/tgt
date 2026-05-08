@@ -137,6 +137,7 @@ The application will be available at: `http://127.0.0.1:8000`
 
 The backend can also be used directly from the terminal without the web interface, using `backend/inference/worker.py`.
 
+Run it from the main folder *backend*
 ### Syntax
 
 ```bash
