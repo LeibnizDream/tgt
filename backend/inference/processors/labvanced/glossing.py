@@ -22,11 +22,9 @@ gloss, and report progress via the optional progress callback.
 import pandas as pd
 from tqdm import tqdm
 
-from typing import Dict, List, Tuple
-from collections import deque
+
 
 from utils.functions import set_global_variables
-from utils.llm_functions import call_llm_batch
 from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 from inference.strategies.glossing.llm import LLMGlossingStrategy
 
@@ -39,8 +37,6 @@ class GlossingProcessor(LabvancedBaseProcessor):
     Concrete DataProcessor that applies a GlossingStrategy
     to each '*.annotated.xlsx' file under input_dir.
     """
-    _shared_examples = {}  # Class variable
-    _shared_index = 0
     def __init__(
         self,
         language: str,
@@ -51,12 +47,6 @@ class GlossingProcessor(LabvancedBaseProcessor):
         super().__init__(language=language, instruction=instruction, action="gloss",
                          translationModel=translation_model, glossingModel=glossing_model)
         self.columns_to_highlight = ["glossing_utterance_used"]
-    
-    @classmethod
-    def reset_examples(cls):
-        """Reset accumulated examples (useful for testing or new sessions)"""
-        cls._shared_examples = {}
-        cls._shared_index = 0
 
     def _get_source_column(self) -> str:
         """Determine which column to gloss based on instruction."""
@@ -72,37 +62,6 @@ class GlossingProcessor(LabvancedBaseProcessor):
             return "automatic_transcription"
         else:
             raise ValueError(f"Unsupported instruction: {self.instruction!r}")
-
-    def _separate_examples_and_todo(
-        self,
-        df: pd.DataFrame,
-        source_col: str,
-    ) -> tuple[bool, List[Dict[int, str]]]:
-        """Accumulate already-glossed rows as examples; return (had_examples, todo_items).
-
-        If any row already has a gloss, the whole file is skipped — those rows are
-        harvested as few-shot examples for other files."""
-        had_examples = False
-        todo_items = []
-
-        for i in range(len(df)):
-            source_text = df.at[i, source_col]
-            existing_gloss = df.at[i, "glossing_utterance_used"]
-
-            if not isinstance(source_text, str) or not source_text.strip():
-                continue
-
-            if isinstance(existing_gloss, str) and existing_gloss.strip():
-                GlossingProcessor._shared_examples[GlossingProcessor._shared_index] = {
-                    'source': source_text,
-                    'gloss': existing_gloss,
-                }
-                GlossingProcessor._shared_index += 1
-                had_examples = True
-            else:
-                todo_items.append({'id': i, 'text': source_text})
-
-        return had_examples, todo_items
 
     def _gloss_with_standard_strategy(
         self,
@@ -139,27 +98,21 @@ class GlossingProcessor(LabvancedBaseProcessor):
 
         return pd.Series(results, index=df.index)
 
-    def _gloss_with_llm(self, todo_items: List[Dict[int, str]], progress_cb=None) -> Dict[int, str]:
-        return call_llm_batch(self.strategy.gloss, todo_items, GlossingProcessor._shared_examples, 'gloss', progress_cb)
-
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Main processing logic: gloss the dataframe using appropriate strategy.
-        """
         source_col = self._get_source_column()
-        
+
         if source_col not in df.columns:
             return df
-        
-        had_examples, todo_items = self._separate_examples_and_todo(df, source_col)
+
+        had_examples, todo_items = self._separate_examples_and_todo(df, source_col, "glossing_utterance_used", "gloss")
         if had_examples or not todo_items:
             self.file_changed = False
             return df
 
         progress_cb = getattr(self, '_progress_callback', None)
 
-        if isinstance(self.strategy, (LLMGlossingStrategy)):
-            id_to_gloss = self._gloss_with_llm(todo_items, progress_cb)
+        if isinstance(self.strategy, LLMGlossingStrategy):
+            id_to_gloss = self._call_with_llm(self.strategy.gloss, todo_items, 'gloss', progress_cb)
 
             glossed = []
             for i in range(len(df)):

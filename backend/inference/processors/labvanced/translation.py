@@ -2,12 +2,9 @@ import warnings
 
 import pandas as pd
 from tqdm import tqdm
-from typing import Dict, List
 
 from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
-from utils.llm_functions import call_llm_batch
-
-from inference.strategies.translation.llm import LLMTranslationStrategy  # add this import
+from inference.strategies.translation.llm import LLMTranslationStrategy
 from utils.functions import set_global_variables, find_ffmpeg
 
 
@@ -20,9 +17,6 @@ class TranslationProcessor(LabvancedBaseProcessor):
     """
     Processes annotated Excel files by translating text in specified columns.
     """
-
-    _shared_examples: Dict[int, Dict] = {}
-    _shared_index: int = 0
 
     def __init__(
         self,
@@ -39,11 +33,6 @@ class TranslationProcessor(LabvancedBaseProcessor):
             "sentences": "translation_utterance_used",
         }.get(self.instruction)
 
-    @classmethod
-    def reset_examples(cls):
-        cls._shared_examples = {}
-        cls._shared_index = 0
-
     def _get_source_column(self) -> str:
         auto_col = "automatic_transcription"
         corr_col = "latin_transcription_everything"
@@ -58,51 +47,12 @@ class TranslationProcessor(LabvancedBaseProcessor):
             "sentences": sent_col,
         }.get(self.instruction, sent_col)
 
-    def _get_target_columns(self) -> List[str]:
+    def _get_target_columns(self) -> list[str]:
         return {
             "corrected": ["automatic_translation_corrected_transcription", "translation_everything"],
             "automatic": ["automatic_translation_automatic_transcription"],
             "sentences": ["automatic_translation_utterance_used", "translation_utterance_used"],
         }[self.instruction]
-
-    def _get_primary_target_column(self) -> str:
-        """The column used as the example reference (first human-edited target)."""
-        return self._get_target_columns()[-1]  # last col is the canonical/human one
-
-    def _separate_examples_and_todo(
-        self,
-        df: pd.DataFrame,
-        source_col: str,
-    ) -> tuple[bool, List[Dict]]:
-        """Accumulate already-translated rows as examples; return (had_examples, todo_items).
-
-        If any row already has a translation, the whole file is skipped — those rows are
-        harvested as few-shot examples for other files."""
-        primary_col = self._get_primary_target_column()
-        had_examples = False
-        todo_items = []
-
-        for i in range(len(df)):
-            source_text = df.at[i, source_col]
-            existing_translation = df.at[i, primary_col] if primary_col in df.columns else None
-
-            if not isinstance(source_text, str) or not source_text.strip():
-                continue
-
-            if isinstance(existing_translation, str) and existing_translation.strip():
-                TranslationProcessor._shared_examples[TranslationProcessor._shared_index] = {
-                    "source": source_text,
-                    "translation": existing_translation,
-                }
-                TranslationProcessor._shared_index += 1
-                had_examples = True
-            else:
-                todo_items.append({"id": i, "text": source_text})
-
-        return had_examples, todo_items
-
-    def _translate_with_llm(self, todo_items: List[Dict], progress_cb=None) -> Dict[int, str]:
-        return call_llm_batch(self.strategy.translate, todo_items, TranslationProcessor._shared_examples, 'translation', progress_cb)
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         source_col = self._get_source_column()
@@ -121,14 +71,14 @@ class TranslationProcessor(LabvancedBaseProcessor):
 
         progress_cb = getattr(self, '_progress_callback', None)
 
-        had_examples, todo_items = self._separate_examples_and_todo(df, source_col)
+        had_examples, todo_items = self._separate_examples_and_todo(df, source_col, self._get_target_columns()[-1], "translation")
 
         if had_examples or not todo_items:
             self.file_changed = False
             return df
 
         if isinstance(self.strategy, LLMTranslationStrategy):
-            id_to_translation = self._translate_with_llm(todo_items, progress_cb)
+            id_to_translation = self._call_with_llm(self.strategy.translate, todo_items, 'translation', progress_cb)
             for i in range(len(df)):
                 if i in id_to_translation:
                     for col in target_cols:

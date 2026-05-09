@@ -7,17 +7,68 @@ transformation (_process_dataframe) are left abstract.
 """
 
 from abc import ABC, abstractmethod
+import json
 import logging
+import torch
 import os
 from pathlib import Path
 
 import pandas as pd
 from rich.logging import RichHandler
-from inference.strategy_factory import StrategyFactory
+from inference.strategies.strategy_factory import StrategyFactory
 
 
 class AbstractProcessor(ABC):
     """Pipeline skeleton and logging infrastructure shared by all processors."""
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._shared_examples: dict = {}
+        cls._shared_index: int = 0
+
+    @classmethod
+    def reset_examples(cls) -> None:
+        cls._shared_examples = {}
+        cls._shared_index = 0
+
+    def _separate_examples_and_todo(
+        self,
+        df: pd.DataFrame,
+        source_col: str,
+        target_col: str,
+        example_target_key: str,
+    ) -> tuple[bool, list]:
+        """Split rows into few-shot examples (already processed) and todo items (pending)."""
+        cls = type(self)
+        had_examples = False
+        todo_items = []
+
+        for i in range(len(df)):
+            source = df.at[i, source_col]
+            target = df.at[i, target_col] if target_col in df.columns else None
+
+            if not isinstance(source, str) or not source.strip():
+                continue
+
+            if isinstance(target, str) and target.strip():
+                cls._shared_examples[cls._shared_index] = {"source": source, example_target_key: target}
+                cls._shared_index += 1
+                had_examples = True
+            else:
+                todo_items.append({"id": i, "text": source})
+
+        return had_examples, todo_items
+
+    def _call_with_llm(self, strategy_fn, todo_items: list, result_key: str, progress_cb=None) -> dict:
+        if not todo_items:
+            return {}
+        examples = list(type(self)._shared_examples.values())[:10]
+        payload = json.dumps({"examples": examples, "items": todo_items}, ensure_ascii=False)
+        response = json.loads(strategy_fn(payload))
+        result = {item["id"]: item[result_key] for item in response["items"]}
+        if progress_cb:
+            progress_cb(len(todo_items), len(todo_items))
+        return result
 
     def __init__(
         self,
@@ -35,7 +86,6 @@ class AbstractProcessor(ABC):
         self.strategy = StrategyFactory.get_strategy(action, language, translationModel, glossingModel) if action else None
 
         try:
-            import torch
             self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         except ImportError:
             self.device = device or "cpu"
