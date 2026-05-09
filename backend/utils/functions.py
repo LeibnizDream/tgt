@@ -1,4 +1,3 @@
-import functools
 import os
 import sys
 import json
@@ -7,13 +6,20 @@ import os
 import shutil
 import logging
 import subprocess
-import threading
 import time
 import urllib.request
 import zipfile
-import openpyxl
 import re
-from openpyxl.styles import Font
+
+def get_materials_path(filename):
+    """Get the path to a file in the materials directory."""
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        base_path = os.path.join(sys._MEIPASS, parent_dir, 'materials')
+    except:
+        base_path = os.path.join(os.getcwd(), parent_dir, 'materials')
+
+    return os.path.join(base_path, filename)
 
 def load_json_file(file_path):
     """Utility function to load JSON files with error handling."""
@@ -26,16 +32,6 @@ def load_json_file(file_path):
     except json.JSONDecodeError:
         print(f"Error: Failed to parse JSON from {file_path}.")
         sys.exit(1)
-
-def get_materials_path(filename):
-    """Get the path to a file in the materials directory."""
-    parent_dir = os.path.dirname(os.path.abspath(__file__))
-    try:
-        base_path = os.path.join(sys._MEIPASS, parent_dir, 'materials')
-    except:
-        base_path = os.path.join(os.getcwd(), parent_dir, 'materials')
-
-    return os.path.join(base_path, filename)
 
 def load_text_file(filename):
     """Utility function to load text files with error handling."""
@@ -249,29 +245,3 @@ def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 6
         f"stdout: {out.decode(errors='replace')}\n"
         f"stderr: {err.decode(errors='replace')}"
     )
-
-
-def setup_logging(logger, log_path):
-    logger.setLevel(logging.DEBUG)
-
-    # Clear existing handlers (avoid duplicates if run multiple times)
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    console_formatter = logging.Formatter("%(message)s")
-    console_handler.setFormatter(console_formatter)
-
-    # File handler
-    file_handler = logging.FileHandler(log_path, mode='w', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(file_formatter)
-
-    # Add both handlers
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-    return file_handler

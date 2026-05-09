@@ -141,7 +141,7 @@ Run it from the main folder *backend*
 ### Syntax
 
 ```bash
-python -m inference.worker <action> <language> <base_dir> [options]
+python -m inference.local_worker <action> <language> <base_dir> [options]
 ```
 
 ### Arguments

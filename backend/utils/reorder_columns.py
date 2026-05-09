@@ -21,8 +21,6 @@ Leibniz Institute General Linguistics (ZAS)
 
 import os
 import pandas as pd
-import argparse
-import json
 
 from utils.functions import (
     set_global_variables,
