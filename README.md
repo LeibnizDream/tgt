@@ -133,6 +133,18 @@ The application will be available at: `http://127.0.0.1:8000`
 
 ---
 
+## Running Tests
+
+From the project root, run:
+
+```bash
+pytest -s
+```
+
+The `-s` flag shows test output and debug prints in the terminal. Some integration tests load real models or call external services, so make sure the required secrets and local model services are configured before running the full suite.
+
+---
+
 ## CLI Usage
 
 The backend can also be used directly from the terminal without the web interface, using `backend/inference/worker.py`.
