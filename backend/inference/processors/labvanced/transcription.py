@@ -3,14 +3,13 @@ import re
 import warnings
 import pandas as pd
 from tqdm import tqdm
-from inference.strategies.transcription.factory import TranscriptionStrategyFactory
 from utils.functions import (
     set_global_variables,
     clean_german_transcription,
     find_ffmpeg,
     format_excel_output,
 )
-from inference.processors.labvanced.base import LabvancedBaseProcessor
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
@@ -24,8 +23,7 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
     """
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, device)
-        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
+        super().__init__(language, instruction, action="transcribe", device=device)
         print('initialized transcription strategy:', self.strategy.__class__.__name__)
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'

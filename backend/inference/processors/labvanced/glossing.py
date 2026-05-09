@@ -21,14 +21,13 @@ gloss, and report progress via the optional progress callback.
 """
 import pandas as pd
 from tqdm import tqdm
-import json
+
 from typing import Dict, List, Tuple
 from collections import deque
 
 from utils.functions import set_global_variables
-from inference.processors.labvanced.base import LabvancedBaseProcessor
-from inference.strategies.glossing.factory import GlossingStrategyFactory
-from inference.strategies.glossing.abstract import GlossingStrategy
+from utils.llm_functions import call_llm_batch
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 from inference.strategies.glossing.llm import LLMGlossingStrategy
 
 
@@ -49,12 +48,8 @@ class GlossingProcessor(LabvancedBaseProcessor):
         translation_model: str | None = None,
         glossing_model: str | None = None
     ):
-        super().__init__(language=language, instruction=instruction)
-        self.glossing_model = glossing_model
-        self.translation_model = translation_model
-        self.strategy: GlossingStrategy = GlossingStrategyFactory.get_strategy(
-            self.language, self.glossing_model, self.translation_model
-        )
+        super().__init__(language=language, instruction=instruction, action="gloss",
+                         translationModel=translation_model, glossingModel=glossing_model)
         self.columns_to_highlight = ["glossing_utterance_used"]
     
     @classmethod
@@ -144,32 +139,8 @@ class GlossingProcessor(LabvancedBaseProcessor):
 
         return pd.Series(results, index=df.index)
 
-    def _gloss_with_llm(
-        self,
-        todo_items: List[Dict[int, str]],
-        progress_cb=None,
-    ) -> Dict[int, str]:
-        """
-        Send one item at a time with accumulated examples for few-shot learning.
-        """
-        if not todo_items:
-            return {}
-
-        examples = list(GlossingProcessor._shared_examples.values())[:10]
-        id_to_gloss = {}
-
-        payload = {
-            'examples': examples,
-            'items': todo_items,
-        }
-        response_text = self.strategy.gloss(json.dumps(payload, ensure_ascii=False))
-        response_json = json.loads(response_text)
-        for result_item in response_json['items']:
-            id_to_gloss[result_item['id']] = result_item['gloss']
-        if progress_cb:
-            progress_cb(len(todo_items), len(todo_items))
-
-        return id_to_gloss
+    def _gloss_with_llm(self, todo_items: List[Dict[int, str]], progress_cb=None) -> Dict[int, str]:
+        return call_llm_batch(self.strategy.gloss, todo_items, GlossingProcessor._shared_examples, 'gloss', progress_cb)
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """

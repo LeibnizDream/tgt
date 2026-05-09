@@ -14,13 +14,11 @@ worker processes so that CPU-intensive ML work does not block the event loop.
 """
 import os
 import tempfile
-import traceback
 import shutil
 from zipfile import ZipFile, ZIP_DEFLATED
 from pathlib import Path
 
-from inference.processors.factory import ProcessorFactory
-from inference.worker import AbstractInferenceWorker
+from inference.abstract_worker import AbstractInferenceWorker
 from routers.helpers.onedrive import (
     download_sharepoint_folder,
     upload_file_replace_in_onedrive,

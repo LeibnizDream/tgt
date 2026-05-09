@@ -1,12 +1,12 @@
 import warnings
-import json
+
 import pandas as pd
 from tqdm import tqdm
 from typing import Dict, List
 
-from inference.processors.labvanced.base import LabvancedBaseProcessor
-from inference.strategies.translation.factory import TranslationStrategyFactory
-from inference.strategies.translation.abstract import TranslationStrategy
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
+from utils.llm_functions import call_llm_batch
+
 from inference.strategies.translation.llm import LLMTranslationStrategy  # add this import
 from utils.functions import set_global_variables, find_ffmpeg
 
@@ -31,9 +31,7 @@ class TranslationProcessor(LabvancedBaseProcessor):
         translationModel: str = None,
         device: str = "cpu",
     ):
-        super().__init__(language, instruction)
-        self.device = device
-        self.strategy: TranslationStrategy = TranslationStrategyFactory.get_strategy(self.language, translationModel)
+        super().__init__(language, instruction, action="translate", translationModel=translationModel, device=device)
         print(f"Using translation strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = {
             "automatic": "automatic_translation_automatic_transcription",
@@ -104,28 +102,7 @@ class TranslationProcessor(LabvancedBaseProcessor):
         return had_examples, todo_items
 
     def _translate_with_llm(self, todo_items: List[Dict], progress_cb=None) -> Dict[int, str]:
-        """
-        Send one item at a time with accumulated few-shot examples.
-        Returns {row_index: translation_string}.
-        """
-        if not todo_items:
-            return {}
-
-        examples = list(TranslationProcessor._shared_examples.values())[:10]
-        id_to_translation = {}
-
-        payload = {
-            "examples": examples,
-            "items": todo_items,
-        }
-        response_text = self.strategy.translate(json.dumps(payload, ensure_ascii=False))
-        response_json = json.loads(response_text)
-        for result_item in response_json["items"]:
-             id_to_translation[result_item["id"]] = result_item["translation"]
-        if progress_cb:
-            progress_cb(len(todo_items), len(todo_items))
-
-        return id_to_translation
+        return call_llm_batch(self.strategy.translate, todo_items, TranslationProcessor._shared_examples, 'translation', progress_cb)
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         source_col = self._get_source_column()

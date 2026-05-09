@@ -5,10 +5,7 @@ from tqdm import tqdm
 from utils.functions import (
     set_global_variables,
 )
-from inference.strategies.transliteration.abstract import TransliterationStrategy
-from inference.strategies.transliteration.factory import TransliterationStrategyFactory
-
-from inference.processors.labvanced.base import LabvancedBaseProcessor
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -20,14 +17,8 @@ class TransliteratorProcessor(LabvancedBaseProcessor):
     """
 
     def __init__(self, language: str, instruction: str, device: str = "cpu"):
-        # initialize base with language & instruction
-        super().__init__(language, instruction)
-        self.device = device
-        # pick strategy based on resolved language code
+        super().__init__(language, instruction, action="transliterate", device=device)
         print(f"Getting transliteration strategy for language: {self.language}")
-        self.strategy: TransliterationStrategy = TransliterationStrategyFactory.get_strategy(
-            self.language
-        )
         print('initialized transliteration strategy:', self.strategy.__class__.__name__)
         self.columns_to_highlight = (
             "latin_transcription_utterance_used"

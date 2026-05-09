@@ -8,12 +8,20 @@ _read_file (to build the initial DataFrame) and _process_dataframe.
 
 import os
 import pandas as pd
-from inference.processors.abstract import AbstractProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 
 class BasePlainProcessor(AbstractProcessor):
 
-    def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, device)
+    def __init__(
+        self,
+        language: str,
+        instruction: str,
+        action: str | None = None,
+        translationModel: str | None = None,
+        glossingModel: str | None = None,
+        device: str | None = None,
+    ):
+        super().__init__(language, instruction, action, translationModel, glossingModel, device)
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return all transcribed.xlsx files under *base_dir*."""

@@ -4,7 +4,7 @@ import torch
 
 from utils.functions import load_glossing_rules
 from inference.strategies.glossing.abstract import GlossingStrategy
-from inference.strategies.translation.factory import TranslationStrategyFactory
+from inference.strategies.translation.translation_factory import TranslationStrategyFactory
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 

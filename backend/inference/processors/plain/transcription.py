@@ -1,15 +1,13 @@
 import os
 import pandas as pd
 from tqdm import tqdm
-from inference.processors.plain.base import BasePlainProcessor
-from inference.strategies.transcription.factory import TranscriptionStrategyFactory
+from inference.processors.plain.plain_base import BasePlainProcessor
 
 
 class PlainTranscriber(BasePlainProcessor):
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, device)
-        self.strategy = TranscriptionStrategyFactory.get_strategy(self.language)
+        super().__init__(language, instruction, action="transcribe", device=device)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
 
     def _find_files(self, base_dir: str) -> list[str]:

@@ -10,18 +10,15 @@ Exposes the following REST endpoints under ``/api/train``:
   progress messages (preprocessing → training metrics) to the browser.
 - ``POST /cancel``         – Signal a running training job to stop.
 """
-import os
-import uuid
-import shutil
+
 import tempfile
 import asyncio
 import logging
 from pathlib import Path
 from zipfile import ZipFile
-from fastapi import APIRouter, HTTPException, Request, Form, UploadFile, File, Body, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import APIRouter, HTTPException, Request, Form, UploadFile, File, Body
 from sse_starlette.sse import EventSourceResponse
-from multiprocessing import Process, Queue, Event
+from multiprocessing import Process
 from routers.training.train_workers import OneDriveWorker
 from routers.helpers.job_manager import JobManager
 from routers.auth import get_fresh_token

@@ -1,10 +1,10 @@
-import json
+
 import pandas as pd
 from tqdm import tqdm
 from typing import Dict, List
 
-from inference.processors.plain.base import BasePlainProcessor
-from inference.strategies.translation.factory import TranslationStrategyFactory
+from inference.processors.plain.plain_base import BasePlainProcessor
+from utils.llm_functions import call_llm_batch
 from inference.strategies.translation.llm import LLMTranslationStrategy
 
 
@@ -14,8 +14,7 @@ class PlainTranslator(BasePlainProcessor):
     _shared_index: int = 0
 
     def __init__(self, language: str, instruction: str, translationModel: str = None, device: str | None = None):
-        super().__init__(language, instruction, device)
-        self.strategy = TranslationStrategyFactory.get_strategy(self.language, translationModel)
+        super().__init__(language, instruction, action="translate", translationModel=translationModel, device=device)
         self.logger.info(f"Initialized translation strategy: {self.strategy.__class__.__name__}")
 
     @classmethod
@@ -47,19 +46,7 @@ class PlainTranslator(BasePlainProcessor):
         return had_examples, todo
 
     def _translate_with_llm(self, todo_items: List[Dict], progress_cb=None) -> Dict[int, str]:
-        if not todo_items:
-            return {}
-        examples = list(PlainTranslator._shared_examples.values())[:10]
-        payload = json.dumps(
-            {"examples": examples, "items": todo_items},
-            ensure_ascii=False,
-        )
-        response_text = self.strategy.translate(payload)
-        response_json = json.loads(response_text)
-        result = {item["id"]: item["translation"] for item in response_json["items"]}
-        if progress_cb:
-            progress_cb(len(todo_items), len(todo_items))
-        return result
+        return call_llm_batch(self.strategy.translate, todo_items, PlainTranslator._shared_examples, 'translation', progress_cb)
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         if "transcription" not in df.columns:

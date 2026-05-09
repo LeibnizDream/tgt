@@ -9,7 +9,7 @@ import os
 import fnmatch
 import pandas as pd
 from utils.functions import set_global_variables, format_excel_output
-from inference.processors.abstract import AbstractProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -21,8 +21,16 @@ class LabvancedBaseProcessor(AbstractProcessor):
     the Labvanced file-discovery and write conventions.
     """
 
-    def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, device)
+    def __init__(
+        self,
+        language: str,
+        instruction: str,
+        action: str | None = None,
+        translationModel: str | None = None,
+        glossingModel: str | None = None,
+        device: str | None = None,
+    ):
+        super().__init__(language, instruction, action, translationModel, glossingModel, device)
         self.columns_to_highlight = None
 
     def _find_files(self, base_dir: str) -> list[str]:

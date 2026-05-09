@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from inference.processors.labvanced.base import LabvancedBaseProcessor
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 from utils.reorder_columns import create_columns
 from utils.functions import (
     set_global_variables,

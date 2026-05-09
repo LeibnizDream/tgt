@@ -13,16 +13,26 @@ from pathlib import Path
 
 import pandas as pd
 from rich.logging import RichHandler
+from inference.strategy_factory import StrategyFactory
 
 
 class AbstractProcessor(ABC):
     """Pipeline skeleton and logging infrastructure shared by all processors."""
 
-    def __init__(self, language: str, instruction: str, device: str | None = None):
+    def __init__(
+        self,
+        language: str,
+        instruction: str,
+        action: str | None = None,
+        translationModel: str | None = None,
+        glossingModel: str | None = None,
+        device: str | None = None,
+    ):
         self.language = language
         self.instruction = instruction
         self.file_changed = True
         self._progress_callback = None
+        self.strategy = StrategyFactory.get_strategy(action, language, translationModel, glossingModel) if action else None
 
         try:
             import torch

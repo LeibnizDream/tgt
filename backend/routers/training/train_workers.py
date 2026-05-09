@@ -13,10 +13,9 @@ Provides :class:`OneDriveWorker`, a concrete
 import logging
 import tempfile
 from pathlib import Path
-from typing import List, Dict
 
 import requests
-from training.worker import AbstractTrainingWorker
+from training.abstract_worker import AbstractTrainingWorker
 from routers.helpers.onedrive import (
     download_sharepoint_folder,
     upload_file_replace_in_onedrive,

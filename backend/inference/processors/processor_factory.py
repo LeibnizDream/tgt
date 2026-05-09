@@ -17,7 +17,7 @@ Supported actions
 - ``"transliterate"`` – romanise non-Latin scripts.
 - ``"create columns"``– insert derived columns.
 """
-from inference.processors.abstract import AbstractProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 from inference.processors.labvanced.transcription import TranscriptionProcessor
 from inference.processors.labvanced.translation import TranslationProcessor
 from inference.processors.labvanced.glossing import GlossingProcessor
