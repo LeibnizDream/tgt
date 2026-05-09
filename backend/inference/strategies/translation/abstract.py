@@ -1,9 +1,22 @@
+"""
+Abstract base for all translation strategies.
+"""
 import os
 from abc import ABC, abstractmethod
 from huggingface_hub import login
 
 
 class TranslationStrategy(ABC):
+    """Interface for all translation strategies.
+
+    HuggingFace login is performed in __init__ so that gated-model access
+    errors surface immediately at construction time rather than when the first
+    batch is sent.  Subclasses that don't use HuggingFace (e.g. LLM-based
+    ones using Gemini/Ollama) inherit this login harmlessly.
+
+    Subclasses must implement load_model() and translate(text) -> str | None.
+    """
+
     def __init__(self, language_code: str, translationModel: str = None, device: str = "cpu"):
         self.language_code = language_code.lower()
         self.translationModel = translationModel
@@ -16,19 +29,12 @@ class TranslationStrategy(ABC):
 
         self.load_model()
 
-    
     @abstractmethod
-    def load_model(self):
-        """
-        Load the translation models. 
-        """
-        raise NotImplementedError(
-            "Subclasses must implement load_model() to initialize their translation models."
-        )
-        
+    def load_model(self) -> None:
+        """Initialize the translation model and any supporting resources."""
+        raise NotImplementedError
+
     @abstractmethod
     def translate(self, text: str) -> str | None:
-        """
-        Return a non-None string on success, or None on failure.
-        """
-        raise NotImplementedError("Subclasses must implement translate()")
+        """Translate text.  Returns None if translation cannot be performed."""
+        raise NotImplementedError

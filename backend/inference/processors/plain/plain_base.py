@@ -1,16 +1,23 @@
 """
-Default-format base processor.
+Plain-format base processor.
 
-Treats the input directory as a single session: _find_files returns [base_dir]
-so the pipeline runs once per directory.  Concrete subclasses implement
-_read_file (to build the initial DataFrame) and _process_dataframe.
+Provides file discovery and write conventions for the plain (non-Labvanced)
+pipeline.  Rather than structured experiment directories, plain processors work
+on flat folders of audio files and produce a single ``transcribed.xlsx`` per
+folder.
 """
 
 import os
 import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
 
+
 class BasePlainProcessor(AbstractProcessor):
+    """Base class for plain-format processors.
+
+    Discovers ``transcribed.xlsx`` files under a root directory and delegates
+    transformation to :meth:`_process_dataframe` in each concrete subclass.
+    """
 
     def __init__(
         self,

@@ -1,4 +1,25 @@
-# --- abstract.py (or wherever GlossingStrategy lives) ---
+"""
+Abstract base for all glossing strategies.
+
+GlossingStrategy defines the interface (load_model, gloss) and provides the
+Leipzig mapping utilities used by NLP-based subclasses (spaCy, Stanza).
+
+Why load a translation model here
+----------------------------------
+NLP-based glossers (spaCy/Stanza) work with English dependency trees, so they
+need to translate the source text before parsing.  The Marian translation model
+is loaded eagerly in __init__ so that failures surface at construction time
+rather than mid-batch.  LLM-based subclasses (LLMGlossingStrategy) ignore the
+translation model entirely because the LLM handles both understanding and
+glossing in one step.
+
+Leipzig mapping utilities
+--------------------------
+map_feature and map_morph_to_leipzig convert spaCy/Stanza UD morphology dicts
+into the Leipzig Glossing Rules notation (e.g. {'Case':'Nom','Number':'Sing'}
+→ 'SG.NOM').  These helpers live here because every NLP-based strategy needs
+them and they depend on the shared LEIPZIG_GLOSSARY constant.
+"""
 import re
 from abc import ABC, abstractmethod
 from utils.functions import load_glossing_rules
@@ -16,6 +37,13 @@ UD2LEIPZIG_MAP = {
 GLOSSARY_CATEGORIES = {v["category"] for v in LEIPZIG_GLOSSARY.values() if "category" in v}
 
 class GlossingStrategy(ABC):
+    """Interface for all glossing strategies.
+
+    Subclasses must implement load_model() and gloss(sentence) -> str.
+    Leipzig mapping helpers (map_feature, map_morph_to_leipzig) are provided
+    for NLP-based subclasses; LLM-based ones can ignore them.
+    """
+
     def __init__(self, language_code: str, glossingModel: str = None, translationModel: str = None):
         self.language_code = language_code
         self.glossing_model = glossingModel

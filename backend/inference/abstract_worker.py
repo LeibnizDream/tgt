@@ -23,10 +23,29 @@ LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
 
 class AbstractInferenceWorker(ABC):
-    """
-    Abstract base class for inference workers that process data folders using
-    dynamic processors from ProcessorFactory. Subclasses should implement
-    lifecycle hooks: initial_message, folder_to_process, and after_process.
+    """Orchestrates a full inference job across a directory tree.
+
+    Responsibility split
+    --------------------
+    AbstractInferenceWorker handles everything outside the model call: loading
+    secrets, building the processor, iterating over folders, cancellation
+    checks, and reporting progress/errors to the job queue.  The actual NLP
+    work is delegated to the AbstractProcessor subclass selected by
+    ProcessorFactory.
+
+    Why the processor is created inside run(), not __init__
+    --------------------------------------------------------
+    Processors hold large ML models (Whisper, MarianMT, Qwen, …).  When a job
+    runs in a subprocess (via multiprocessing), the worker object is pickled and
+    sent to the child process.  ML model objects are not picklable, so they must
+    be instantiated after the fork — inside run().
+
+    Subclasses must implement
+    --------------------------
+        _initial_message() — send job-start message (content differs per worker type)
+        _after_process()   — hook called after each folder completes, e.g. to
+                             trigger a post-processing step or send a status update.
+                             Use self.current_folder to know which folder just finished.
     """
 
     def __init__(self, base_dir: str, action: str, language: str,

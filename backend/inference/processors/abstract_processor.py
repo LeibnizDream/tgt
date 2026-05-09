@@ -1,9 +1,37 @@
 """
 Abstract base for all inference data processors.
 
-AbstractProcessor owns the pipeline loop and logging infrastructure.
-Format-specific I/O (_find_files, _read_file, _write_file) and the core
-transformation (_process_dataframe) are left abstract.
+Design rationale
+----------------
+Every processor (transcription, translation, glossing, …) in both the labvanced
+and plain formats shares the same outer loop: find files, read each one,
+transform it, write it back.  AbstractProcessor owns that loop so that concrete
+subclasses only need to implement three things:
+
+    _find_files        — how to discover input files under a root directory
+    _write_file        — how to persist a transformed DataFrame
+    _process_dataframe — the task-specific transformation itself
+
+Everything else — logging setup, per-file error handling, skip-if-unchanged
+logic, progress callbacks, strategy construction, and the few-shot LLM batch
+mechanism — lives here and is shared by all subclasses.
+
+Few-shot example accumulation
+------------------------------
+LLM-backed processors improve with examples.  As files are processed in a job,
+rows that already carry a human-provided output (a translation, a gloss, …) are
+harvested as few-shot examples for subsequent files.  This state is kept in
+per-subclass class variables (_shared_examples, _shared_index) rather than
+instance variables so that examples accumulate across processor instances within
+the same job.  __init_subclass__ creates a fresh dict for every concrete
+subclass automatically, preventing cross-task contamination (glossing examples
+never leak into translation).  Call reset_examples() between jobs.
+
+Strategy construction
+---------------------
+The concrete strategy (which model to use) is resolved by StrategyFactory
+inside __init__, so subclasses never import individual strategy classes or
+factories directly.
 """
 
 from abc import ABC, abstractmethod
@@ -19,15 +47,32 @@ from inference.strategies.strategy_factory import StrategyFactory
 
 
 class AbstractProcessor(ABC):
-    """Pipeline skeleton and logging infrastructure shared by all processors."""
+    """Pipeline skeleton and shared infrastructure for all inference processors.
+
+    Concrete subclasses pick a format (labvanced, plain) and a task
+    (translate, gloss, …) and only implement _find_files, _write_file, and
+    _process_dataframe.  The outer loop, logging, error handling, and LLM
+    batch logic are inherited from here.
+
+    Class-level state (_shared_examples, _shared_index)
+    ----------------------------------------------------
+    Defined per subclass via __init_subclass__ so that each processor type
+    keeps its own example pool.  These are class variables (not instance
+    variables) because the same pool must be visible across multiple processor
+    instances that run sequentially in one job.
+    """
 
     def __init_subclass__(cls, **kwargs):
+        # Called once per subclass definition.  Gives each concrete class its
+        # own example dict so GlossingProcessor and TranslationProcessor never
+        # share state, even though both inherit this mechanism.
         super().__init_subclass__(**kwargs)
         cls._shared_examples: dict = {}
         cls._shared_index: int = 0
 
     @classmethod
     def reset_examples(cls) -> None:
+        """Clear accumulated few-shot examples.  Must be called between jobs."""
         cls._shared_examples = {}
         cls._shared_index = 0
 
@@ -38,7 +83,14 @@ class AbstractProcessor(ABC):
         target_col: str,
         example_target_key: str,
     ) -> tuple[bool, list]:
-        """Split rows into few-shot examples (already processed) and todo items (pending)."""
+        """Split rows into already-processed (examples) and pending (todo) sets.
+
+        Rows with a non-empty target are harvested into _shared_examples so
+        later files in the same job can use them as few-shot context.  If any
+        row already has a target the whole file is considered done and the
+        caller should set file_changed=False and return early — we don't
+        overwrite partial human corrections.
+        """
         cls = type(self)
         had_examples = False
         todo_items = []
@@ -60,9 +112,25 @@ class AbstractProcessor(ABC):
         return had_examples, todo_items
 
     def _call_with_llm(self, strategy_fn, todo_items: list, result_key: str, progress_cb=None) -> dict:
+        """Send todo_items to an LLM strategy with accumulated few-shot examples.
+
+        Constructs a JSON payload of {"examples": [...], "items": [...]},
+        calls strategy_fn (e.g. self.strategy.translate), parses the response,
+        and returns a {row_index: result_string} dict.
+
+        Examples are capped at 10 to keep prompts manageable.  progress_cb is
+        called once at completion because the LLM processes all items in a
+        single batch call.
+        """
         if not todo_items:
             return {}
-        examples = list(type(self)._shared_examples.values())[:10]
+        all_examples = type(self)._shared_examples
+        if 0 < len(all_examples) < 10:
+            raise ValueError(
+                f"Only {len(all_examples)} few-shot example(s) available — "
+                "at least 10 are required for LLM processing."
+            )
+        examples = list(all_examples.values())[:20]
         payload = json.dumps({"examples": examples, "items": todo_items}, ensure_ascii=False)
         response = json.loads(strategy_fn(payload))
         result = {item["id"]: item[result_key] for item in response["items"]}

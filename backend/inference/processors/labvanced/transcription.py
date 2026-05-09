@@ -1,3 +1,13 @@
+"""
+Labvanced transcription processor.
+
+Discovers participant directories by looking for a ``binaries/`` subfolder,
+loads (or creates) the ``trials_and_sessions_annotated.xlsx`` sheet, then
+iterates over every audio file in ``binaries/`` and appends the transcription
+to the correct row.  Rows are matched first by filename lookup in the sheet;
+when the filename is absent the block/task/trial numbers encoded in the
+filename are used instead.
+"""
 import os
 import re
 import warnings
@@ -18,19 +28,17 @@ ffmpeg_path = find_ffmpeg()
 
 
 class TranscriptionProcessor(LabvancedBaseProcessor):
-    """
-    Processes directories of audio files, transcribing them into a trials-and-sessions sheet.
-    """
+    """Transcribes audio files and writes results into the Labvanced annotated sheet."""
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction, action="transcribe", device=device)
-        print('initialized transcription strategy:', self.strategy.__class__.__name__)
+        self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'
         )
 
     def _find_files(self, base_dir: str) -> list[str]:
-        # find parent dirs containing a 'binaries' subfolder
+        """Return sorted parent-directory paths for every ``binaries/`` subfolder under *base_dir*."""
         bases = set()
         for subdir, _, files in os.walk(base_dir):
             if 'binaries' in os.path.basename(subdir):
@@ -38,14 +46,14 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
         return sorted(bases)
 
     def _read_file(self, base_dir: str) -> pd.DataFrame:
-        # load trials-and-sessions sheet
+        """Load the trials-and-sessions sheet, stashing the output path for _write_file."""
         df, out_file = self.load_trials_data(base_dir)
         self._current_out_file = out_file
         self._current_base_dir = base_dir
         return df
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        # iterate over audio files in 'binaries' and append transcriptions
+        """Transcribe every audio file in ``binaries/`` and append results to *df*."""
         bin_dir = os.path.join(self._current_base_dir, 'binaries')
         audio_files = [
             f for f in sorted(os.listdir(bin_dir))
@@ -74,8 +82,8 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
                 progress_cb(count, total)
         return df
 
-    def _write_file(self, _: str, df: pd.DataFrame):
-        # write out annotated sheet and apply formatting
+    def _write_file(self, _: str, df: pd.DataFrame) -> None:
+        """Write the annotated sheet to the path resolved in _read_file and apply highlighting."""
         df.to_excel(self._current_out_file, index=False)
         highlight_col = (
             'transcription_original_script'
@@ -84,7 +92,12 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
         )
         format_excel_output(self._current_out_file, highlight_col)
 
-    def load_trials_data(self, base_dir: str):
+    def load_trials_data(self, base_dir: str) -> tuple[pd.DataFrame, str]:
+        """Load (or seed) the annotated sheet, ensuring all obligatory columns exist.
+
+        Prefers the existing ``.xlsx`` file so partial progress is preserved;
+        falls back to the raw CSV when the sheet has not yet been created.
+        """
         csv_file = os.path.join(base_dir, 'trials_and_sessions.csv')
         excel_file = os.path.join(base_dir, 'trials_and_sessions_annotated.xlsx')
         excel_out = os.path.join(base_dir, 'trials_and_sessions_annotated.xlsx')
@@ -110,13 +123,26 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
 
         return df, excel_out
 
-    def _append_to_cell(self, df, idx, column, text):
+    def _append_to_cell(self, df: pd.DataFrame, idx: int, column: str, text: str) -> None:
+        """Append *text* to the cell at (*idx*, *column*), treating NaN as an empty string."""
         old = df.at[idx, column]
         df.at[idx, column] = ("" if pd.isna(old) else old) + text
 
     def add_transcription_to_df(
-        self, df, file, transcription, count, filename_regexp
-    ):
+        self,
+        df: pd.DataFrame,
+        file: str,
+        transcription: str,
+        count: int,
+        filename_regexp: re.Pattern,
+    ) -> None:
+        """Write *transcription* for *file* into the correct row(s) of *df*.
+
+        Tries to match by filename value in the sheet first; when the filename
+        is absent, falls back to parsing the block/task/trial numbers from the
+        filename and matching by those columns.  Unmatched files are skipped
+        with a log warning.
+        """
         series = df[df.isin([file])].stack()
         series = series[series == file]
         print(f"[DEBUG] file='{file}' | series length={len(series)} | empty={series.empty}")

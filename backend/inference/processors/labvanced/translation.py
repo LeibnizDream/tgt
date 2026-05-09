@@ -1,3 +1,17 @@
+"""
+Labvanced translation processor.
+
+Translates a source transcription column into one or two target columns
+depending on the *instruction* mode:
+
+- ``"sentences"``  — utterance-level source → automatic + human-editable target.
+- ``"corrected"``  — hand-corrected full transcription → two translation targets.
+- ``"automatic"``  — raw automatic transcription → one translation target.
+
+LLM strategies process all rows in a single batch call via
+:meth:`AbstractProcessor._call_with_llm`.  Non-LLM strategies translate
+row-by-row with tqdm progress reporting.
+"""
 import warnings
 
 import pandas as pd
@@ -14,9 +28,7 @@ ffmpeg_path = find_ffmpeg()
 
 
 class TranslationProcessor(LabvancedBaseProcessor):
-    """
-    Processes annotated Excel files by translating text in specified columns.
-    """
+    """Translates a source transcription column and writes results into the Labvanced annotated sheet."""
 
     def __init__(
         self,
@@ -26,7 +38,7 @@ class TranslationProcessor(LabvancedBaseProcessor):
         device: str = "cpu",
     ):
         super().__init__(language, instruction, action="translate", translationModel=translationModel, device=device)
-        print(f"Using translation strategy: {self.strategy.__class__.__name__} for language: {self.language}")
+        self.logger.info(f"Using translation strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = {
             "automatic": "automatic_translation_automatic_transcription",
             "corrected": "translation_everything",
@@ -34,6 +46,7 @@ class TranslationProcessor(LabvancedBaseProcessor):
         }.get(self.instruction)
 
     def _get_source_column(self) -> str:
+        """Return the column to translate from, accounting for non-Latin scripts."""
         auto_col = "automatic_transcription"
         corr_col = "latin_transcription_everything"
         sent_col = "latin_transcription_utterance_used"
@@ -48,6 +61,7 @@ class TranslationProcessor(LabvancedBaseProcessor):
         }.get(self.instruction, sent_col)
 
     def _get_target_columns(self) -> list[str]:
+        """Return the column(s) to write translations into for the current instruction mode."""
         return {
             "corrected": ["automatic_translation_corrected_transcription", "translation_everything"],
             "automatic": ["automatic_translation_automatic_transcription"],
@@ -55,19 +69,22 @@ class TranslationProcessor(LabvancedBaseProcessor):
         }[self.instruction]
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Translate pending rows and write results to all target columns.
+
+        Skips the file entirely when any row already has a human translation
+        (to avoid overwriting corrections).  The last target column is the
+        canonical one checked for existing translations.
+        """
         source_col = self._get_source_column()
         target_cols = self._get_target_columns()
 
         if source_col not in df.columns:
             return df
 
-        # Ensure target columns exist with object dtype
         for col in target_cols:
             if col not in df.columns:
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
-
-        print(f"Source column for {self.instruction}: {source_col}")
 
         progress_cb = getattr(self, '_progress_callback', None)
 

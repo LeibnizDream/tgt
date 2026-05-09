@@ -10,14 +10,34 @@ from utils.functions import ensure_ollama_running
 
 
 class LLMStrategy(ABC):
-    """Mixin providing shared Gemini/Ollama calling infrastructure for LLM strategies.
+    """Mixin that provides shared Gemini/Ollama infrastructure for LLM-backed strategies.
 
-    Subclasses must implement:
-        _model_hint       — returns the model name ('gemini', 'qwen', None=default)
-        _build_system_prompt — returns the task-specific system prompt
-        _response_model   — returns the Pydantic response class
-        _result_key       — returns the response item field name ('translation', 'gloss', …)
-        _normalize_examples — converts raw examples to prompt-ready dicts
+    Design as a mixin
+    -----------------
+    LLMTranslationStrategy inherits from both TranslationStrategy and LLMStrategy;
+    LLMGlossingStrategy from GlossingStrategy and LLMStrategy.  Making LLM
+    infrastructure a mixin means the two inheritance trees stay independent — the
+    task interface (translate/gloss) is defined by the task abstract, the backend
+    (which model, how to call it) by this mixin.  This avoids a deep diamond and
+    keeps each class focused on one concern.
+
+    Concrete subclasses must implement
+    -----------------------------------
+        _model_hint        — 'gemini', 'qwen', or None (defaults to qwen).
+                             Decouples model selection from the mixin so the
+                             caller (processor) can pass a model name through
+                             without the mixin knowing about it.
+        _build_system_prompt(include_schema_hint) — task-specific system prompt.
+                             include_schema_hint=True adds explicit JSON schema
+                             examples; needed for Gemini which doesn't accept a
+                             format schema like Ollama does.
+        _response_model    — Pydantic model class used to validate the response.
+        _result_key        — field name to extract per item ('translation', 'gloss').
+        _normalize_examples — converts raw _shared_examples entries to the dict
+                              shape expected by the prompt.
+
+    All concrete call logic (_call, _call_with_gemini, _call_with_ollama) is
+    implemented here so subclasses only provide the parts that differ per task.
     """
 
     @property

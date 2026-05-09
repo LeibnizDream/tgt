@@ -1,4 +1,15 @@
-import os
+"""
+Labvanced transliteration processor.
+
+Converts non-Latin script transcriptions into their romanised equivalents.
+Only applies to languages in the ``NO_LATIN`` set; calling this processor
+for a Latin-script language is a configuration error that raises ``ValueError``.
+
+Instruction modes
+-----------------
+- ``"sentences"``  — romanise utterance-level column only.
+- ``"corrected"``  — romanise the full corrected transcription column.
+"""
 import pandas as pd
 from tqdm import tqdm
 
@@ -11,15 +22,11 @@ LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
 
 class TransliteratorProcessor(LabvancedBaseProcessor):
-    """
-    Processes all '*.annotated.xlsx' files in a directory,
-    applying a TransliterationStrategy to each DataFrame.
-    """
+    """Romanises non-Latin transcription columns in Labvanced annotated sheets."""
 
     def __init__(self, language: str, instruction: str, device: str = "cpu"):
         super().__init__(language, instruction, action="transliterate", device=device)
-        print(f"Getting transliteration strategy for language: {self.language}")
-        print('initialized transliteration strategy:', self.strategy.__class__.__name__)
+        self.logger.info(f"Initialized transliteration strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = (
             "latin_transcription_utterance_used"
             if self.instruction == "sentences"
@@ -27,7 +34,13 @@ class TransliteratorProcessor(LabvancedBaseProcessor):
         )
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        # determine source/target columns by instruction
+        """Transliterate every unique non-null sentence in the source column.
+
+        Unique sentences are grouped so that each distinct string is transliterated
+        once and the result is written to all rows sharing that sentence, avoiding
+        redundant API/model calls.  Bytes are decoded to UTF-8 before and after
+        transliteration to handle binary-typed cells from certain Excel parsers.
+        """
         if self.instruction == "sentences":
             source = "transcription_original_script_utterance_used"
             target = "latin_transcription_utterance_used"
@@ -37,30 +50,22 @@ class TransliteratorProcessor(LabvancedBaseProcessor):
         else:
             raise ValueError(f"Unsupported instruction: {self.instruction}")
 
-        # ensure target column exists with proper string dtype
         if target not in df.columns:
             df[target] = ""
         df[target] = df[target].astype(str).replace('nan', '')
 
-        # transliterate every non-null source sentence
         for sentence in tqdm(
             df[source].dropna(), desc="Transliterating sentences", leave=False
         ):
-            # ensure sentence is properly decoded as UTF-8 string
             if isinstance(sentence, bytes):
                 sentence = sentence.decode('utf-8')
-            
-            # find all rows where this sentence occurs
+
             hits = df[df[source] == sentence].index
+            translit = self.strategy.transliterate(sentence)
+            if isinstance(translit, bytes):
+                translit = translit.decode('utf-8')
+
             for idx in hits:
-                # initialize cell if empty
-                if pd.isna(df.at[idx, target]) or df.at[idx, target] == "":
-                    df.at[idx, target] = ""
-                # apply strategy and append if new
-                translit = self.strategy.transliterate(sentence)
-                # ensure transliteration result is UTF-8 string
-                if isinstance(translit, bytes):
-                    translit = translit.decode('utf-8')
                 df.at[idx, target] = translit
-        
+
         return df

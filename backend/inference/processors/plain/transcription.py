@@ -1,3 +1,11 @@
+"""
+Plain transcription processor.
+
+Walks a directory tree for audio files, creates a ``transcribed.xlsx`` output
+sheet per audio folder, then transcribes each file and fills in the
+``transcription`` and ``to_gloss`` columns.  Folders that already have a
+``transcribed.xlsx`` are skipped to avoid overwriting prior work.
+"""
 import os
 import pandas as pd
 from tqdm import tqdm
@@ -5,6 +13,7 @@ from inference.processors.plain.plain_base import BasePlainProcessor
 
 
 class PlainTranscriber(BasePlainProcessor):
+    """Transcribes audio files in a flat folder and writes a ``transcribed.xlsx`` sheet."""
 
     def __init__(self, language: str, instruction: str, device: str | None = None):
         super().__init__(language, instruction, action="transcribe", device=device)
@@ -40,12 +49,18 @@ class PlainTranscriber(BasePlainProcessor):
         self._current_dir = directory
         self.logger.info(f"Found {len(audio_files)} audio files in {directory}")
 
+        n = len(audio_files)
         return pd.DataFrame({
             "file_name": audio_files,
-            "transcription": [""] * len(audio_files),
+            "transcription": [""] * n,
+            "transliteration": [""] * n,
+            "to_gloss": [""] * n,
+            "translation": [""] * n,
+            "glossing": [""] * n,
         })
 
     def _write_file(self, path: str, df: pd.DataFrame) -> None:
+        """Write *df* to *path* (the pre-computed ``transcribed.xlsx`` location)."""
         df.to_excel(path, index=False)
         self.logger.info(f"Wrote output to {path}")
 
@@ -59,6 +74,7 @@ class PlainTranscriber(BasePlainProcessor):
             try:
                 text = self.strategy.transcribe(path)
                 df.at[i, "transcription"] = text
+                df.at[i, "to_gloss"] = text
             except Exception as e:
                 self.logger.error(f"Error transcribing '{row['file_name']}': {e}")
             if progress_cb:

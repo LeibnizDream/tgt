@@ -25,6 +25,7 @@ from inference.processors.labvanced.transliteration import TransliteratorProcess
 from inference.processors.labvanced.ColumnCreation import ColumnCreationProcessor
 from inference.processors.plain.transcription import PlainTranscriber
 from inference.processors.plain.translation import PlainTranslator
+from inference.processors.plain.glossing import PlainGlosser
 
 
 class ProcessorFactory:
@@ -62,7 +63,7 @@ class ProcessorFactory:
                 language, action, instruction, translationModel, glossingModel
             )
         elif format == "plain":
-            return ProcessorFactory._get_plain(language, action, translationModel)
+            return ProcessorFactory._get_plain(language, action, translationModel, glossingModel)
         else:
             raise ValueError(f"Unknown format: {format!r}")
 
@@ -92,10 +93,13 @@ class ProcessorFactory:
         language: str,
         action: str,
         translationModel: str = None,
+        glossingModel: str = None,
     ) -> AbstractProcessor:
         if action == "transcribe":
             return PlainTranscriber(language, instruction=None)
         elif action == "translate":
             return PlainTranslator(language, instruction=None, translationModel=translationModel)
+        elif action == 'gloss':
+            return PlainGlosser(language, instruction=None, glossingModel=glossingModel)
         else:
             raise ValueError(f"No plain processor for action: {action!r}")
