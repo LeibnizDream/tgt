@@ -138,7 +138,7 @@ The application will be available at: `http://127.0.0.1:8000`
 From the project root, run:
 
 ```bash
-pytest -s
+uv run --with pytest pytest -s
 ```
 
 The `-s` flag shows test output and debug prints in the terminal. Some integration tests load real models or call external services, so make sure the required secrets and local model services are configured before running the full suite.
