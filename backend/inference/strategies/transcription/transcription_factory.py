@@ -21,6 +21,5 @@ class TranscriptionStrategyFactory:
             return WhisperStrategy(language_code)
         elif language_code in ['bn']:
             return BengaliStrategy(language_code)
-        
         else:
             raise ValueError(f"No transcription strategy available for language code: {language_code}")
