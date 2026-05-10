@@ -10,13 +10,15 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
 
 
 class PlainTranscriptionProcessor(AbstractProcessor):
     """Transcribes audio files in a flat folder and writes a ``transcribed.xlsx`` sheet."""
 
-    def __init__(self, language):
-        super().__init__(language, "transcribe")
+    def __init__(self, language, action, model=None):
+        super().__init__(language, action, model)
+        self.strategy = StrategyFactory.get_strategy(language, "transcribe", model)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
 
     def _find_files(self, base_dir: str) -> list[str]:

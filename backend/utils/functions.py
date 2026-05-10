@@ -150,17 +150,18 @@ def find_ffmpeg():
         return ffmpeg_path
 
 
-def format_excel_output(excel_output_file, columns_to_highlight: list, row_indices: set | None = None):
+def format_excel_output(excel_output_file, columns_to_highlight: str | list, row_indices: set | None = None):
     import openpyxl
     from openpyxl.styles import Font
-    from copy import copy
+
+    target_cols = {columns_to_highlight} if isinstance(columns_to_highlight, str) else set(columns_to_highlight)
 
     wb = openpyxl.load_workbook(excel_output_file)
     ws = wb.active
 
     # Get header mapping
     headers = [cell.value for cell in ws[1]]
-    col_indices = [i for i, h in enumerate(headers) if h in columns_to_highlight]
+    col_indices = [i for i, h in enumerate(headers) if h in target_cols]
 
     # Apply red color to specified columns (only row_indices rows if provided)
     for row in ws.iter_rows(min_row=2):

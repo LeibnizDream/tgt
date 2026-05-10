@@ -215,7 +215,6 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
       } else {
         setAvailableModels([]);
         setAvailableGlossingModels([]);
-        setAvailableTranslationModels([]);
         setAvailableTransliterationModels([]);
         setSelectedGlossingModel("Default");
         setSelectedTranslationModel("Default");
@@ -335,7 +334,6 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
         // Remove from appropriate model list
         if (modelType === "translation") {
           setAvailableModels(prev => prev.filter(m => m !== modelName));
-          setAvailableTranslationModels(prev => prev.filter(m => m !== modelName));
           // Reset to Default if deleted model was selected
           if (selectedTranslationModel === modelName) {
             setSelectedTranslationModel("Default");

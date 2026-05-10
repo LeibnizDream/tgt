@@ -8,6 +8,7 @@ on flat folders of audio files and produce a single transcribed.xlsx per folder.
 import os
 import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
 
 _SOURCE_COLS = {
     "translate": "transcription",
@@ -30,6 +31,7 @@ class PlainTextProcessor(AbstractProcessor):
 
     def __init__(self, language, action, model=None):
         super().__init__(language, action, model)
+        self.strategy = StrategyFactory.get_strategy(language, action, model)
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return all transcribed.xlsx files under base_dir."""

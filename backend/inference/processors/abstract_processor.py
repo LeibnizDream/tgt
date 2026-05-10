@@ -41,7 +41,6 @@ from pathlib import Path
 
 import pandas as pd
 from rich.logging import RichHandler
-from inference.strategies.strategy_factory import StrategyFactory
 
 
 class AbstractProcessor(ABC):
@@ -123,7 +122,6 @@ class AbstractProcessor(ABC):
         self.model = model
         self.file_changed = True
         self._progress_callback = None
-        self.strategy = StrategyFactory.get_strategy(language, action, model)
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)

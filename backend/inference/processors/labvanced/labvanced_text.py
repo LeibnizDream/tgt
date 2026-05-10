@@ -14,6 +14,7 @@ import fnmatch
 import pandas as pd
 from utils.functions import set_global_variables, format_excel_output
 from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -29,6 +30,7 @@ class LabvancedTextProcessor(AbstractProcessor):
         super().__init__(language, action, model)
         self.instruction = instruction
         self.columns_to_highlight = None
+        self.strategy = StrategyFactory.get_strategy(language, action, model)
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return sorted paths to every trials_and_sessions_annotated.xlsx under base_dir."""

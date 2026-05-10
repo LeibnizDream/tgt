@@ -38,7 +38,9 @@ class AbstractStrategy(ABC):
         result = {}
         total = len(todo_items)
         for done, item in enumerate(todo_items, 1):
-            result[item["id"]] = self._run_one(item["text"])
+            value = self._run_one(item["text"])
+            if value is not None:
+                result[item["id"]] = value
             if progress_cb:
                 progress_cb(done, total)
         return result

@@ -20,6 +20,7 @@ from utils.functions import (
     format_excel_output,
 )
 from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
 
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
@@ -32,6 +33,7 @@ class LabvancedTranscriptionProcessor(AbstractProcessor):
 
     def __init__(self, language, action):
         super().__init__(language, action)
+        self.strategy = StrategyFactory.get_strategy(language, action)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'
