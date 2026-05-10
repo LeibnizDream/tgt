@@ -2,7 +2,7 @@ from transformers import pipeline
 from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class BengaliStrategy(AbstractStrategy):
+class BengaliTranscriptionStrategy(AbstractStrategy):
         
     def load_model(self):
         self.whisper_asr = pipeline(

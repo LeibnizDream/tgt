@@ -12,7 +12,7 @@ all other processors.
 """
 import os
 import pandas as pd
-from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 from utils.reorder_columns import create_columns
 from utils.functions import (
     set_global_variables,
@@ -22,7 +22,7 @@ from pathlib import Path
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
-class ColumnCreationProcessor(LabvancedBaseProcessor):
+class ColumnCreationProcessor(AbstractProcessor):
     """Seeds the annotated Excel sheet from a raw Labvanced CSV export."""
 
     def _find_files(self, base_dir: str) -> list[str]:

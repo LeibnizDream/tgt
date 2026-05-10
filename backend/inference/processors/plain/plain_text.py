@@ -20,7 +20,7 @@ _TARGET_COLS = {
 }
 
 
-class BasePlainProcessor(AbstractProcessor):
+class PlainTextProcessor(AbstractProcessor):
     """Base class for plain-format processors.
 
     Discovers transcribed.xlsx files under a root directory and applies

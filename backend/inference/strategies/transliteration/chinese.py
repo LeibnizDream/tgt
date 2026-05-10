@@ -1,7 +1,7 @@
 from pypinyin import lazy_pinyin, Style
 from inference.strategies.abstract_strategy import AbstractStrategy
 
-class ChineseStrategy(AbstractStrategy):
+class ChineseTransliterationStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="zh")
 

@@ -2,7 +2,7 @@ from transformers import pipeline
 from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class VietnameseStrategy(AbstractStrategy):
+class VietnameseTranscriptionStrategy(AbstractStrategy):
     
     def load_model(self):
         self.transcriber = pipeline(

@@ -2,11 +2,6 @@
 Factory for selecting the appropriate inference data processor.
 """
 from inference.processors.abstract_processor import AbstractProcessor
-from inference.processors.labvanced.transcription import TranscriptionProcessor
-from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
-from inference.processors.labvanced.ColumnCreation import ColumnCreationProcessor
-from inference.processors.plain.transcription import PlainTranscriber
-from inference.processors.plain.plain_base import BasePlainProcessor#
 
 
 
@@ -26,10 +21,13 @@ class ProcessorFactory:
     @staticmethod
     def _get_labvanced(language, action, instruction, model) -> AbstractProcessor:
         if action == "transcribe":
-            return TranscriptionProcessor(language, action, instruction)
+            from inference.processors.labvanced.labvanced_transcription import LabvancedTranscriptionProcessor
+            return LabvancedTranscriptionProcessor(language, action, instruction)
         elif action in ["translate", "gloss", "transliterate"]:
-            return LabvancedBaseProcessor(language, action, instruction, model)
+            from inference.processors.labvanced.labvanced_text import LabvancedTextProcessor
+            return LabvancedTextProcessor(language, action, instruction, model)
         elif action == "create columns":
+            from inference.processors.labvanced.ColumnCreation import ColumnCreationProcessor
             return ColumnCreationProcessor(language, "create columns", instruction)
         else:
             raise ValueError(f"No labvanced processor for action: {action!r}")
@@ -37,8 +35,10 @@ class ProcessorFactory:
     @staticmethod
     def _get_plain(language, action, model) -> AbstractProcessor:
         if action == "transcribe":
-            return PlainTranscriber(language)
+            from inference.processors.plain.plain_transcription import PlainTranscriptionProcessor
+            return PlainTranscriptionProcessor(language)
         elif action in ["translate", "gloss", "transliterate"]:
-            return BasePlainProcessor(language, action, model)
+            from inference.processors.plain.plain_text import PlainTextProcessor
+            return PlainTextProcessor(language, action, model)
         else:
             raise ValueError(f"No plain processor for action: {action!r}")

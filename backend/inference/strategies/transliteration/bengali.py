@@ -2,7 +2,7 @@ import bengali_romanizer
 from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class BengaliStrategy(AbstractStrategy):
+class BengaliTransliterationStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="bn")
 

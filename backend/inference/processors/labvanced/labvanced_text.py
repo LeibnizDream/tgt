@@ -18,7 +18,7 @@ from inference.processors.abstract_processor import AbstractProcessor
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
 
-class LabvancedBaseProcessor(AbstractProcessor):
+class LabvancedTextProcessor(AbstractProcessor):
     """Base class for all Labvanced processors.
 
     Concrete subclasses only override __init__ to supply the action name.

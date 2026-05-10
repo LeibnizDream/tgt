@@ -19,7 +19,7 @@ from utils.functions import (
     find_ffmpeg,
     format_excel_output,
 )
-from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
@@ -27,11 +27,11 @@ warnings.filterwarnings("ignore")
 ffmpeg_path = find_ffmpeg()
 
 
-class TranscriptionProcessor(LabvancedBaseProcessor):
+class LabvancedTranscriptionProcessor(AbstractProcessor):
     """Transcribes audio files and writes results into the Labvanced annotated sheet."""
 
-    def __init__(self, language, action, instruction):
-        super().__init__(language, action, instruction)
+    def __init__(self, language, action):
+        super().__init__(language, action)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'

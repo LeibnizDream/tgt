@@ -9,10 +9,10 @@ sheet per audio folder, then transcribes each file and fills in the
 import os
 import pandas as pd
 from tqdm import tqdm
-from inference.processors.plain.plain_base import BasePlainProcessor
+from inference.processors.abstract_processor import AbstractProcessor
 
 
-class PlainTranscriber(BasePlainProcessor):
+class PlainTranscriptionProcessor(AbstractProcessor):
     """Transcribes audio files in a flat folder and writes a ``transcribed.xlsx`` sheet."""
 
     def __init__(self, language):
