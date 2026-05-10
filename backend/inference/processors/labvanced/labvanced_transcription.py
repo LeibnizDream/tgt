@@ -31,8 +31,8 @@ ffmpeg_path = find_ffmpeg()
 class LabvancedTranscriptionProcessor(AbstractProcessor):
     """Transcribes audio files and writes results into the Labvanced annotated sheet."""
 
-    def __init__(self, language, action):
-        super().__init__(language, action)
+    def __init__(self, language, action, model=None):
+        super().__init__(language, action, model)
         self.strategy = StrategyFactory.get_strategy(language, action)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
         self.filename_regexp = re.compile(

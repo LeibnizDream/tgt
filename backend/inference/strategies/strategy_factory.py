@@ -6,10 +6,6 @@ _TRANSLATION_DEEPL_LANGUAGES = {
     'ar', 'de', 'el', 'es', 'et', 'it', 'ja', 'pt', 'ro', 'ru', 'th', 'tr', 'uk', 'vi', 'zh', 'hu',
 }
 
-_GLOSSING_LLM_LANGUAGES = {
-    'de', 'et', 'fi', 'fr', 'it', 'ro', 'ru', 'uk', 'tr', 'vi', 'en', 'pt', 'ja', 'hu', 'el',
-}
-
 
 class StrategyFactory:
 
@@ -103,6 +99,4 @@ class StrategyFactory:
         if m and m != "default":
             from inference.strategies.glossing.spacy import SpaCyGlossingStrategy
             return SpaCyGlossingStrategy(language, model)
-        if language in _GLOSSING_LLM_LANGUAGES:
-            return LLMStrategy(language, "gloss")
         raise ValueError(f"No glossing strategy for language: {language!r}")

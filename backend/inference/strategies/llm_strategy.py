@@ -67,11 +67,11 @@ class LLMStrategy(AbstractStrategy):
     """
 
     def __init__(self, language: str, action: str, model: str = None):
-        super().__init__(language)
         self.action = action
         self.result_key = _RESULT_KEYS[action]
         self._model = (model or "qwen").lower()
         self._response_model = _make_response_model(self.result_key)
+        super().__init__(language)
         if self._model == "qwen":
             self._warmup()
 
