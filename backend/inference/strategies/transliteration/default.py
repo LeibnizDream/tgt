@@ -4,6 +4,9 @@ from inference.strategies.abstract_strategy import AbstractStrategy
 from transliterate import translit
 
 class DefaultStrategy(AbstractStrategy):
+    def load_model(self) -> None:
+        pass
+
     def _run_one(self, sentence: str) -> str:
         text = translit(sentence, self.language_code, reversed=True)
         if self.language_code == 'el':

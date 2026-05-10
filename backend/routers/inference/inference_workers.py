@@ -171,7 +171,7 @@ class OneDriveWorker(AbstractInferenceWorker):
 
     def _collect_output_files(self) -> list[str]:
         """Return local paths of all output files that should be uploaded."""
-        if self.format == "labvanced":
+        if self.options.format == "labvanced":
             candidates = [
                 "trials_and_sessions_annotated.xlsx",
                 f"{self.processor.__class__.__name__}.log",

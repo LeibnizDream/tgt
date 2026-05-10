@@ -27,6 +27,7 @@ class JapaneseGlossingStrategy(SpaCyGlossingStrategy):
         for token in doc:
             text = token.text
             pos = token.pos_ or "X"
+            rule_feat = None
 
             # pass through punctuation and bracket/number-like tokens
             if pos == "PUNCT" or SKIP_RE.search(text):
@@ -37,13 +38,10 @@ class JapaneseGlossingStrategy(SpaCyGlossingStrategy):
             is_case_particle = text in case_gloss or (pos in {"ADP", "PART", "SCONJ"} and text in case_gloss)
 
             if is_case_particle:
-                norm = text 
+                norm = text
             else:
                 norm = text.lower().replace(" ", ".")
-                rule_feat = None
 
             out_tokens.append(f"{norm}-{pos}-{rule_feat}" if rule_feat else f"{norm}-{pos}")
-            output = " ".join(out_tokens)
-           
 
-        return output
+        return " ".join(out_tokens)

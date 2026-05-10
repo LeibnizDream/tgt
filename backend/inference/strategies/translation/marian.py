@@ -10,7 +10,7 @@ class MarianStrategy(AbstractStrategy):
             """
             if self.language_code == "yo":
                 model_name = f"Helsinki-NLP/opus-mt-mul-en"
-            if self.language_code == "pt":
+            elif self.language_code == "pt":
                 model_name = "Helsinki-NLP/opus-mt-tc-big-en-pt"
             else:
                 model_name = f"Helsinki-NLP/opus-mt-{self.language_code}-en"

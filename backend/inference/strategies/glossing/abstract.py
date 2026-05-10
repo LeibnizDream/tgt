@@ -43,7 +43,8 @@ class GlossingStrategy(AbstractStrategy):
     Leipzig mapping helpers (map_feature, map_morph_to_leipzig) are provided
     for NLP-based subclasses; LLM-based ones can ignore them.
     """
-    def __init__(self, language_code):
+    def __init__(self, language_code, model=None):
+        self.model = model  # must be set before super().__init__ calls load_model()
         super().__init__(language_code)
 
     # ---------- Leipzig mapping helpers ----------

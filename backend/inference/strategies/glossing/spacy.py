@@ -35,9 +35,9 @@ class SpaCyGlossingStrategy(GlossingStrategy):
         - If glossing_model is one of the DEFAULT_SPACY keys, load that spaCy package.
         - Else assume it's a custom subfolder under models/glossing/.
         """
-        if self.glossing_model:
+        if self.model:
             models_dir = Path(__file__).resolve().parents[2] / "models/glossing"
-            model_dir = models_dir / (self.glossing_model)
+            model_dir = models_dir / self.model
             print(f"Loading custom glossing model from {model_dir}")
             if not model_dir.exists():
                 raise ValueError(f"Custom glossing model not found at {model_dir}")

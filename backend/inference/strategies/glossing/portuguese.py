@@ -10,21 +10,15 @@ LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
 class PortugueseGlossingStrategy(GlossingStrategy):
     def __init__(self, language_code: str):
-        super().__init__(language_code)
         self.translation_strategy = TranslationStrategyFactory.get_strategy(language_code)
-        print(f"Loaded translation strategy: {self.translation_strategy}")
-        self.nlp = self.load_model()
+        super().__init__(language_code)
 
-    def load_model(self):
+    def load_model(self) -> None:
         model_name = "pt_core_news_lg"
         if not is_package(model_name):
             print(f"{model_name} isn't installed—pulling it down now…")
             download(model_name)
-        try:
-            return spacy.load(model_name)
-        except Exception as e:
-            print(f"Error loading spaCy model {model_name}: {e}")
-            raise
+        self.nlp = spacy.load(model_name)
 
     def _clean_portuguese_sentence(self, glossed_sentence: str, lemmatized_sentence: str) -> str:
         """

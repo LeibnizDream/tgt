@@ -72,7 +72,7 @@ class PlainTranscriber(BasePlainProcessor):
         for i, row in tqdm(df.iterrows(), total=total, desc="Transcribing"):
             path = os.path.join(self._current_dir, row["file_name"])
             try:
-                text = self.strategy.run_strategy(path)
+                text = self.strategy._run_one(path)
                 df.at[i, "transcription"] = text
             except Exception as e:
                 self.logger.error(f"Error transcribing '{row['file_name']}': {e}")
