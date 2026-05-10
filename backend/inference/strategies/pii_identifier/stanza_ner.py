@@ -2,7 +2,7 @@ import re
 import sys
 import stanza
 from typing import List, Tuple, Dict
-from inference.strategies.pii_identifier.abstract import PIIStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 import torch
 from functools import wraps
 
@@ -17,7 +17,7 @@ torch.load = _always_full_load
 
 
 
-class StanzaIdentifier(PIIStrategy):
+class StanzaIdentifier(AbstractStrategy):
     """
     Identifies and annotates Personally Identifiable Information (PII)
     in text using Stanza NER plus regex rules for structured identifiers.

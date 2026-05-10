@@ -3,9 +3,9 @@ import spacy
 from typing import List, Tuple, Dict
 from spacy.cli import download as spacy_download
 from importlib import util
-from inference.strategies.pii_identifier.abstract import PIIStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
-class SpacyIdentifier(PIIStrategy):
+class SpacyIdentifier(AbstractStrategy):
     """
     Identifies and annotates Personally Identifiable Information (PII)
     in text using spaCy NER plus regex rules for structured identifiers.

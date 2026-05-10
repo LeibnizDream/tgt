@@ -1,5 +1,6 @@
 import argparse
 from inference.abstract_worker import AbstractInferenceWorker
+from inference.processing_options import ProcessingOptions
 
 class LocalWorker(AbstractInferenceWorker):
     """
@@ -89,15 +90,15 @@ def main() -> None:
     if args.format == "labvanced" and not args.instruction:
         parser.error("--instruction is required when --format is labvanced")
 
-    worker = LocalWorker(
-        base_dir=args.base_dir,
-        action=args.action,
+    options = ProcessingOptions(
         language=args.language,
+        action=args.action,
         format=args.format,
         instruction=args.instruction,
-        translationModel=args.translation_model,
-        glossingModel=args.glossing_model,
+        model=args.model
     )
+
+    worker = LocalWorker(base_dir=args.base_dir, options=options)
 
     worker.run()
 
