@@ -74,7 +74,7 @@ class PortugueseGlossingStrategy(GlossingStrategy):
         output = re.sub(r"\.+", ".", output)
         return output.strip()
 
-    def gloss(self, sentence: str) -> str:
+    def _gloss_one(self, sentence: str) -> str:
         """
         Generate an interlinear gloss for a Portuguese sentence.
         """
@@ -95,7 +95,7 @@ class PortugueseGlossingStrategy(GlossingStrategy):
 
             translated_lemma = None
             if self.translation_strategy:
-                translated_lemma = self.translation_strategy.translate(text=lemma)
+                translated_lemma = self.translation_strategy._translate_one(lemma)
             
             if not translated_lemma:
                 translated_lemma = lemma

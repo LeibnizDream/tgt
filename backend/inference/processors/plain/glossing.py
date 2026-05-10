@@ -6,10 +6,8 @@ interlinear Leipzig glosses derived from the ``to_gloss`` column.  Skips
 files that already contain any human gloss to avoid overwriting corrections.
 """
 import pandas as pd
-from tqdm import tqdm
 
 from inference.processors.plain.plain_base import BasePlainProcessor
-from inference.strategies.glossing.llm import LLMGlossingStrategy
 
 
 class PlainGlosser(BasePlainProcessor):
@@ -41,18 +39,8 @@ class PlainGlosser(BasePlainProcessor):
             self.file_changed = False
             return df
 
-        if isinstance(self.strategy, LLMGlossingStrategy):
-            id_to_gloss = self._call_with_llm(self.strategy.gloss, todo_items, 'gloss', progress_cb)
-            for i, gloss in id_to_gloss.items():
-                df.at[i, "glossing"] = gloss
-        else:
-            total = len(todo_items)
-            for done, item in enumerate(tqdm(todo_items, desc="Glossing"), 1):
-                try:
-                    df.at[item["id"], "glossing"] = self.strategy.gloss(item["text"])
-                except Exception as e:
-                    self.logger.error(f"Error glossing row {item['id']}: {e}")
-                if progress_cb:
-                    progress_cb(done, total)
+        id_to_gloss = self.strategy.gloss(todo_items, self._get_examples(), progress_cb)
+        for i, gloss in id_to_gloss.items():
+            df.at[i, "glossing"] = gloss
 
         return df

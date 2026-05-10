@@ -3,10 +3,14 @@ from inference.strategies.transliteration.japanese import JapaneseStrategy
 from inference.strategies.transliteration.chinese import ChineseStrategy
 from inference.strategies.transliteration.bengali import BengaliStrategy
 from inference.strategies.transliteration.default import DefaultStrategy
+from inference.strategies.transliteration.llm import LLMTransliterationStrategy
+
 
 class TransliterationStrategyFactory:
     @staticmethod
-    def get_strategy(language_code: str) -> TransliterationStrategy:
+    def get_strategy(language_code: str, transliterationModel: str = None) -> TransliterationStrategy:
+        if transliterationModel and transliterationModel.lower() in ["gemini", "qwen"]:
+            return LLMTransliterationStrategy(language_code, transliterationModel)
         if language_code == "zh":
             return ChineseStrategy()
         elif language_code == "ja":

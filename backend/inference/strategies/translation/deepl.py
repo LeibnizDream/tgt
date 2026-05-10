@@ -15,7 +15,7 @@ class DeeplStrategy(TranslationStrategy):
             code = "PT-BR"
         self._deepl_source_lang = code
 
-    def translate(self, text: str) -> str | None:
+    def _translate_one(self, text: str) -> str | None:
         try:
             result = self._deepl_client.translate_text(
                 text,

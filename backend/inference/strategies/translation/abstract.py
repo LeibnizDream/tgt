@@ -34,7 +34,17 @@ class TranslationStrategy(ABC):
         """Initialize the translation model and any supporting resources."""
         raise NotImplementedError
 
+    def translate(self, items: list, examples: list = None, progress_cb=None) -> dict:
+        """Translate a batch of items one-by-one. LLM subclasses override for batch calls."""
+        result = {}
+        total = len(items)
+        for done, item in enumerate(items, 1):
+            result[item["id"]] = self._translate_one(item["text"])
+            if progress_cb:
+                progress_cb(done, total)
+        return result
+
     @abstractmethod
-    def translate(self, text: str) -> str | None:
-        """Translate text.  Returns None if translation cannot be performed."""
+    def _translate_one(self, text: str) -> str | None:
+        """Translate a single text. Returns None if translation cannot be performed."""
         raise NotImplementedError

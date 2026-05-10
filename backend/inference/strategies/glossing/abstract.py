@@ -58,8 +58,19 @@ class GlossingStrategy(ABC):
 
     @abstractmethod
     def load_model(self): ...
+
+    def gloss(self, items: list, examples: list = None, progress_cb=None) -> dict:
+        """Gloss a batch of items one-by-one. LLM subclasses override for batch calls."""
+        result = {}
+        total = len(items)
+        for done, item in enumerate(items, 1):
+            result[item["id"]] = self._gloss_one(item["text"])
+            if progress_cb:
+                progress_cb(done, total)
+        return result
+
     @abstractmethod
-    def gloss(self, sentence: str) -> str: ...
+    def _gloss_one(self, sentence: str) -> str: ...
 
     # ---------- Leipzig mapping helpers ----------
     @staticmethod

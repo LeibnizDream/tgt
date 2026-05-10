@@ -6,13 +6,19 @@ from inference.strategies.glossing.glossing_factory import GlossingStrategyFacto
 
 class StrategyFactory:
     @staticmethod
-    def get_strategy(action: str, language: str, translationModel: str = None, glossingModel: str = None):
+    def get_strategy(
+        action: str,
+        language: str,
+        translationModel: str = None,
+        glossingModel: str = None,
+        transliterationModel: str = None,
+    ):
         if action == "transcribe":
             return TranscriptionStrategyFactory.get_strategy(language)
         elif action == "translate":
             return TranslationStrategyFactory.get_strategy(language, translationModel)
         elif action == "transliterate":
-            return TransliterationStrategyFactory.get_strategy(language)
+            return TransliterationStrategyFactory.get_strategy(language, transliterationModel)
         elif action == "gloss":
             return GlossingStrategyFactory.get_strategy(language, glossingModel, translationModel)
         elif action == "create columns":

@@ -15,10 +15,8 @@ row-by-row with tqdm progress reporting.
 import warnings
 
 import pandas as pd
-from tqdm import tqdm
 
 from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
-from inference.strategies.translation.llm import LLMTranslationStrategy
 from utils.functions import set_global_variables, find_ffmpeg
 
 
@@ -94,23 +92,10 @@ class TranslationProcessor(LabvancedBaseProcessor):
             self.file_changed = False
             return df
 
-        if isinstance(self.strategy, LLMTranslationStrategy):
-            id_to_translation = self._call_with_llm(self.strategy.translate, todo_items, 'translation', progress_cb)
-            for i in range(len(df)):
-                if i in id_to_translation:
-                    for col in target_cols:
-                        df.at[i, col] = id_to_translation[i]
-
-        else:
-            total = len(todo_items)
-            for done, item in enumerate(tqdm(todo_items, desc="Translating rows"), 1):
-                try:
-                    translation = self.strategy.translate(item["text"])
-                    for col in target_cols:
-                        df.at[item["id"], col] = translation
-                except Exception as e:
-                    self.logger.error(f"Error translating row {item['id']}: {e}")
-                if progress_cb:
-                    progress_cb(done, total)
+        id_to_translation = self.strategy.translate(todo_items, self._get_examples(), progress_cb)
+        for i in range(len(df)):
+            if i in id_to_translation:
+                for col in target_cols:
+                    df.at[i, col] = id_to_translation[i]
 
         return df

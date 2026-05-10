@@ -4,7 +4,7 @@ from inference.strategies.transliteration.abstract import TransliterationStrateg
 from transliterate import translit
 
 class DefaultStrategy(TransliterationStrategy):
-    def transliterate(self, sentence: str) -> str:
+    def _transliterate_one(self, sentence: str) -> str:
         text = translit(sentence, self.language_code, reversed=True)
         if self.language_code == 'el':
             text = re.sub(r'\w+@pii|x', lambda m: m.group() if '@pii' in m.group() else 'ks', text)

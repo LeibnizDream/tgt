@@ -1,3 +1,4 @@
+import json
 import sys
 from typing import List
 
@@ -28,8 +29,22 @@ class LLMGlossingStrategy(GlossingStrategy, LLMStrategy):
             self._warmup()
         print(f"Loaded model for glossing: {getattr(self, 'model_name', 'gemini')}", file=sys.stderr)
 
-    def gloss(self, payload: str) -> str:
-        return self._call(payload)
+    def gloss(self, items: list, examples: list = None, progress_cb=None) -> dict:
+        examples = examples or []
+        if 0 < len(examples) < 10:
+            raise ValueError(
+                f"Only {len(examples)} few-shot example(s) available — "
+                "at least 10 are required for LLM processing."
+            )
+        response_json = self._call(items, examples)
+        parsed = json.loads(response_json)
+        result = {item["id"]: item["gloss"] for item in parsed["items"]}
+        if progress_cb:
+            progress_cb(len(items), len(items))
+        return result
+
+    def _gloss_one(self, sentence: str) -> str:
+        raise Exception("Glossing with LLM does not allow single glossing")
 
     def _result_key(self) -> str:
         return "gloss"

@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from pydantic import BaseModel
@@ -24,8 +25,22 @@ class LLMTranslationStrategy(TranslationStrategy, LLMStrategy):
     def load_model(self) -> None:
         self._init_llm()
 
-    def translate(self, payload: str) -> str:
-        return self._call(payload)
+    def translate(self, items: list, examples: list = None, progress_cb=None) -> dict:
+        examples = examples or []
+        if 0 < len(examples) < 10:
+            raise ValueError(
+                f"Only {len(examples)} few-shot example(s) available — "
+                "at least 10 are required for LLM processing."
+            )
+        response_json = self._call(items, examples)
+        parsed = json.loads(response_json)
+        result = {item["id"]: item["translation"] for item in parsed["items"]}
+        if progress_cb:
+            progress_cb(len(items), len(items))
+        return result
+
+    def _translate_one(self, text: str) -> str | None:
+        raise Exception("Glossing with LLM does not allow single glossing")
 
     def _result_key(self) -> str:
         return "translation"

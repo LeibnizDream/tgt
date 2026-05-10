@@ -30,7 +30,7 @@ class StanzaGlossingStrategy(GlossingStrategy):
             return {}
         return dict(kv.split("=") for kv in feats_str.split("|") if kv and "=" in kv)
 
-    def gloss(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
+    def _gloss_one(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
         """
         Build a Leipzig-style gloss from a Stanza pipeline.
         - Handles multi-line input

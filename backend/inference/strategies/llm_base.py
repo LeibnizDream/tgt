@@ -81,16 +81,10 @@ class LLMStrategy(ABC):
 
     # ---------------------------------------------------------------- dispatch
 
-    def _call(self, payload: str) -> str:
-        payload_data = json.loads(payload)
-        examples = payload_data.get("examples", []) or []
-        items = payload_data.get("items", []) or []
-
+    def _call(self, items: list, examples: list) -> str:
         if not items:
-            raise ValueError("No items found in payload")
-
+            raise ValueError("No items provided")
         self._validate_input_items(items)
-
         hint = self._model_hint or "qwen"
         if hint == "gemini":
             return self._call_with_gemini(items, examples)

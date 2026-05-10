@@ -6,10 +6,8 @@ fills the ``translation`` column.  Skips files that already have any human
 translation to avoid overwriting corrections.
 """
 import pandas as pd
-from tqdm import tqdm
 
 from inference.processors.plain.plain_base import BasePlainProcessor
-from inference.strategies.translation.llm import LLMTranslationStrategy
 
 
 class PlainTranslator(BasePlainProcessor):
@@ -41,18 +39,8 @@ class PlainTranslator(BasePlainProcessor):
             self.file_changed = False
             return df
 
-        if isinstance(self.strategy, LLMTranslationStrategy):
-            id_to_translation = self._call_with_llm(self.strategy.translate, todo_items, 'translation', progress_cb)
-            for i, translation in id_to_translation.items():
-                df.at[i, "translation"] = translation
-        else:
-            total = len(todo_items)
-            for done, item in enumerate(tqdm(todo_items, desc="Translating"), 1):
-                try:
-                    df.at[item["id"], "translation"] = self.strategy.translate(item["text"])
-                except Exception as e:
-                    self.logger.error(f"Error translating row {item['id']}: {e}")
-                if progress_cb:
-                    progress_cb(done, total)
+        id_to_translation = self.strategy.translate(todo_items, self._get_examples(), progress_cb)
+        for i, translation in id_to_translation.items():
+            df.at[i, "translation"] = translation
 
         return df

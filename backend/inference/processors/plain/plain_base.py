@@ -26,9 +26,10 @@ class BasePlainProcessor(AbstractProcessor):
         action: str | None = None,
         translationModel: str | None = None,
         glossingModel: str | None = None,
+        transliterationModel: str | None = None,
         device: str | None = None,
     ):
-        super().__init__(language, instruction, action, translationModel, glossingModel, device)
+        super().__init__(language, instruction, action, translationModel, glossingModel, transliterationModel, device)
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return all transcribed.xlsx files under *base_dir*."""

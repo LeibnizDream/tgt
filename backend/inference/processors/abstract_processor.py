@@ -35,7 +35,6 @@ factories directly.
 """
 
 from abc import ABC, abstractmethod
-import json
 import logging
 import torch
 import os
@@ -111,32 +110,8 @@ class AbstractProcessor(ABC):
 
         return had_examples, todo_items
 
-    def _call_with_llm(self, strategy_fn, todo_items: list, result_key: str, progress_cb=None) -> dict:
-        """Send todo_items to an LLM strategy with accumulated few-shot examples.
-
-        Constructs a JSON payload of {"examples": [...], "items": [...]},
-        calls strategy_fn (e.g. self.strategy.translate), parses the response,
-        and returns a {row_index: result_string} dict.
-
-        Examples are capped at 10 to keep prompts manageable.  progress_cb is
-        called once at completion because the LLM processes all items in a
-        single batch call.
-        """
-        if not todo_items:
-            return {}
-        all_examples = type(self)._shared_examples
-        if 0 < len(all_examples) < 10:
-            raise ValueError(
-                f"Only {len(all_examples)} few-shot example(s) available — "
-                "at least 10 are required for LLM processing."
-            )
-        examples = list(all_examples.values())[:20]
-        payload = json.dumps({"examples": examples, "items": todo_items}, ensure_ascii=False)
-        response = json.loads(strategy_fn(payload))
-        result = {item["id"]: item[result_key] for item in response["items"]}
-        if progress_cb:
-            progress_cb(len(todo_items), len(todo_items))
-        return result
+    def _get_examples(self) -> list:
+        return list(type(self)._shared_examples.values())[:20]
 
     def __init__(
         self,
@@ -145,13 +120,14 @@ class AbstractProcessor(ABC):
         action: str | None = None,
         translationModel: str | None = None,
         glossingModel: str | None = None,
+        transliterationModel: str | None = None,
         device: str | None = None,
     ):
         self.language = language
         self.instruction = instruction
         self.file_changed = True
         self._progress_callback = None
-        self.strategy = StrategyFactory.get_strategy(action, language, translationModel, glossingModel) if action else None
+        self.strategy = StrategyFactory.get_strategy(action, language, translationModel, glossingModel, transliterationModel) if action else None
 
         try:
             self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")

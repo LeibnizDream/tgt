@@ -24,8 +24,8 @@ LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 class TransliteratorProcessor(LabvancedBaseProcessor):
     """Romanises non-Latin transcription columns in Labvanced annotated sheets."""
 
-    def __init__(self, language: str, instruction: str, device: str = "cpu"):
-        super().__init__(language, instruction, action="transliterate", device=device)
+    def __init__(self, language: str, instruction: str, transliterationModel: str = None, device: str = "cpu"):
+        super().__init__(language, instruction, action="transliterate", transliterationModel=transliterationModel, device=device)
         self.logger.info(f"Initialized transliteration strategy: {self.strategy.__class__.__name__} for language: {self.language}")
         self.columns_to_highlight = (
             "latin_transcription_utterance_used"
@@ -42,30 +42,29 @@ class TransliteratorProcessor(LabvancedBaseProcessor):
         transliteration to handle binary-typed cells from certain Excel parsers.
         """
         if self.instruction == "sentences":
-            source = "transcription_original_script_utterance_used"
-            target = "latin_transcription_utterance_used"
+            source_col = "transcription_original_script_utterance_used"
+            target_col = "latin_transcription_utterance_used"
         elif self.instruction == "corrected":
-            source = "transcription_original_script"
-            target = "latin_transcription_everything"
+            source_col = "transcription_original_script"
+            target_col = "latin_transcription_everything"
         else:
             raise ValueError(f"Unsupported instruction: {self.instruction}")
 
-        if target not in df.columns:
-            df[target] = ""
-        df[target] = df[target].astype(str).replace('nan', '')
+        if target_col not in df.columns:
+            df[target_col] = ""
+        df[target_col] = df[target_col].astype(str).replace('nan', '')
 
-        for sentence in tqdm(
-            df[source].dropna(), desc="Transliterating sentences", leave=False
-        ):
-            if isinstance(sentence, bytes):
-                sentence = sentence.decode('utf-8')
+        progress_cb = getattr(self, '_progress_callback', None)
 
-            hits = df[df[source] == sentence].index
-            translit = self.strategy.transliterate(sentence)
-            if isinstance(translit, bytes):
-                translit = translit.decode('utf-8')
+        had_examples, todo_items = self._separate_examples_and_todo(df, source_col, target_col, "transliteration")
 
-            for idx in hits:
-                df.at[idx, target] = translit
+        if had_examples or not todo_items:
+            self.file_changed = False
+            return df
+
+        id_to_translation = self.strategy.transliterate(todo_items, self._get_examples(), progress_cb)
+        for i in range(len(df)):
+            if i in id_to_translation:
+                df.at[i, target_col] = id_to_translation[i]
 
         return df

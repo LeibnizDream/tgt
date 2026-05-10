@@ -28,9 +28,10 @@ class LabvancedBaseProcessor(AbstractProcessor):
         action: str | None = None,
         translationModel: str | None = None,
         glossingModel: str | None = None,
+        transliterationModel: str | None = None,
         device: str | None = None,
     ):
-        super().__init__(language, instruction, action, translationModel, glossingModel, device)
+        super().__init__(language, instruction, action, translationModel, glossingModel, transliterationModel, device)
         self.columns_to_highlight = None
 
     def _find_files(self, base_dir: str) -> list[str]:

@@ -20,7 +20,7 @@ class MarianStrategy(TranslationStrategy):
                 .to(self.device)
             )
 
-    def translate(self, text: str) -> str | None:
+    def _translate_one(self, text: str) -> str | None:
             """
             If the Marian model was successfully loaded, run a forward pass.
             Otherwise return None.

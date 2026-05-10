@@ -4,9 +4,9 @@ import bengali_romanizer
 
 class BengaliStrategy(TransliterationStrategy):
     def __init__(self):
-        pass
+        super().__init__(language_code="bn")
 
-    def transliterate(self, text: str) -> str:
+    def _transliterate_one(self, text: str) -> str:
         if isinstance(text, bytes):
             text = text.decode('utf-8')
         
