@@ -98,6 +98,7 @@ class LabvancedBaseProcessor(AbstractProcessor):
         had_examples, todo_items = self._separate_examples_and_todo(
             df, source_col, target_cols[-1], self.action
         )
+        print('to do items:', todo_items)
 
         if had_examples or not todo_items:
             self.file_changed = False

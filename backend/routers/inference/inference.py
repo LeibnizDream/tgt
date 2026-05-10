@@ -46,6 +46,9 @@ async def process(
     """Process files either from uploaded zip or OneDrive."""
     job = JobManager.create()
 
+    print("hello I am receiving this model ", model)
+    print("after normalization ", ProcessingService.normalize_model_name(model))
+
     options = ProcessingOptions(
         language=language,
         action=action,

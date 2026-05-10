@@ -301,25 +301,21 @@ export default function Inference() {
     language: string;
     format: string;
     model?: string;
-    glossingModel?: string;
-    translationModel?: string;
   } = {
     mode,
     baseDir,
     action,
     instruction,
     language,
-    format,
+    format
   };
 
   if (action === "translate") {
-    payload.translationModel = selectedTranslationModel || "Default";
-    addLog(`translation model: ${payload.translationModel}`, "info");
+    payload.model = selectedTranslationModel || "Default";
+    addLog(`translation model: ${payload.model}`, "info");
   } else if (action === "gloss") {
-    payload.glossingModel = selectedGlossingModel || "Default";
-    payload.translationModel = selectedTranslationModel || "Default";
-    addLog(`glossing model: ${payload.glossingModel}`, "info");
-    addLog(`translation model: ${payload.translationModel}`, "info");
+    payload.model = selectedGlossingModel || "Default";
+    addLog(`glossing model: ${payload.model}`, "info");;
   } else if (action === "transliterate") {
     payload.model = selectedTransliterationModel || "Default";
     addLog(`transliteration model: ${payload.model}`, "info");

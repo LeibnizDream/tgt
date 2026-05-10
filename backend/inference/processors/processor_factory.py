@@ -17,17 +17,14 @@ class ProcessorFactory:
         if options.format == "labvanced":
             if not options.instruction:
                 raise ValueError("instruction is required for labvanced format")
-            return ProcessorFactory._get_labvanced(options)
+            return ProcessorFactory._get_labvanced(options.language, options.action, options.instruction, options.model)
         elif options.format == "plain":
-            return ProcessorFactory._get_plain(options)
+            return ProcessorFactory._get_plain(options.language, options.action, options.model)
         else:
             raise ValueError(f"Unknown format: {options.format!r}")
 
     @staticmethod
-    def _get_labvanced(options) -> AbstractProcessor:
-        action, language, instruction, model = (
-            options.action, options.language, options.instruction, options.model
-        )
+    def _get_labvanced(language, action, instruction, model) -> AbstractProcessor:
         if action == "transcribe":
             return TranscriptionProcessor(language, action, instruction)
         elif action in ["translate", "gloss", "transliterate"]:
@@ -38,8 +35,7 @@ class ProcessorFactory:
             raise ValueError(f"No labvanced processor for action: {action!r}")
 
     @staticmethod
-    def _get_plain(options) -> AbstractProcessor:
-        action, language, model = options.action, options.language, options.model
+    def _get_plain(language, action, model) -> AbstractProcessor:
         if action == "transcribe":
             return PlainTranscriber(language)
         elif action in ["translate", "gloss", "transliterate"]:
