@@ -5,6 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from utils.functions import find_language, set_global_variables
 
+
 from inference.processors.processor_factory import ProcessorFactory
 from inference.processing_options import ProcessingOptions
 
@@ -20,6 +21,8 @@ REQUIRED_ENV_KEYS = [
 
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
+
+
 
 
 class AbstractInferenceWorker(ABC):
