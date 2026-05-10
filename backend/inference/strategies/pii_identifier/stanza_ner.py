@@ -50,7 +50,7 @@ class StanzaIdentifier(PIIStrategy):
             print('error details', e)
             raise RuntimeError(f"Failed to initialize Stanza NER for language: {self.lang}. Please check if the language code is correct or if the model is available.")
 
-    def identify_and_annotate(self, text: str) -> Tuple[List[Tuple[int, int, str, str]], str]:
+    def _run_one(self, text: str) -> Tuple[List[Tuple[int, int, str, str]], str]:
         """
         Identify PII spans and return both the spans and an annotated text.
 

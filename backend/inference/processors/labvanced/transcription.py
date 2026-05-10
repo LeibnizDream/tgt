@@ -30,8 +30,8 @@ ffmpeg_path = find_ffmpeg()
 class TranscriptionProcessor(LabvancedBaseProcessor):
     """Transcribes audio files and writes results into the Labvanced annotated sheet."""
 
-    def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, action="transcribe", device=device)
+    def __init__(self, language, action, instruction):
+        super().__init__(language, action, instruction)
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
         self.filename_regexp = re.compile(
             r'blockNr_(?P<block>\d+)_taskNr_(?P<task>\d+)_trialNr_(?P<trial>\d+).*'
@@ -66,7 +66,7 @@ class TranscriptionProcessor(LabvancedBaseProcessor):
             count += 1
             path = os.path.join(bin_dir, file)
             try:
-                text = self.strategy.transcribe(path)
+                text = self.strategy.run_strategy(path)
                 if self.language == 'de':
                     text = clean_german_transcription(text)
                 self.add_transcription_to_df(

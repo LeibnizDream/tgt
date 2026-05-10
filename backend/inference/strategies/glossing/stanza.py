@@ -4,7 +4,6 @@ import torch
 
 from utils.functions import load_glossing_rules
 from inference.strategies.glossing.abstract import GlossingStrategy
-from inference.strategies.translation.translation_factory import TranslationStrategyFactory
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
@@ -30,7 +29,7 @@ class StanzaGlossingStrategy(GlossingStrategy):
             return {}
         return dict(kv.split("=") for kv in feats_str.split("|") if kv and "=" in kv)
 
-    def _gloss_one(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
+    def _run_one(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
         """
         Build a Leipzig-style gloss from a Stanza pipeline.
         - Handles multi-line input

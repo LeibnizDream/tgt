@@ -74,7 +74,7 @@ class PortugueseGlossingStrategy(GlossingStrategy):
         output = re.sub(r"\.+", ".", output)
         return output.strip()
 
-    def _gloss_one(self, sentence: str) -> str:
+    def _run_one(self, sentence: str) -> str:
         """
         Generate an interlinear gloss for a Portuguese sentence.
         """

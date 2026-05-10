@@ -1,8 +1,8 @@
 from transformers import pipeline
-from inference.strategies.transcription.abstract import TranscriptionStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class VietnameseStrategy(TranscriptionStrategy):
+class VietnameseStrategy(AbstractStrategy):
     
     def load_model(self):
         self.transcriber = pipeline(
@@ -13,7 +13,7 @@ class VietnameseStrategy(TranscriptionStrategy):
             device=self.device,
         )
 
-    def transcribe(self, audio: str) -> str | None:
+    def _run_one(self, audio: str) -> str | None:
         out = self.transcriber(
             audio,
             generate_kwargs={

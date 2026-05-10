@@ -1,13 +1,13 @@
-from inference.strategies.translation.abstract import TranslationStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 from bntrans import Translator
 
-class BengaliTranslationStrategy(TranslationStrategy):
+class BengaliTranslationStrategy(AbstractStrategy):
 
-    def load_model(self, model_path=None):
+    def load_model(self):
         """Load the Bengali translator model"""
         self.translator = Translator(src="bn", dest="en")
 
-    def _translate_one(self, text: str) -> str | None:
+    def _run_one(self, text: str) -> str | None:
         """Translate Bengali text to English"""
         if not hasattr(self, 'translator') or self.translator is None:
             self.load_model()

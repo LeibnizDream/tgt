@@ -25,6 +25,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from routers.helpers.job_manager import JobManager, ProcessingService, JobCleanupService
 from routers.auth import get_fresh_token
+from inference.processing_options import ProcessingOptions
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -36,39 +37,35 @@ async def process(
     request: Request,
     action: str = Form(...),
     language: str = Form(...),
-    glossingModel: Optional[str] = Form(None),
-    translationModel: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
     instruction: Optional[str] = Form(None),
     format: Optional[str] = Form(None),
     zipfile: Optional[UploadFile] = File(None),
     base_dir: Optional[str] = Form(None),
 ):
     """Process files either from uploaded zip or OneDrive."""
-    # Initialize job
     job = JobManager.create()
 
-    # Normalize model names
-    glossing_model = ProcessingService.normalize_model_name(glossingModel)
-    translation_model = ProcessingService.normalize_model_name(translationModel)
+    options = ProcessingOptions(
+        language=language,
+        action=action,
+        format=format,
+        instruction=instruction,
+        model=ProcessingService.normalize_model_name(model),
+    )
 
-    logger.info(f"Processing job {job.id} - action {action}, format {format}, glossingModel: {glossing_model}, translationModel: {translation_model}")
+    logger.info(f"Processing job {job.id} - action {action}, format {format}, model: {options.model}")
 
-    # Validate required parameters
     if not language:
         job.queue.put("[ERROR] Missing language")
         return {"job_id": job.id}
 
     try:
         if zipfile:
-            # Handle zip file upload
             tmp_dir = await ProcessingService.extract_zipfile(zipfile)
-            worker = ProcessingService.create_zip_worker(
-                tmp_dir, action, language, instruction,
-                translation_model, glossing_model, format, job
-            )
+            worker = ProcessingService.create_zip_worker(tmp_dir, options, job)
             job.base_dir = tmp_dir
         else:
-            # Handle OneDrive processing
             if not base_dir:
                 raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
             try:
@@ -77,10 +74,7 @@ async def process(
                 raise HTTPException(status_code=401, detail=str(e))
             job.token = access_token
 
-            worker = ProcessingService.create_onedrive_worker(
-                base_dir, action, language, instruction,
-                translation_model, glossing_model, format, access_token, job
-            )
+            worker = ProcessingService.create_onedrive_worker(base_dir, options, access_token, job)
 
         # Start worker process
         job.process = await ProcessingService.create_worker_process(worker.run)

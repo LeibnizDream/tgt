@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from inference.strategies.translation.abstract import TranslationStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
-class MarianStrategy(TranslationStrategy):
+class MarianStrategy(AbstractStrategy):
 
     def load_model(self):
             """
@@ -20,7 +20,7 @@ class MarianStrategy(TranslationStrategy):
                 .to(self.device)
             )
 
-    def _translate_one(self, text: str) -> str | None:
+    def _run_one(self, text: str) -> str | None:
             """
             If the Marian model was successfully loaded, run a forward pass.
             Otherwise return None.

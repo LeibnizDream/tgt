@@ -61,6 +61,7 @@ export default function Inference() {
   const [format, setFormat] = useState<"labvanced" | "plain">("labvanced");
   const [selectedGlossingModel, setSelectedGlossingModel] = useState("Default");
   const [selectedTranslationModel, setSelectedTranslationModel] = useState("Default");
+  const [selectedTransliterationModel, setSelectedTransliterationModel] = useState("Default");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableGlossingModels, setAvailableGlossingModels] = useState<
     string[]
@@ -68,6 +69,7 @@ export default function Inference() {
   const [availableTranslationModels, setAvailableTranslationModels] = useState<
     string[]
   >([]);
+  const [availableTransliterationModels, setAvailableTransliterationModels] = useState<string[]>([]);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "online" | "offline"
   >("checking");
@@ -211,12 +213,36 @@ export default function Inference() {
             );
           }
         }
+      } else if (action === "transliterate") {
+        try {
+          const res = await fetch(`/api/inference/models/transliteration`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          const data = await res.json();
+          setBackendStatus("online");
+          if (Array.isArray(data.models)) {
+            const FIXED_TRANSLITERATION = ["Default", "qwen", "gemini"];
+            const custom = data.models.filter((m: string) => !FIXED_TRANSLITERATION.includes(m));
+            setAvailableTransliterationModels([...FIXED_TRANSLITERATION, ...custom]);
+            setSelectedTransliterationModel("Default");
+          }
+        } catch (err) {
+          setBackendStatus("offline");
+          setAvailableTransliterationModels(["Default", "qwen", "gemini"]);
+          setSelectedTransliterationModel("Default");
+          if (err instanceof TypeError && err.message.includes("fetch")) {
+            addLog("Backend server is not running. Please start the backend server on port 8000.", "error");
+          } else {
+            addLog(`Failed to load models: ${(err as Error).message}. Using default.`, "warning");
+          }
+        }
       } else {
         setAvailableModels([]);
         setAvailableGlossingModels([]);
         setAvailableTranslationModels([]);
+        setAvailableTransliterationModels([]);
         setSelectedGlossingModel("Default");
         setSelectedTranslationModel("Default");
+        setSelectedTransliterationModel("Default");
       }
     };
 
@@ -261,6 +287,10 @@ export default function Inference() {
     addLog("Please select both glossing and translation models", "error");
     return;
   }
+  if (action === "transliterate" && !selectedTransliterationModel) {
+    addLog("Please select a transliteration model", "error");
+    return;
+  }
 
   // 3) Build payload
   const payload: {
@@ -290,6 +320,9 @@ export default function Inference() {
     payload.translationModel = selectedTranslationModel || "Default";
     addLog(`glossing model: ${payload.glossingModel}`, "info");
     addLog(`translation model: ${payload.translationModel}`, "info");
+  } else if (action === "transliterate") {
+    payload.model = selectedTransliterationModel || "Default";
+    addLog(`transliteration model: ${payload.model}`, "info");
   }
 
   // 4) Submit
@@ -539,6 +572,16 @@ export default function Inference() {
                 selectedModel={selectedTranslationModel}
                 onModelChange={setSelectedTranslationModel}
                 onModelDelete={(model) => handleModelDelete(model, "translation")}
+              />
+            )}
+
+            {/* Model Selection for Transliteration */}
+            {action === "transliterate" && (
+              <ModelToggle
+                label="Choose Transliteration Model"
+                models={availableTransliterationModels}
+                selectedModel={selectedTransliterationModel}
+                onModelChange={setSelectedTransliterationModel}
               />
             )}
 

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from utils.functions import find_language, set_global_variables
 
 from inference.processors.processor_factory import ProcessorFactory
-from inference.processors.labvanced.glossing import GlossingProcessor
+from inference.processing_options import ProcessingOptions
 
 _SECRETS = Path(__file__).resolve().parent.parent / "materials" / "secrets.env"
 REQUIRED_ENV_KEYS = [
@@ -48,34 +48,13 @@ class AbstractInferenceWorker(ABC):
                              Use self.current_folder to know which folder just finished.
     """
 
-    def __init__(self, base_dir: str, action: str, language: str,
-                 instruction: str | None = None,
-                 translationModel: str = None, glossingModel: str = None,
-                 format: str | None = None, job=None):
-        """
-        Initialize the inference worker with configuration parameters.
-
-        Args:
-            base_dir (str): Path to the root directory for processing.
-            action (str): Action type (e.g., 'transcribe', 'translate', 'gloss').
-            language (str): Language code or name.
-            instruction (str, optional): Sub-mode for labvanced ('automatic',
-                'corrected', 'sentences'). Not used for plain format.
-            translationModel (str, optional): Name of translation model to use.
-            glossingModel (str, optional): Name of glossing model to use.
-            job (optional): Job object providing id, queue, and cancel_event.
-        """
+    def __init__(self, base_dir: str, options: ProcessingOptions, job=None):
         self.base_dir = base_dir
         self.current_folder = self.base_dir
-        self.action = action
-        self.language = find_language(language, LANGUAGES)
-        self.instruction = instruction
-        self.translationModel = translationModel
-        self.glossingModel = glossingModel
-        self.format = format or "plain"
+        self.options = options
+        self.options.language = find_language(options.language, LANGUAGES)
         self.job = job
 
-        # Setup job identification and messaging queue
         self.job_id = job.id if job else 'local_job'
         self.q = getattr(job, 'queue', None)
         self.cancel = getattr(job, 'cancel_event', None)
@@ -93,7 +72,7 @@ class AbstractInferenceWorker(ABC):
             yield self.base_dir
             return
         for path in subdirs:
-            if self.format == "labvanced" and not os.path.basename(path).lower().startswith("session"):
+            if self.options.format == "labvanced" and not os.path.basename(path).lower().startswith("session"):
                 continue
             yield path
 
@@ -158,14 +137,7 @@ class AbstractInferenceWorker(ABC):
 
             # Processor is created once inside run() — multiprocessing requires
             # heavy objects (ML models) to be instantiated in the worker process.
-            self.processor = ProcessorFactory.get_processor(
-                language=self.language,
-                action=self.action,
-                format=self.format,
-                instruction=self.instruction,
-                translationModel=self.translationModel,
-                glossingModel=self.glossingModel,
-            )
+            self.processor = ProcessorFactory.get_processor(self.options)
             self.processor.set_progress_callback(
                 lambda cur, tot: self._put(f"[PROGRESS] {cur}/{tot}")
             )
@@ -185,6 +157,6 @@ class AbstractInferenceWorker(ABC):
             self._put(f"[ERROR] {e}")
             self._put(traceback.format_exc())
         finally:
-            if isinstance(self.processor, GlossingProcessor):
-                GlossingProcessor.reset_examples()
+            if self.processor:
+                self.processor.reset_examples()
             self._put("[DONE ALL]")

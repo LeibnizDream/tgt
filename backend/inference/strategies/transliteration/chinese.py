@@ -1,7 +1,7 @@
 from pypinyin import lazy_pinyin, Style
-from inference.strategies.transliteration.abstract import TransliterationStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
-class ChineseStrategy(TransliterationStrategy):
+class ChineseStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="zh")
 
@@ -9,7 +9,7 @@ class ChineseStrategy(TransliterationStrategy):
         # Choose pinyin style: TONE2 (Tone after syllable), TONE3 (tone after word), etc.
         self.style = None
 
-    def _transliterate_one(self, sentence: str) -> str:
+    def _run_one(self, sentence: str) -> str:
         # Use lazy_pinyin for simple local transliteration
         # It handles non-Chinese characters by returning them unchanged
 

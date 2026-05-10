@@ -52,7 +52,7 @@ class SpaCyGlossingStrategy(GlossingStrategy):
         else:
             raise ValueError("No glossing model specified or available for this language.")
 
-    def _gloss_one(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
+    def _run_one(self, text: str, keep_punct: bool = True, debug: bool = True) -> str:
         """
         Build a Leipzig-style gloss string from model predictions.
         - Preserves newline boundaries: gloss each line independently.

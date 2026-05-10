@@ -1,8 +1,7 @@
-from inference.strategies.transcription.abstract import TranscriptionStrategy
 from transformers import pipeline
-import torch
+from inference.strategies.abstract_strategy import AbstractStrategy
 
-class ThaiTranscriptionStrategy(TranscriptionStrategy):
+class ThaiTranscriptionStrategy(AbstractStrategy):
 
     def load_model(self):
         MODEL_NAME = "biodatlab/whisper-th-large-v3-combined"  # specify the model name
@@ -14,7 +13,7 @@ class ThaiTranscriptionStrategy(TranscriptionStrategy):
             device=self.device,
         )
     
-    def transcribe(self, path_to_audio: str) -> str | None:
+    def _run_one(self, path_to_audio: str) -> str | None:
         self.pipe.model.config.forced_decoder_ids = self.pipe.tokenizer.get_decoder_prompt_ids(
         language=self.language_code,
         task="transcribe"

@@ -1,8 +1,8 @@
 from transformers import pipeline
-from inference.strategies.transcription.abstract import TranscriptionStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class BengaliStrategy(TranscriptionStrategy):
+class BengaliStrategy(AbstractStrategy):
         
     def load_model(self):
         self.whisper_asr = pipeline(
@@ -11,7 +11,7 @@ class BengaliStrategy(TranscriptionStrategy):
             device=self.device
         )
 
-    def transcribe(self, path_to_audio: str):
+    def _run_one(self, path_to_audio: str):
         self.whisper_asr.model.config.forced_decoder_ids = (
             self.whisper_asr.tokenizer.get_decoder_prompt_ids(language=self.language_code, task="transcribe")
         )

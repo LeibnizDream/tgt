@@ -21,6 +21,7 @@ export function useJobSubmission(
     language,
     glossingModel,
     translationModel,
+    model,
     format,
   }: {
     mode: "online" | "upload";
@@ -30,6 +31,7 @@ export function useJobSubmission(
     language: string;
     glossingModel?: string;
     translationModel?: string;
+    model?: string;
     format?: string;
   }) => {
     // Hosts where offline uploads are NOT allowed
@@ -60,11 +62,9 @@ export function useJobSubmission(
     if (format) {
       form.append("format", format);
     }
-    if (glossingModel) {
-      form.append("glossingModel", glossingModel);
-    }
-    if (translationModel) {
-      form.append("translationModel", translationModel);
+    const resolvedModel = model || glossingModel || translationModel;
+    if (resolvedModel) {
+      form.append("model", resolvedModel);
     }
 
     if (mode === "online") {

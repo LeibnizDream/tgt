@@ -20,10 +20,10 @@ into the Leipzig Glossing Rules notation (e.g. {'Case':'Nom','Number':'Sing'}
 → 'SG.NOM').  These helpers live here because every NLP-based strategy needs
 them and they depend on the shared LEIPZIG_GLOSSARY constant.
 """
-import re
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from utils.functions import load_glossing_rules
 from inference.strategies.translation.marian import MarianStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 
@@ -36,41 +36,15 @@ UD2LEIPZIG_MAP = {
 
 GLOSSARY_CATEGORIES = {v["category"] for v in LEIPZIG_GLOSSARY.values() if "category" in v}
 
-class GlossingStrategy(ABC):
+class GlossingStrategy(AbstractStrategy):
     """Interface for all glossing strategies.
 
     Subclasses must implement load_model() and gloss(sentence) -> str.
     Leipzig mapping helpers (map_feature, map_morph_to_leipzig) are provided
     for NLP-based subclasses; LLM-based ones can ignore them.
     """
-
-    def __init__(self, language_code: str, glossingModel: str = None, translationModel: str = None):
-        self.language_code = language_code
-        self.glossing_model = glossingModel
-        self.nlp = None
-        try:
-            self.translation_strategy = MarianStrategy(language_code=self.language_code)
-            self.translation_strategy.load_model()
-        except Exception as e:
-            print(f"Warning: could not load translation model: {e}")
-            self.translation_strategy = None
-        self.load_model()
-
-    @abstractmethod
-    def load_model(self): ...
-
-    def gloss(self, items: list, examples: list = None, progress_cb=None) -> dict:
-        """Gloss a batch of items one-by-one. LLM subclasses override for batch calls."""
-        result = {}
-        total = len(items)
-        for done, item in enumerate(items, 1):
-            result[item["id"]] = self._gloss_one(item["text"])
-            if progress_cb:
-                progress_cb(done, total)
-        return result
-
-    @abstractmethod
-    def _gloss_one(self, sentence: str) -> str: ...
+    def __init__(self, language_code):
+        super().__init__(language_code)
 
     # ---------- Leipzig mapping helpers ----------
     @staticmethod

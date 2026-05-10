@@ -1,9 +1,9 @@
 import os
 import deepl
-from inference.strategies.translation.abstract import TranslationStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class DeeplStrategy(TranslationStrategy):
+class DeeplStrategy(AbstractStrategy):
     def load_model(self):
         api_key = os.getenv("DEEPL_API_KEY")
         if not api_key:
@@ -15,7 +15,7 @@ class DeeplStrategy(TranslationStrategy):
             code = "PT-BR"
         self._deepl_source_lang = code
 
-    def _translate_one(self, text: str) -> str | None:
+    def _run_one(self, text: str) -> str | None:
         try:
             result = self._deepl_client.translate_text(
                 text,

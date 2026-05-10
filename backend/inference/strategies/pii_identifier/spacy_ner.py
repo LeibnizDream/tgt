@@ -63,7 +63,7 @@ class SpacyIdentifier(PIIStrategy):
         print(f"spaCy NER initialized for language: {self.lang}")
 
 
-    def identify_and_annotate(self, text: str):
+    def _run_one(self, text: str):
         spans: List[Tuple[int,int,str,str]] = []
         doc = self.nlp(text)
         # 1) spaCy NER

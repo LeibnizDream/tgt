@@ -1,6 +1,6 @@
 import os
 import torch
-from inference.strategies.transcription.abstract import TranscriptionStrategy
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 # Patch torch.load FIRST
 _original_load = torch.load
@@ -22,7 +22,7 @@ huggingface_hub.hf_hub_download = patched_hf_download
 import whisperx
 from whisperx.diarize import DiarizationPipeline
 
-class WhisperxStrategy(TranscriptionStrategy):
+class WhisperxStrategy(AbstractStrategy):
     def __init__(self, *args, **kwargs):
         """
         Initialize the Whisperx transcription strategy.	"""
@@ -49,7 +49,7 @@ class WhisperxStrategy(TranscriptionStrategy):
             self.model = whisperx.load_model("large-v2", self.device, compute_type="int8", language=self.language_code)
         print(f"Whisperx model loaded on device {self.device}")
 
-    def transcribe(self, path_to_audio):
+    def _run_one(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)
         result = self.model.transcribe(audio, batch_size=self.batch_size, language=self.language_code)
 

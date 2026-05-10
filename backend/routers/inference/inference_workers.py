@@ -86,10 +86,8 @@ class OneDriveWorker(AbstractInferenceWorker):
     Downloads every session folder from a OneDrive share, processes them,
     then uploads the outputs back to OneDrive and cleans up.
     """
-    def __init__(self, base_dir, action, language, instruction,
-                 translationModel, glossingModel, data_format, token, job):
-        super().__init__(base_dir, action, language, instruction,
-                         translationModel, glossingModel, data_format, job)
+    def __init__(self, base_dir, options, token, job):
+        super().__init__(base_dir, options, job)
         self.share_link = base_dir
         self.token = token
         self.sessions_meta = []
@@ -97,7 +95,7 @@ class OneDriveWorker(AbstractInferenceWorker):
 
     def _initial_message(self):
         self._put("Checking for folders on OneDrive…")
-        name_filter = "Session_" if self.format == "labvanced" else None
+        name_filter = "Session_" if self.options.format == "labvanced" else None
         self.sessions_meta = list_session_children(self.share_link, self.token, name_filter=name_filter)
 
         if not self.sessions_meta:

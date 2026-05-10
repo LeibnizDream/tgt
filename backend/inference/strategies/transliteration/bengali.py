@@ -1,12 +1,12 @@
-from inference.strategies.transliteration.abstract import TransliterationStrategy 
 import bengali_romanizer
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 
-class BengaliStrategy(TransliterationStrategy):
+class BengaliStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="bn")
 
-    def _transliterate_one(self, text: str) -> str:
+    def _run_one(self, text: str) -> str:
         if isinstance(text, bytes):
             text = text.decode('utf-8')
         

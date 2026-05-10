@@ -36,7 +36,6 @@ factories directly.
 
 from abc import ABC, abstractmethod
 import logging
-import torch
 import os
 from pathlib import Path
 
@@ -116,23 +115,15 @@ class AbstractProcessor(ABC):
     def __init__(
         self,
         language: str,
-        instruction: str,
-        action: str | None = None,
-        translationModel: str | None = None,
-        glossingModel: str | None = None,
-        transliterationModel: str | None = None,
-        device: str | None = None,
+        action: str,
+        model: str | None = None
     ):
         self.language = language
-        self.instruction = instruction
+        self.action = action
+        self.model = model
         self.file_changed = True
         self._progress_callback = None
-        self.strategy = StrategyFactory.get_strategy(action, language, translationModel, glossingModel, transliterationModel) if action else None
-
-        try:
-            self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        except ImportError:
-            self.device = device or "cpu"
+        self.strategy = StrategyFactory.get_strategy(language, action, model)
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)

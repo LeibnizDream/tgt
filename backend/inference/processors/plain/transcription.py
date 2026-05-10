@@ -15,8 +15,8 @@ from inference.processors.plain.plain_base import BasePlainProcessor
 class PlainTranscriber(BasePlainProcessor):
     """Transcribes audio files in a flat folder and writes a ``transcribed.xlsx`` sheet."""
 
-    def __init__(self, language: str, instruction: str, device: str | None = None):
-        super().__init__(language, instruction, action="transcribe", device=device)
+    def __init__(self, language):
+        super().__init__(language, "transcribe")
         self.logger.info(f"Initialized transcription strategy: {self.strategy.__class__.__name__}")
 
     def _find_files(self, base_dir: str) -> list[str]:
@@ -72,9 +72,8 @@ class PlainTranscriber(BasePlainProcessor):
         for i, row in tqdm(df.iterrows(), total=total, desc="Transcribing"):
             path = os.path.join(self._current_dir, row["file_name"])
             try:
-                text = self.strategy.transcribe(path)
+                text = self.strategy.run_strategy(path)
                 df.at[i, "transcription"] = text
-                df.at[i, "to_gloss"] = text
             except Exception as e:
                 self.logger.error(f"Error transcribing '{row['file_name']}': {e}")
             if progress_cb:

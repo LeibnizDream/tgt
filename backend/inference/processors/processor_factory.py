@@ -1,105 +1,48 @@
 """
 Factory for selecting the appropriate inference data processor.
-
-:class:`ProcessorFactory` maps ``(format, action)`` to the correct
-:class:`~inference.processors.abstract.DataProcessor` subclass.
-
-Supported formats
------------------
-- ``"labvanced"``           – processors for the Labvanced annotation pipeline.
-- ``"plain"``               – generic processors for plain data formats.
-
-Supported actions
------------------
-- ``"transcribe"``    – transcribe audio columns.
-- ``"translate"``     – translate text columns.
-- ``"gloss"``         – add morphological glosses.
-- ``"transliterate"`` – romanise non-Latin scripts.
-- ``"create columns"``– insert derived columns.
 """
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.processors.labvanced.transcription import TranscriptionProcessor
-from inference.processors.labvanced.translation import TranslationProcessor
-from inference.processors.labvanced.glossing import GlossingProcessor
-from inference.processors.labvanced.transliteration import TransliteratorProcessor
+from inference.processors.labvanced.labvanced_base import LabvancedBaseProcessor
 from inference.processors.labvanced.ColumnCreation import ColumnCreationProcessor
 from inference.processors.plain.transcription import PlainTranscriber
-from inference.processors.plain.translation import PlainTranslator
-from inference.processors.plain.glossing import PlainGlosser
+from inference.processors.plain.plain_base import BasePlainProcessor#
+
 
 
 class ProcessorFactory:
-    """Returns a :class:`~inference.processors.abstract.DataProcessor` for a given format and action."""
 
     @staticmethod
-    def get_processor(
-        language: str,
-        action: str,
-        format: str,
-        instruction: str | None = None,
-        translationModel: str = None,
-        glossingModel: str = None,
-    ) -> AbstractProcessor:
-        """Return the correct processor for the given *format* and *action*.
-
-        Args:
-            language: ISO 639-1 language code.
-            action: One of ``"transcribe"``, ``"translate"``, ``"gloss"``,
-                ``"transliterate"``, or ``"create columns"``.
-            format: Target data format — ``"labvanced"`` or ``"plain"``.
-            instruction: Sub-mode required for labvanced (``"sentences"``,
-                ``"corrected"``, ``"automatic"``). Not used for plain format.
-            translationModel: Optional model name override for translation.
-            glossingModel: Optional model name override for glossing.
-
-        Raises:
-            ValueError: When *format* or *action* is not recognised, or *instruction*
-                is missing for labvanced.
-        """
-        if format == "labvanced":
-            if not instruction:
+    def get_processor(options) -> AbstractProcessor:
+        if options.format == "labvanced":
+            if not options.instruction:
                 raise ValueError("instruction is required for labvanced format")
-            return ProcessorFactory._get_labvanced(
-                language, action, instruction, translationModel, glossingModel
-            )
-        elif format == "plain":
-            return ProcessorFactory._get_plain(language, action, translationModel, glossingModel)
+            return ProcessorFactory._get_labvanced(options)
+        elif options.format == "plain":
+            return ProcessorFactory._get_plain(options)
         else:
-            raise ValueError(f"Unknown format: {format!r}")
+            raise ValueError(f"Unknown format: {options.format!r}")
 
     @staticmethod
-    def _get_labvanced(
-        language: str,
-        action: str,
-        instruction: str,
-        translationModel: str = None,
-        glossingModel: str = None,
-    ) -> AbstractProcessor:
+    def _get_labvanced(options) -> AbstractProcessor:
+        action, language, instruction, model = (
+            options.action, options.language, options.instruction, options.model
+        )
         if action == "transcribe":
-            return TranscriptionProcessor(language, instruction)
-        elif action == "translate":
-            return TranslationProcessor(language, instruction, translationModel)
-        elif action == "gloss":
-            return GlossingProcessor(language, instruction, translationModel, glossingModel)
-        elif action == "transliterate":
-            return TransliteratorProcessor(language, instruction)
+            return TranscriptionProcessor(language, action, instruction)
+        elif action in ["translate", "gloss", "transliterate"]:
+            return LabvancedBaseProcessor(language, action, instruction, model)
         elif action == "create columns":
-            return ColumnCreationProcessor(language, instruction)
+            return ColumnCreationProcessor(language, "create columns", instruction)
         else:
             raise ValueError(f"No labvanced processor for action: {action!r}")
 
     @staticmethod
-    def _get_plain(
-        language: str,
-        action: str,
-        translationModel: str = None,
-        glossingModel: str = None,
-    ) -> AbstractProcessor:
+    def _get_plain(options) -> AbstractProcessor:
+        action, language, model = options.action, options.language, options.model
         if action == "transcribe":
-            return PlainTranscriber(language, instruction=None)
-        elif action == "translate":
-            return PlainTranslator(language, instruction=None, translationModel=translationModel)
-        elif action == 'gloss':
-            return PlainGlosser(language, instruction=None, glossingModel=glossingModel)
+            return PlainTranscriber(language)
+        elif action in ["translate", "gloss", "transliterate"]:
+            return BasePlainProcessor(language, action, model)
         else:
             raise ValueError(f"No plain processor for action: {action!r}")

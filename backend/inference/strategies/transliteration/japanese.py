@@ -1,18 +1,18 @@
 import re
 import pykakasi
-from inference.strategies.transliteration.abstract import TransliterationStrategy 
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 JP_BLOCK = re.compile(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fffー々]+')
 
 
-class JapaneseStrategy(TransliterationStrategy):
+class JapaneseStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="ja")
 
     def load_model(self) -> None:
         self.kks = pykakasi.kakasi()
 
-    def _transliterate_one(self, s: str) -> str:
+    def _run_one(self, s: str) -> str:
         out = []
         i = 0
         while i < len(s):
