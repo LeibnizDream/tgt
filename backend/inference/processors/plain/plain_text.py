@@ -62,11 +62,11 @@ class PlainTextProcessor(AbstractProcessor):
             df[col] = df[col].astype(object)
 
         progress_cb = getattr(self, "_progress_callback", None)
-        had_examples, todo_items = self._separate_examples_and_todo(
+        _, todo_items = self._separate_examples_and_todo(
             df, source_col, target_cols[-1], self.action
         )
 
-        if had_examples or not todo_items:
+        if not todo_items:
             self.file_changed = False
             return df
 

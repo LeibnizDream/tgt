@@ -66,10 +66,7 @@ export default function Inference() {
   const [availableGlossingModels, setAvailableGlossingModels] = useState<
     string[]
   >([]);
-  const [availableTranslationModels, setAvailableTranslationModels] = useState<
-    string[]
-  >([]);
-  const [availableTransliterationModels, setAvailableTransliterationModels] = useState<string[]>([]);
+const [availableTransliterationModels, setAvailableTransliterationModels] = useState<string[]>([]);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "online" | "offline"
   >("checking");
@@ -156,12 +153,9 @@ export default function Inference() {
           }
         }
       } else if (action === "gloss") {
-        // Fetch both glossing and translation models for glossing action
+        // Fetch glossing models for glossing action
         try {
-          const [glossRes, transRes] = await Promise.all([
-            fetch(`/api/inference/models/glossing`),
-            fetch(`/api/inference/models/translation`),
-          ]);
+          const glossRes = await fetch(`/api/inference/models/glossing`);
 
           setBackendStatus("online");
 
@@ -179,28 +173,11 @@ export default function Inference() {
               );
             }
           }
-
-          if (transRes.ok) {
-            const transData = await transRes.json();
-            if (Array.isArray(transData.models)) {
-              const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "qwen", "marian", "m2m100"];
-              const custom = transData.models.filter((m: string) => !FIXED_TRANSLATION.includes(m));
-              const models = [...FIXED_TRANSLATION, ...custom];
-              setAvailableTranslationModels(models);
-              setSelectedTranslationModel("Default");
-              addLog(
-                `Loaded ${transData.models.length} translation models`,
-                "success",
-              );
-            }
-          }
         } catch (err) {
           console.error("Model fetch error:", err);
           setBackendStatus("offline");
           setAvailableGlossingModels(["Default"]);
-          setAvailableTranslationModels(["Default"]);
           setSelectedGlossingModel("Default");
-          setSelectedTranslationModel("Default");
           if (err instanceof TypeError && err.message.includes("fetch")) {
             addLog(
               "Backend server is not running. Please start the backend server on port 8000.",
@@ -581,24 +558,15 @@ export default function Inference() {
               />
             )}
 
-            {/* Model Selection for Glossing - Dual Models */}
+            {/* Model Selection for Glossing */}
             {action === "gloss" && (
-              <div className="space-y-4">
-                <ModelToggle
-                  label="Choose Glossing Model"
-                  models={availableGlossingModels}
-                  selectedModel={selectedGlossingModel}
-                  onModelChange={setSelectedGlossingModel}
-                  onModelDelete={(model) => handleModelDelete(model, "glossing")}
-                />
-                <ModelToggle
-                  label="Choose Translation Model"
-                  models={availableTranslationModels}
-                  selectedModel={selectedTranslationModel}
-                  onModelChange={setSelectedTranslationModel}
-                  onModelDelete={(model) => handleModelDelete(model, "translation")}
-                />
-              </div>
+              <ModelToggle
+                label="Choose Glossing Model"
+                models={availableGlossingModels}
+                selectedModel={selectedGlossingModel}
+                onModelChange={setSelectedGlossingModel}
+                onModelDelete={(model) => handleModelDelete(model, "glossing")}
+              />
             )}
 
             <div className="space-y-2">

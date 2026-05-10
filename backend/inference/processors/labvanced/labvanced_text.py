@@ -47,7 +47,7 @@ class LabvancedTextProcessor(AbstractProcessor):
         df.to_excel(path, index=False)
         self.logger.info(f"Wrote output to {path}")
         if self.columns_to_highlight:
-            format_excel_output(path, self.columns_to_highlight)
+            format_excel_output(path, self.columns_to_highlight, getattr(self, '_todo_row_ids', None))
 
     def _get_source_column(self) -> str:
         no_latin = self.language in NO_LATIN
@@ -95,15 +95,17 @@ class LabvancedTextProcessor(AbstractProcessor):
             df[col] = df[col].astype(object)
 
         progress_cb = getattr(self, '_progress_callback', None)
-        had_examples, todo_items = self._separate_examples_and_todo(
+        _, todo_items = self._separate_examples_and_todo(
             df, source_col, target_cols[-1], self.action
         )
         print('to do items:', todo_items)
 
-        if had_examples or not todo_items:
+        if not todo_items:
             self.file_changed = False
+            self._todo_row_ids = set()
             return df
 
+        self._todo_row_ids = {item["id"] for item in todo_items}
         id_to_result = self.strategy.run_strategy(todo_items, self._get_examples(), progress_cb)
         for i in range(len(df)):
             if i in id_to_result:

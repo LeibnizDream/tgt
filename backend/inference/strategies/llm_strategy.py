@@ -3,10 +3,11 @@ import sys
 from abc import ABC, abstractmethod
 from typing import List
 
-from pydantic import BaseModel, create_model
+from pydantic import create_model
 from pydantic import ValidationError
 from langchain_google_genai import ChatGoogleGenerativeAI
 from ollama import Client
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 from utils.functions import ensure_ollama_running
 
@@ -57,7 +58,7 @@ def is_llm(model: str | None) -> bool:
     return (model or "").lower() in {"gemini", "qwen"}
 
 
-class LLMStrategy:
+class LLMStrategy(AbstractStrategy):
     """Single LLM strategy for translation, glossing, and transliteration.
 
     The action ("translate", "gloss", "transliterate") determines the prompt,
@@ -66,19 +67,18 @@ class LLMStrategy:
     """
 
     def __init__(self, language: str, action: str, model: str = None):
-        self.language = language
+        super().__init__(language)
         self.action = action
         self.result_key = _RESULT_KEYS[action]
-        self._model_hint = (model or "qwen").lower()
+        self._model = (model or "qwen").lower()
         self._response_model = _make_response_model(self.result_key)
-        self._init_llm()
-        if self._model_hint == "qwen" and action == "gloss":
+        if self._model == "qwen":
             self._warmup()
 
     # ------------------------------------------------------------------ setup
 
-    def _init_llm(self) -> None:
-        if self._model_hint == "gemini":
+    def load_model(self) -> None:
+        if self._model == "gemini":
             self.nlp = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash-lite",
                 temperature=0.0,
@@ -86,12 +86,15 @@ class LLMStrategy:
                 timeout=120,
                 max_retries=2,
             )
-        elif self._model_hint == "qwen":
+        elif self._model == "qwen":
             ensure_ollama_running()
             self.nlp = Client(host="http://127.0.0.1:11434")
             self.model_name = "qwen3.5:9b"
         else:
-            raise ValueError(f"Unsupported LLM model: {self._model_hint!r}")
+            raise ValueError(f"Unsupported LLM model: {self._model!r}")
+        
+    def _run_one(self, text: str):
+        raise NotImplementedError("LLMStrategy only supports batch inference")
 
     def _warmup(self) -> None:
         print(f"[Ollama] Warming up {self.model_name}...", file=sys.stderr)
@@ -117,7 +120,13 @@ class LLMStrategy:
             raise ValueError(
                 f"Only {len(examples)} few-shot example(s) — at least 10 required for LLM processing."
             )
-        response_json = self._call(todo_items, examples)
+        if not todo_items:
+            raise ValueError("No items provided")
+        self._validate_input_items(todo_items)
+        if self._model == "qwen":
+            response_json = self._call_with_ollama(todo_items, examples)
+        elif self._model == "gemini":
+            response_json = self._call_with_gemini(todo_items, examples)
         parsed = json.loads(response_json)
         result = {item["id"]: item[self.result_key] for item in parsed["items"]}
         if progress_cb:
@@ -125,14 +134,6 @@ class LLMStrategy:
         return result
 
     # ---------------------------------------------------------------- dispatch
-
-    def _call(self, items: list, examples: list) -> str:
-        if not items:
-            raise ValueError("No items provided")
-        self._validate_input_items(items)
-        if self._model_hint == "gemini":
-            return self._call_with_gemini(items, examples)
-        return self._call_with_ollama(items, examples)
 
     def _call_with_gemini(self, items: list, examples: list) -> str:
         system = self._build_system_prompt(include_schema_hint=True)
