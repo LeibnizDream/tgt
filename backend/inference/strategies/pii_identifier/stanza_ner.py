@@ -1,5 +1,11 @@
+import os
 import re
 from functools import wraps
+from pathlib import Path
+
+STANZA_DIR = Path.home() / "stanza_data"
+STANZA_DIR.mkdir(exist_ok=True)
+os.environ.setdefault("STANZA_RESOURCES_DIR", str(STANZA_DIR))
 
 import stanza
 import torch
@@ -36,9 +42,8 @@ class StanzaIdentifier(AbstractStrategy):
         Initialize the Stanza pipeline for the given language.
         If the model is not downloaded, it will be fetched automatically.
         """
-        stanza.download(self.lang)
-
-        self.nlp = stanza.Pipeline(lang=self.lang, processors='tokenize,ner')
+        stanza.download(self.lang, verbose=False)
+        self.nlp = stanza.Pipeline(lang=self.lang, processors='tokenize,ner', download_method=stanza.DownloadMethod.REUSE_RESOURCES)
         print(f"Stanza NER initialized for language: {self.lang}")
         print('nlp in identifier initialization', self.nlp)
 

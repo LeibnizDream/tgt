@@ -1,4 +1,10 @@
+import os
 import re
+from pathlib import Path
+
+STANZA_DIR = Path.home() / "stanza_data"
+STANZA_DIR.mkdir(exist_ok=True)
+os.environ.setdefault("STANZA_RESOURCES_DIR", str(STANZA_DIR))
 
 import stanza
 import torch
@@ -16,14 +22,15 @@ class StanzaGlossingStrategy(GlossingStrategy):
     def load_model(self):
         _orig = torch.load
         torch.load = lambda f, *a, **k: _orig(f, *a, weights_only=False, **k)
+        stanza.download(self.language_code, verbose=False)
         self.nlp = stanza.Pipeline(
             self.language_code,
             processors="tokenize,pos,lemma",
-            use_gpu=True
+            use_gpu=True,
+            download_method=stanza.DownloadMethod.REUSE_RESOURCES,
         )
-        # put it back
         torch.load = _orig
-    
+
     def parse_stanza_feats(self, feats_str):
         if not feats_str:
             return {}

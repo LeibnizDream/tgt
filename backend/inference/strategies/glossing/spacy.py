@@ -1,9 +1,10 @@
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import spacy
 from inference.strategies.glossing.abstract import GlossingStrategy
-from spacy.cli import download
 from spacy.util import is_package
 from utils.functions import load_glossing_rules
 
@@ -45,7 +46,7 @@ class SpaCyGlossingStrategy(GlossingStrategy):
             pkg = self.DEFAULT_SPACY[self.language_code]
             if not is_package(pkg):
                 print(f"{pkg} not found — downloading…")
-                download(pkg)
+                subprocess.check_call([sys.executable, "-m", "spacy", "download", pkg])
             self.nlp = spacy.load(pkg)
 
         else:
