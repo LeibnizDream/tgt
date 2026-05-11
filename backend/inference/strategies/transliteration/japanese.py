@@ -7,8 +7,6 @@ JP_BLOCK = re.compile(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fffー々]+')
 
 
 class JapaneseTransliterationStrategy(AbstractStrategy):
-    def __init__(self):
-        super().__init__(language_code="ja")
 
     def load_model(self) -> None:
         self.kks = pykakasi.kakasi()

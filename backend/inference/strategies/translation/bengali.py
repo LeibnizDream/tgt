@@ -8,7 +8,7 @@ class BengaliTranslationStrategy(AbstractStrategy):
         """Load the Bengali translator model"""
         self.translator = Translator(src="bn", dest="en")
 
-    def _run_one(self, text: str) -> str | None:
+    def run_strategy(self, text: str) -> str | None:
         """Translate Bengali text to English"""
         if not hasattr(self, 'translator') or self.translator is None:
             self.load_model()

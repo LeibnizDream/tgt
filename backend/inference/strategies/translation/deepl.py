@@ -5,9 +5,6 @@ from inference.strategies.abstract_strategy import AbstractStrategy
 
 
 class DeeplStrategy(AbstractStrategy):
-    
-    def __init__(language):
-        super().__init__(language)
 
     def load_model(self):
         api_key = os.getenv("DEEPL_API_KEY")

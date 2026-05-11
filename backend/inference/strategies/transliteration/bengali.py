@@ -3,9 +3,10 @@ from inference.strategies.abstract_strategy import AbstractStrategy
 
 
 class BengaliTransliterationStrategy(AbstractStrategy):
-    def __init__(self):
-        super().__init__(language_code="bn")
-
+    
+    def load_model(self):
+        pass
+    
     def run_strategy(self, text: str) -> str:
         if isinstance(text, bytes):
             text = text.decode('utf-8')

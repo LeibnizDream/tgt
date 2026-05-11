@@ -13,12 +13,14 @@ from inference.strategies.strategy_factory import StrategyFactory
 
 _SOURCE_COLS = {
     "translate": "transcription",
-    "gloss":     "to_gloss",
+    "gloss": "to_gloss",
+    "transliterate": "transcription"
 }
 
 _TARGET_COLS = {
     "translate": ["translation"],
-    "gloss":     ["glossing"],
+    "gloss": ["glossing"],
+    "transliterate": ["transliteration"],
 }
 
 

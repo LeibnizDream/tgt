@@ -14,7 +14,7 @@ class LocalWorker(AbstractInferenceWorker):
         """
         Print or queue the initial job start message.
         """
-        self._put(f"Starting job {self.job_id} – action: {self.action}")
+        self._put(f"Starting job {self.job_id} – action: {self.options.action}")
 
     def _after_process(self) -> None:
         """
@@ -76,15 +76,9 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--translation-model",
+        "--model",
         default=None,
-        help="Translation model name"
-    )
-
-    parser.add_argument(
-        "--glossing-model",
-        default=None,
-        help="Glossing model name"
+        help="model name"
     )
 
     args = parser.parse_args()

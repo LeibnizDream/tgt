@@ -61,6 +61,7 @@ class StrategyFactory:
             from inference.strategies.translation.custom import CustomTranslationStrategy
             return CustomTranslationStrategy(language, model)
         if language in _TRANSLATION_DEEPL_LANGUAGES:
+            from inference.strategies.translation.deepl import DeeplStrategy
             return DeeplStrategy(language)
         if language == "bn":
             from inference.strategies.translation.bengali import BengaliTranslationStrategy
@@ -74,17 +75,17 @@ class StrategyFactory:
             return LLMStrategy(language, "transliterate", model)
         if language == "zh":
             from inference.strategies.transliteration.chinese import ChineseTransliterationStrategy
-            return ChineseTransliterationStrategy()
+            return ChineseTransliterationStrategy(language)
         if language == "ja":
             from inference.strategies.transliteration.japanese import (
                 JapaneseTransliterationStrategy,
             )
-            return JapaneseTransliterationStrategy()
+            return JapaneseTransliterationStrategy(language)
         if language == "bn":
             from inference.strategies.transliteration.bengali import BengaliTransliterationStrategy
-            return BengaliTransliterationStrategy()
+            return BengaliTransliterationStrategy(language)
         if language in ("el", "ru"):
-            return DefaultStrategy(language_code=language)
+            return DefaultStrategy(language)
         raise ValueError(f"No transliteration strategy for language: {language!r}")
 
     @staticmethod

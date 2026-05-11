@@ -3,8 +3,6 @@ from pypinyin import lazy_pinyin
 
 
 class ChineseTransliterationStrategy(AbstractStrategy):
-    def __init__(self):
-        super().__init__(language_code="zh")
 
     def load_model(self) -> None:
         # Choose pinyin style: TONE2 (Tone after syllable), TONE3 (tone after word), etc.
