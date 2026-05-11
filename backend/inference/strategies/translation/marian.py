@@ -3,6 +3,9 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 
 class MarianStrategy(AbstractStrategy):
+    
+    def __init__(language):
+        super().__init__(language)
 
     def load_model(self):
             """
