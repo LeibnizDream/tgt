@@ -186,69 +186,21 @@ export default function Train() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <Button
-                variant={mode === "online" ? "default" : "outline"}
-                onClick={() => setMode("online")}
-                className="flex-1"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                OneDrive
-              </Button>
-              <Button
-                variant={mode === "upload" ? "default" : "outline"}
-                onClick={() => setMode("upload")}
-                className="flex-1"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Files
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="directoryPath">OneDrive Directory Path</Label>
+              <Input
+                id="directoryPath"
+                value={directoryPath}
+                onChange={(e) => setDirectoryPath(e.target.value)}
+                placeholder="e.g., /Documents/training-data"
+                disabled={!isConnected}
+              />
+              {!isConnected && (
+                <p className="text-sm text-red-600">
+                  Please connect to OneDrive first
+                </p>
+              )}
             </div>
-
-            {mode === "online" ? (
-              <div className="space-y-2">
-                <Label htmlFor="directoryPath">OneDrive Directory Path</Label>
-                <Input
-                  id="directoryPath"
-                  value={directoryPath}
-                  onChange={(e) => setDirectoryPath(e.target.value)}
-                  placeholder="e.g., /Documents/training-data"
-                  disabled={!isConnected}
-                />
-                {!isConnected && (
-                  <p className="text-sm text-red-600">
-                    Please connect to OneDrive first
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Label htmlFor="fileUpload" className="text-base font-medium">
-                  Select Training Files
-                </Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <Input
-                    ref={fileInputRef}
-                    id="fileUpload"
-                    type="file"
-                    multiple
-                    // @ts-ignore
-                    webkitdirectory=""
-                    directory=""
-                    className="h-16 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-base file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer"
-                  />
-                  <div className="mt-4 text-center">
-                    <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-base font-medium text-gray-700">
-                      Choose a folder containing your training data
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      All contents of the selected folder will be uploaded
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
