@@ -69,7 +69,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Transcribe each audio file and fill the transcription column."""
         total = len(df)
-        progress_cb = getattr(self, '_progress_callback', None)
+        progress_cb = self._progress_callback
 
         for i, row in tqdm(df.iterrows(), total=total, desc="Transcribing"):
             path = os.path.join(self._current_dir, row["file_name"])
@@ -78,6 +78,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
                 df.at[i, "transcription"] = text
             except Exception as e:
                 self.logger.error(f"Error transcribing '{row['file_name']}': {e}")
+                self._emit(f"[WARNING] Error transcribing '{row['file_name']}': {e}")
             if progress_cb:
                 progress_cb(i + 1, total)
 

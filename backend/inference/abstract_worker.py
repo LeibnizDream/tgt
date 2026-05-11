@@ -81,16 +81,13 @@ class AbstractInferenceWorker(ABC):
 
     
     def _put(self, msg: str) -> None:
-        """
-        Send a status message to the job queue or print to console.
-
-        Args:
-            msg (str): Message content.
-        """
         if self.q:
             self.q.put(msg)
         else:
             print(msg)
+
+    def _progress(self, cur: int, tot: int) -> None:
+        self._put(f"[PROGRESS] {cur}/{tot}")
     
     @abstractmethod
     def _initial_message(self) -> None:
@@ -141,9 +138,6 @@ class AbstractInferenceWorker(ABC):
             # Processor is created once inside run() — multiprocessing requires
             # heavy objects (ML models) to be instantiated in the worker process.
             self.processor = ProcessorFactory.get_processor(self.options)
-            self.processor.set_progress_callback(
-                lambda cur, tot: self._put(f"[PROGRESS] {cur}/{tot}")
-            )
             self._put(f"Using processor: {self.processor.__class__.__name__}")
 
             for folder in self._folder_to_process():
@@ -153,7 +147,7 @@ class AbstractInferenceWorker(ABC):
                     break
 
                 self._put(f"Processing folder: {os.path.basename(os.path.normpath(folder))}")
-                self.processor.process(folder)
+                self.processor.process(folder, put=self._put, progress=self._progress)
                 self._after_process()
 
         except Exception as e:

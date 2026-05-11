@@ -122,6 +122,7 @@ class AbstractProcessor(ABC):
         self.model = model
         self.file_changed = True
         self._progress_callback = None
+        self._put_callback = None
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
@@ -129,9 +130,10 @@ class AbstractProcessor(ABC):
 
         logging.captureWarnings(True)
 
-    def set_progress_callback(self, callback) -> None:
-        """Register callback(current, total) to receive progress updates."""
-        self._progress_callback = callback
+    def _emit(self, msg: str) -> None:
+        if self._put_callback:
+            self._put_callback(msg)
+        self.logger.info(msg)
 
     def _attach_session_handler(self, session_path: str) -> logging.FileHandler:
         """Attach file and rich console handlers for one processing session."""
@@ -175,8 +177,10 @@ class AbstractProcessor(ABC):
             self.logger.removeHandler(handler)
             handler.close()
 
-    def process(self, folder: str) -> None:
+    def process(self, folder: str, put=None, progress=None) -> None:
         """Process a single folder: find → read → transform → write."""
+        self._put_callback = put
+        self._progress_callback = progress
         file_handler = self._attach_session_handler(folder)
 
         try:
@@ -201,9 +205,11 @@ class AbstractProcessor(ABC):
 
                 except FileNotFoundError as e:
                     self.logger.warning("[yellow]Skipping missing file:[/yellow] %s", e)
+                    self._emit(f"[WARNING] Skipping missing file: {e}")
 
-                except Exception:
+                except Exception as e:
                     self.logger.exception("[bold red]Failed processing file[/bold red] %s", file)
+                    self._emit(f"[WARNING] Failed processing file {os.path.basename(file)}: {e}")
 
         finally:
             self.logger.info("[bold green]Finished session[/bold green] %s", folder)

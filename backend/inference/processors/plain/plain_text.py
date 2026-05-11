@@ -55,6 +55,7 @@ class PlainTextProcessor(AbstractProcessor):
 
         if not source_col or source_col not in df.columns:
             self.logger.warning(f"Source column '{source_col}' not found, skipping.")
+            self._emit(f"[WARNING] Source column '{source_col}' not found in file, skipping.")
             self.file_changed = False
             return df
 
@@ -63,7 +64,7 @@ class PlainTextProcessor(AbstractProcessor):
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
 
-        progress_cb = getattr(self, "_progress_callback", None)
+        progress_cb = self._progress_callback
         _, todo_items = self._separate_examples_and_todo(
             df, source_col, target_cols[-1], self.action
         )

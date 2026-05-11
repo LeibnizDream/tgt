@@ -23,14 +23,9 @@ class BengaliTranslationStrategy(AbstractStrategy):
         if not text:
             return ""
         
-        try:
-            result = self.translator.translate(text)
-            
-            # Ensure output is UTF-8 string
-            if isinstance(result, bytes):
-                result = result.decode('utf-8', errors='replace')
-            
-            return result
-        except Exception as e:
-            print(f"Translation error for text: {repr(text)[:100]}... Error: {e}")
-            return None
+        result = self.translator.translate(text)
+
+        if isinstance(result, bytes):
+            result = result.decode('utf-8', errors='replace')
+
+        return result

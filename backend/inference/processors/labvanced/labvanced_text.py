@@ -96,7 +96,7 @@ class LabvancedTextProcessor(AbstractProcessor):
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
 
-        progress_cb = getattr(self, '_progress_callback', None)
+        progress_cb = self._progress_callback
         _, todo_items = self._separate_examples_and_todo(
             df, source_col, target_cols[-1], self.action
         )

@@ -11,8 +11,10 @@ export function useStreamer(
   setProgress?: (current: number, total: number) => void
 ) {
   const evtRef = useRef<EventSource | null>(null);
+  const doneRef = useRef(false);
 
   const finish = () => {
+    doneRef.current = false;
     evtRef.current?.close();
     evtRef.current = null;
     setIsProcessing(false);
@@ -29,6 +31,13 @@ export function useStreamer(
     const evt = new EventSource(`/api/${prefix}/${jobId}/stream`);
     evtRef.current = evt;
 
+    evt.onerror = () => {
+      if (!doneRef.current) {
+        addLog("Connection to server lost. The job may still be running.", "error");
+        finish();
+      }
+    };
+
     evt.onmessage = async (e) => {
     const data = e.data;
     if (data === "[PING]") return;
@@ -44,7 +53,13 @@ export function useStreamer(
       return finish();
     }
 
+    if (data.includes("[WARNING]")) {
+      addLog(data, "warning");
+      return;
+    }
+
     if (data === "[DONE ALL]") {
+      doneRef.current = true;
       addLog("Workflow completed successfully!", "success");
       if (prefix === "inference") {
         const downloadUrl = `/api/${prefix}/${jobId}/download`;

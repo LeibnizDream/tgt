@@ -113,8 +113,22 @@ export function useJobSubmission(
         }
       };
       xhr.onload = () => {
-        const { job_id } = JSON.parse(xhr.responseText);
-        streamerOpen(job_id);
+        if (xhr.status >= 400) {
+          addLog(`Upload failed (HTTP ${xhr.status}): ${xhr.responseText}`, "error");
+          setIsProcessing(false);
+          return;
+        }
+        try {
+          const { job_id } = JSON.parse(xhr.responseText);
+          streamerOpen(job_id);
+        } catch {
+          addLog(`Unexpected server response: ${xhr.responseText}`, "error");
+          setIsProcessing(false);
+        }
+      };
+      xhr.onerror = () => {
+        addLog("Upload failed: network error.", "error");
+        setIsProcessing(false);
       };
       xhr.send(form);
     }

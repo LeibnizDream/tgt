@@ -20,23 +20,14 @@ class MarianStrategy(AbstractStrategy):
                 .to(self.device)
             )
 
-    def _run_one(self, text: str) -> str | None:
-            """
-            If the Marian model was successfully loaded, run a forward pass.
-            Otherwise return None.
-            """
+    def _run_one(self, text: str) -> str:
+            """Run a Marian forward pass. Raises on any failure."""
             if not self._marian_model or not self._marian_tokenizer:
                 raise RuntimeError(
                     "Marian model or tokenizer not initialized. "
                     "Call _init_marian_model() before translating."
                 )
 
-            try:
-                inputs = self._marian_tokenizer.encode(text, return_tensors="pt")
-                outputs = self._marian_model.generate(inputs)
-                translated_text = self._marian_tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-                return translated_text
-
-            except Exception:
-                return None
+            inputs = self._marian_tokenizer.encode(text, return_tensors="pt")
+            outputs = self._marian_model.generate(inputs)
+            return self._marian_tokenizer.decode(outputs[0], skip_special_tokens=True)
