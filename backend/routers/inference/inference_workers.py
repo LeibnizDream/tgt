@@ -1,9 +1,9 @@
-“””
+"""
 Concrete inference worker implementation for the TGT backend.
 
 :class:`OneDriveWorker` downloads session folders from a OneDrive share,
 processes them, and uploads the results back to OneDrive.
-“””
+"""
 import os
 import shutil
 import tempfile

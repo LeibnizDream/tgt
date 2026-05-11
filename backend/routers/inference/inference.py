@@ -1,12 +1,8 @@
 """
 Inference API router for the TGT backend.
 
-Exposes the following REST endpoints under ``/api/inference``:
-
-- ``POST /process``                  – Start a processing job for a ZIP upload
-  or a OneDrive share link.  Returns a ``job_id`` UUID.
-- ``GET /{job_id}/stream``           – Server-Sent Events (SSE) stream that
-  forwards progress messages from the worker process to the browser.
+- ``POST /process``                  – Start a processing job. Returns a ``job_id``.
+- ``GET /{job_id}/stream``           – SSE stream of progress messages.
 - ``GET /{job_id}/download``         – Download the finished output ZIP archive.
 - ``POST /cancel``                   – Signal a running job to stop.
 - ``GET /models/{task}``             – List custom models available for a task.
@@ -16,27 +12,22 @@ import asyncio
 import logging
 import os
 import shutil
+from multiprocessing import Process
 from pathlib import Path
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Form,
-    HTTPException,
-    Request,
-    status,
-)
+from fastapi import APIRouter, Body, Form, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from inference.processing_options import ProcessingOptions
+from routers.inference.inference_workers import OneDriveWorker
 from routers.auth import get_fresh_token
-from routers.helpers.job_manager import JobCleanupService, JobManager, ProcessingService
+from routers.helpers.job_manager import JobManager, normalize_model_name
 from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 MODELS_BASE = Path(__file__).resolve().parent.parent.parent / "models"
+
 
 @router.post("/process")
 async def process(
@@ -56,7 +47,7 @@ async def process(
         action=action,
         format=format,
         instruction=instruction,
-        model=ProcessingService.normalize_model_name(model),
+        model=normalize_model_name(model),
     )
 
     logger.info(f"Processing job {job.id} - action {action}, format {format}, model: {options.model}")
@@ -74,8 +65,10 @@ async def process(
             raise HTTPException(status_code=401, detail=str(e))
         job.token = access_token
 
-        worker = ProcessingService.create_onedrive_worker(base_dir, options, access_token, job)
-        job.process = await ProcessingService.create_worker_process(worker.run)
+        worker = OneDriveWorker(base_dir, options, access_token, job)
+        proc = Process(target=worker.run, daemon=True)
+        proc.start()
+        job.process = proc
         return {"job_id": job.id}
 
     except HTTPException:
@@ -90,27 +83,18 @@ async def process(
 async def stream(job_id: str):
     """Stream job progress events via Server-Sent Events."""
     job = JobManager.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
 
     async def event_generator():
-        """Generate events from job queue."""
         loop = asyncio.get_event_loop()
-        
         while True:
             try:
                 message = await loop.run_in_executor(None, job.queue.get)
-                
-                # Handle special messages
                 if isinstance(message, str) and message.startswith("[ZIP PATH] "):
                     job.zip_path = message.replace("[ZIP PATH] ", "").strip()
                     continue
-                
                 yield {"data": message}
-                
                 if message == "[DONE ALL]":
                     break
-                    
             except Exception as e:
                 logger.error(f"Error in event generator for job {job_id}: {e}")
                 yield {"data": f"[ERROR] Stream error: {str(e)}"}
@@ -120,22 +104,18 @@ async def stream(job_id: str):
 
 
 @router.get("/{job_id}/download")
-async def download(job_id: str, background_tasks: BackgroundTasks):
+async def download(job_id: str):
     """Download processed results as zip file."""
     job = JobManager.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    
+
     if not job.zip_path or not os.path.exists(job.zip_path):
         raise HTTPException(status_code=404, detail="Results not ready")
 
-    # Schedule cleanup
-    background_tasks.add_task(JobCleanupService.cleanup_job, job_id, job)
-    
+    JobManager.remove(job_id)
     return FileResponse(
         path=job.zip_path,
         media_type="application/zip",
-        filename=f"{job.id}_results.zip"
+        filename=f"{job_id}_results.zip",
     )
 
 
@@ -145,31 +125,23 @@ async def cancel(payload: dict = Body(...)):
     job_id = payload.get("job_id")
     if not job_id:
         raise HTTPException(status_code=400, detail="Missing job_id")
-    
+
     job = JobManager.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    
+
     try:
-        # Signal cancellation
         job.queue.put("[CANCELLED]")
         job.queue.put("[DONE ALL]")
-        
-        # Terminate process if running
         if job.process and job.process.is_alive():
             job.process.terminate()
-            job.process.join(timeout=5)  # Wait up to 5 seconds
-            
+            job.process.join(timeout=5)
             if job.process.is_alive():
                 logger.warning(f"Force killing process for job {job_id}")
                 job.process.kill()
-    
     except Exception as e:
         logger.error(f"Error cancelling job {job_id}: {e}")
-    
     finally:
         JobManager.remove(job_id)
-    
+
     return {"status": "cancelled"}
 
 
@@ -177,52 +149,29 @@ async def cancel(payload: dict = Body(...)):
 async def list_models(task: str):
     """List available models for a given task."""
     dir_path = MODELS_BASE / task
-    
-    if not dir_path.exists():
-        logger.warning(f"Models directory not found: {dir_path}")
-        return {"models": []}
-    
     if not dir_path.is_dir():
-        logger.error(f"Models path is not a directory: {dir_path}")
         return {"models": []}
-
     try:
-        models = [d.name for d in dir_path.iterdir() if d.is_dir()]
-        models.sort()  # Return sorted list for consistency
-        return {"models": models}
+        return {"models": sorted(d.name for d in dir_path.iterdir() if d.is_dir())}
     except Exception as e:
         logger.error(f"Error listing models in {dir_path}: {e}")
         return {"models": []}
 
+
 @router.delete(
     "/models/{task}/{model_name}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a custom model"
+    summary="Delete a custom model",
 )
 async def delete_model(task: str, model_name: str):
-    """
-    Remove a custom model directory under MODELS_BASE/task/model_name.
-    Returns 204 No Content on success, 404 if not found.
-    """
+    """Remove a custom model directory. Returns 204 on success, 404 if not found."""
     dir_path = MODELS_BASE / task / model_name
-
     if not dir_path.exists():
         raise HTTPException(status_code=404, detail="Model not found")
-
     if not dir_path.is_dir():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Path exists but is not a directory: {dir_path}"
-        )
-
+        raise HTTPException(status_code=400, detail=f"Not a directory: {dir_path}")
     try:
         shutil.rmtree(dir_path)
     except Exception as e:
         logger.error(f"Failed to delete model at {dir_path}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to delete model directory"
-        )
-
-    # 204 No Content has no body
-    return
+        raise HTTPException(status_code=500, detail="Unable to delete model directory")

@@ -1,16 +1,10 @@
 """
 Training API router for the TGT backend.
 
-Exposes the following REST endpoints under ``/api/train``:
-
-- ``POST /process``        – Start a training job for a given language and
-  action.  Accepts either a ZIP file upload or a OneDrive share link.
-  Returns a ``job_id`` UUID.
-- ``GET /{job_id}/stream`` – Server-Sent Events stream that forwards training
-  progress messages (preprocessing → training metrics) to the browser.
+- ``POST /process``        – Start a training job from OneDrive. Returns a ``job_id``.
+- ``GET /{job_id}/stream`` – SSE stream of training progress.
 - ``POST /cancel``         – Signal a running training job to stop.
 """
-
 import asyncio
 import logging
 from multiprocessing import Process
@@ -23,14 +17,6 @@ from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-MODELS_BASE = Path(__file__).resolve().parent.parent / "models"
-
-async def run_worker(process_fn):
-    """Spawn a daemon worker process that calls *process_fn* and return it."""
-    proc = Process(target=process_fn, daemon=True)
-    proc.start()
-    return proc
 
 
 @router.post("/process")
@@ -54,10 +40,12 @@ async def process(
         access_token = get_fresh_token()
     except RuntimeError as e:
         raise HTTPException(status_code=401, detail=str(e))
-    job.token = access_token
-    worker_fn = OneDriveWorker(base_dir, language, action, study, access_token, job)
 
-    job.process = await run_worker(worker_fn.run)
+    job.token = access_token
+    worker = OneDriveWorker(base_dir, language, action, study, access_token, job)
+    proc = Process(target=worker.run, daemon=True)
+    proc.start()
+    job.process = proc
     return {"job_id": job.id}
 
 
@@ -71,9 +59,6 @@ async def stream(job_id: str):
         while True:
             try:
                 message = await loop.run_in_executor(None, job.queue.get)
-                if isinstance(message, str) and message.startswith("[ZIP PATH] "):
-                    job.zip_path = message.replace("[ZIP PATH] ", "").strip()
-                    continue
                 yield {"data": message}
                 if message == "[DONE ALL]":
                     break
@@ -84,10 +69,13 @@ async def stream(job_id: str):
 
     return EventSourceResponse(event_generator())
 
+
 @router.post("/cancel")
 async def cancel(payload: dict = Body(...)):
     """Terminate a running training job and remove it from the job registry."""
     job_id = payload.get("job_id")
+    if not job_id:
+        raise HTTPException(status_code=400, detail="Missing job_id")
     job = JobManager.get(job_id)
     job.queue.put("[CANCELLED]")
     job.queue.put("[DONE ALL]")
