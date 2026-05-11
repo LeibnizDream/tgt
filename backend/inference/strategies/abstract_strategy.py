@@ -32,16 +32,4 @@ class AbstractStrategy(ABC):
     def load_model(self) -> None: ...
 
     @abstractmethod
-    def _run_one(self, text: str) -> str | None: ...
-
-    def run_strategy(self, todo_items: list, _examples: list = None, progress_cb=None) -> dict:
-        """Process a batch item by item. LLM subclasses override for whole-batch calls."""
-        result = {}
-        total = len(todo_items)
-        for done, item in enumerate(todo_items, 1):
-            value = self._run_one(item["text"])
-            if value is not None:
-                result[item["id"]] = value
-            if progress_cb:
-                progress_cb(done, total)
-        return result
+    def run_strategy(self, todo) -> dict: ...

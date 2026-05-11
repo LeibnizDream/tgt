@@ -109,7 +109,7 @@ class LLMStrategy(AbstractStrategy):
 
     # --------------------------------------------------------------- interface
 
-    def run_strategy(self, todo_items: list, examples: list = None, progress_cb=None) -> dict:
+    def run_strategy(self, todo_items: list, examples: list = None) -> dict:
         examples = examples or []
         if 0 < len(examples) < 10:
             raise ValueError(
@@ -124,8 +124,6 @@ class LLMStrategy(AbstractStrategy):
             response_json = self._call_with_gemini(todo_items, examples)
         parsed = json.loads(response_json)
         result = {item["id"]: item[self.result_key] for item in parsed["items"]}
-        if progress_cb:
-            progress_cb(len(todo_items), len(todo_items))
         return result
 
     # ---------------------------------------------------------------- dispatch

@@ -6,7 +6,7 @@ class BengaliTransliterationStrategy(AbstractStrategy):
     def __init__(self):
         super().__init__(language_code="bn")
 
-    def _run_one(self, text: str) -> str:
+    def run_strategy(self, text: str) -> str:
         if isinstance(text, bytes):
             text = text.decode('utf-8')
         

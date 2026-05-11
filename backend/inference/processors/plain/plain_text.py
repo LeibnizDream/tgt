@@ -65,16 +65,25 @@ class PlainTextProcessor(AbstractProcessor):
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
 
-        progress_cb = self._progress_callback
-        _, todo_items = self._separate_examples_and_todo(
+        todo_items = self._get_todo(
             df, source_col, target_cols[-1], self.action
         )
 
         if not todo_items:
             self.file_changed = False
             return df
-
-        id_to_result = self.strategy.run_strategy(todo_items, self._get_examples(), progress_cb)
+        
+        id_to_result = {}
+        if self.model in ["gemini", "qwen"]:
+            id_to_result = self.strategy.run_strategy(todo_items, self._get_examples())
+        else:
+            total = len(todo_items)
+            remaining = total
+            for todo in todo_items:
+                id_to_result[todo["id"]] = self.strategy.run_strategy(todo["text"])
+                remaining -= 1
+                if self._progress_callback:
+                    self._progress_callback(remaining, total)
         for i, result in id_to_result.items():
             for col in target_cols:
                 df.at[i, col] = result

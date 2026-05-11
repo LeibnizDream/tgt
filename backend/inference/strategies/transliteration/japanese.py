@@ -13,7 +13,7 @@ class JapaneseTransliterationStrategy(AbstractStrategy):
     def load_model(self) -> None:
         self.kks = pykakasi.kakasi()
 
-    def _run_one(self, s: str) -> str:
+    def run_strategy(self, s: str) -> str:
         out = []
         i = 0
         while i < len(s):

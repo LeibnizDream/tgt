@@ -15,7 +15,7 @@ class M2M100Strategy(AbstractStrategy):
             self._M2_M100_model = M2M100ForConditionalGeneration.from_pretrained("facebook/m2m100_1.2B")
             self._M2_M100_tokenizer = M2M100Tokenizer.from_pretrained("facebook/m2m100_1.2B")
 
-    def _run_one(self, text: str) -> str | None:
+    def run_strategy(self, text: str) -> str | None:
         self._M2_M100_tokenizer.src_lang = self.language_code
         encoded_hi = self._M2_M100_tokenizer(text, return_tensors="pt")
         generated_tokens = self._M2_M100_model.generate(**encoded_hi, forced_bos_token_id=self._M2_M100_tokenizer.get_lang_id("en"))

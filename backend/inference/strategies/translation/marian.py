@@ -24,7 +24,7 @@ class MarianStrategy(AbstractStrategy):
                 .to(self.device)
             )
 
-    def _run_one(self, text: str) -> str:
+    def run_strategy(self, text: str) -> str:
             """Run a Marian forward pass. Raises on any failure."""
             if not self._marian_model or not self._marian_tokenizer:
                 raise RuntimeError(

@@ -10,7 +10,7 @@ class ChineseTransliterationStrategy(AbstractStrategy):
         # Choose pinyin style: TONE2 (Tone after syllable), TONE3 (tone after word), etc.
         self.style = None
 
-    def _run_one(self, sentence: str) -> str:
+    def run_strategy(self, sentence: str) -> str:
         # Use lazy_pinyin for simple local transliteration
         # It handles non-Chinese characters by returning them unchanged
 

@@ -13,8 +13,6 @@ class VietnameseTranscriptionStrategy(AbstractStrategy):
             device=self.device,
         )
     
-    def _run_one(*args):
-        raise ValueError('no batch processing allowed')
 
     def run_strategy(self, audio: str) -> str | None:
         out = self.transcriber(

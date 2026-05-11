@@ -73,7 +73,7 @@ class AbstractProcessor(ABC):
         cls._shared_examples = {}
         cls._shared_index = 0
 
-    def _separate_examples_and_todo(
+    def _get_todo(
         self,
         df: pd.DataFrame,
         source_col: str,
@@ -89,7 +89,6 @@ class AbstractProcessor(ABC):
         overwrite partial human corrections.
         """
         cls = type(self)
-        had_examples = False
         todo_items = []
 
         for i in range(len(df)):
@@ -102,11 +101,10 @@ class AbstractProcessor(ABC):
             if isinstance(target, str) and target.strip():
                 cls._shared_examples[cls._shared_index] = {"source": source, example_target_key: target}
                 cls._shared_index += 1
-                had_examples = True
             else:
                 todo_items.append({"id": i, "text": source})
 
-        return had_examples, todo_items
+        return todo_items
 
     def _get_examples(self) -> list:
         return list(type(self)._shared_examples.values())[:20]

@@ -42,7 +42,7 @@ class StanzaIdentifier(AbstractStrategy):
         print(f"Stanza NER initialized for language: {self.lang}")
         print('nlp in identifier initialization', self.nlp)
 
-    def _run_one(self, text: str) -> tuple[list[tuple[int, int, str, str]], str]:
+    def run_strategy(self, text: str) -> tuple[list[tuple[int, int, str, str]], str]:
         """
         Identify PII spans and return both the spans and an annotated text.
 

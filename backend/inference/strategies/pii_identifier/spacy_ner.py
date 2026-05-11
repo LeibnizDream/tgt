@@ -64,7 +64,7 @@ class SpacyIdentifier(AbstractStrategy):
         print(f"spaCy NER initialized for language: {self.lang}")
 
 
-    def _run_one(self, text: str):
+    def run_strategy(self, text: str):
         spans: list[tuple[int,int,str,str]] = []
         doc = self.nlp(text)
         # 1) spaCy NER

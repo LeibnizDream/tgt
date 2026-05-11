@@ -98,7 +98,7 @@ class LabvancedTextProcessor(AbstractProcessor):
             df[col] = df[col].astype(object)
 
         progress_cb = self._progress_callback
-        _, todo_items = self._separate_examples_and_todo(
+        todo_items = self._get_todo(
             df, source_col, target_cols[-1], self.action
         )
         print('to do items:', todo_items)
@@ -109,7 +109,17 @@ class LabvancedTextProcessor(AbstractProcessor):
             return df
 
         self._todo_row_ids = {item["id"] for item in todo_items}
-        id_to_result = self.strategy.run_strategy(todo_items, self._get_examples(), progress_cb)
+        id_to_result = {}
+        if self.model in ["gemini", "qwen"]:
+            id_to_result = self.strategy.run_strategy(todo_items, self._get_examples())
+        else:
+            total = len(todo_items)
+            remaining = total
+            for todo in todo_items:
+                id_to_result[todo["id"]] = self.strategy.run_strategy(todo["text"])
+                remaining -= 1
+                if progress_cb:
+                    progress_cb(remaining, total)
         for i in range(len(df)):
             if i in id_to_result:
                 for col in target_cols:

@@ -11,7 +11,7 @@ class JapaneseGlossingStrategy(SpaCyGlossingStrategy):
     or a custom one in models/glossing/, plus optional translation.
     """
 
-    def _run_one(self, sentence: str) -> str:
+    def run_strategy(self, sentence: str) -> str:
         doc = self.nlp(sentence)
         out_tokens = []
 
