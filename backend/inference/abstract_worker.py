@@ -2,6 +2,7 @@ import os
 import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
+from huggingface_hub import login
 
 from dotenv import load_dotenv
 from inference.processing_options import ProcessingOptions
@@ -122,13 +123,11 @@ class AbstractInferenceWorker(ABC):
         """
         load_dotenv(_SECRETS, override=True)
 
-        print("SECRETS PATH:", _SECRETS)
-        print("SECRETS EXISTS:", _SECRETS.exists())
-
-        google_key = os.getenv("GOOGLE_API_KEY", "")
-        print("GOOGLE_API_KEY:", repr(google_key[:8] + "..." if google_key else google_key))
-
         self.validate_env_keys(REQUIRED_ENV_KEYS)
+
+        token = os.getenv("HUGGING_KEY", "").strip()
+        if token:
+            login(token=token)
         
 
         try:
@@ -153,6 +152,4 @@ class AbstractInferenceWorker(ABC):
             self._put(f"[ERROR] {e}")
             self._put(traceback.format_exc())
         finally:
-            if self.processor:
-                self.processor.reset_examples()
             self._put("[DONE ALL]")

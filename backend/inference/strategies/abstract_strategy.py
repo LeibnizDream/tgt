@@ -1,11 +1,9 @@
 """
 Abstract base for all inference strategies.
 """
-import os
 from abc import ABC, abstractmethod
 
 import torch
-from huggingface_hub import login
 
 
 class AbstractStrategy(ABC):
@@ -21,10 +19,6 @@ class AbstractStrategy(ABC):
         cuda_available = torch.cuda.is_available()
         cudnn_available = torch.backends.cudnn.is_available() if cuda_available else False
         self.device = "cuda" if (cuda_available and cudnn_available) else "cpu"
-
-        token = os.getenv("HUGGING_KEY", "").strip()
-        if token:
-            login(token=token)
 
         self.load_model()
 

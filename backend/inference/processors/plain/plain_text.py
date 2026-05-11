@@ -8,6 +8,7 @@ on flat folders of audio files and produce a single transcribed.xlsx per folder.
 import os
 
 import pandas as pd
+from inference.processors.example_store import ExampleStore
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
 
@@ -35,6 +36,7 @@ class PlainTextProcessor(AbstractProcessor):
     def __init__(self, language, action, model=None):
         super().__init__(language, action, model)
         self.strategy = StrategyFactory.get_strategy(language, action, model)
+        self._example_store = ExampleStore()
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return all transcribed.xlsx files under base_dir."""
@@ -67,17 +69,26 @@ class PlainTextProcessor(AbstractProcessor):
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
 
-        todo_items = self._get_todo(
-            df, source_col, target_cols[-1], self.action
-        )
+        target_col = target_cols[-1]
+        todo_items = []
+        for i in range(len(df)):
+            source = df.at[i, source_col]
+            target = df.at[i, target_col] if target_col in df.columns else None
+            if not isinstance(source, str) or not source.strip():
+                continue
+            if isinstance(target, str) and target.strip():
+                self._example_store.add(source, self.action, self.action, target)
+            else:
+                todo_items.append({"id": i, "text": source})
 
         if not todo_items:
             self.file_changed = False
             return df
-        
+
         id_to_result = {}
         if self.model in ["gemini", "qwen"]:
-            id_to_result = self.strategy.run_strategy(todo_items, self._get_examples())
+            examples = self._example_store.get(self.action, self.action)
+            id_to_result = self.strategy.run_strategy(todo_items, examples)
         else:
             total = len(todo_items)
             remaining = total
@@ -86,6 +97,7 @@ class PlainTextProcessor(AbstractProcessor):
                 remaining -= 1
                 if self._progress_callback:
                     self._progress_callback(remaining, total)
+
         for i, result in id_to_result.items():
             for col in target_cols:
                 df.at[i, col] = result

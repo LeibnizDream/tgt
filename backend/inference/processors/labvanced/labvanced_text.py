@@ -13,6 +13,7 @@ import fnmatch
 import os
 
 import pandas as pd
+from inference.processors.example_store import ExampleStore
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
 from utils.functions import format_excel_output, set_global_variables
@@ -32,6 +33,7 @@ class LabvancedTextProcessor(AbstractProcessor):
         self.instruction = instruction
         self.columns_to_highlight = None
         self.strategy = StrategyFactory.get_strategy(language, action, model)
+        self._example_store = ExampleStore()
 
     def _find_files(self, base_dir: str) -> list[str]:
         """Return sorted paths to every trials_and_sessions_annotated.xlsx under base_dir."""
@@ -97,11 +99,17 @@ class LabvancedTextProcessor(AbstractProcessor):
                 df[col] = pd.NA
             df[col] = df[col].astype(object)
 
-        progress_cb = self._progress_callback
-        todo_items = self._get_todo(
-            df, source_col, target_cols[-1], self.action
-        )
-        print('to do items:', todo_items)
+        target_col = target_cols[-1]
+        todo_items = []
+        for i in range(len(df)):
+            source = df.at[i, source_col]
+            target = df.at[i, target_col] if target_col in df.columns else None
+            if not isinstance(source, str) or not source.strip():
+                continue
+            if isinstance(target, str) and target.strip():
+                self._example_store.add(source, self.action, self.action, target)
+            else:
+                todo_items.append({"id": i, "text": source})
 
         if not todo_items:
             self.file_changed = False
@@ -111,15 +119,17 @@ class LabvancedTextProcessor(AbstractProcessor):
         self._todo_row_ids = {item["id"] for item in todo_items}
         id_to_result = {}
         if self.model in ["gemini", "qwen"]:
-            id_to_result = self.strategy.run_strategy(todo_items, self._get_examples())
+            examples = self._example_store.get(self.action, self.action)
+            id_to_result = self.strategy.run_strategy(todo_items, examples)
         else:
             total = len(todo_items)
             remaining = total
             for todo in todo_items:
                 id_to_result[todo["id"]] = self.strategy.run_strategy(todo["text"])
                 remaining -= 1
-                if progress_cb:
-                    progress_cb(remaining, total)
+                if self._progress_callback:
+                    self._progress_callback(remaining, total)
+
         for i in range(len(df)):
             if i in id_to_result:
                 for col in target_cols:

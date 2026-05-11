@@ -12,7 +12,11 @@ from inference.strategies.strategy_factory import StrategyFactory
 
 
 class FakeStrategy:
+    def __init__(self):
+        self.calls = []
+
     def run_strategy(self, text):
+        self.calls.append(text)
         return f"ok:{text}"
 
 
@@ -141,6 +145,38 @@ def test_plain_text_processor_has_all_text_action_column_mappings():
 
 
 @pytest.mark.parametrize(
+    ("action", "source_col", "target_col"),
+    [
+        ("translate", "transcription", "translation"),
+        ("gloss", "to_gloss", "glossing"),
+        ("transliterate", "transcription", "transliteration"),
+    ],
+)
+def test_plain_text_processor_calls_run_strategy_and_writes_result(
+    monkeypatch,
+    action,
+    source_col,
+    target_col,
+):
+    from inference.processors.plain.plain_text import PlainTextProcessor
+
+    strategy = FakeStrategy()
+    monkeypatch.setattr(
+        StrategyFactory,
+        "get_strategy",
+        staticmethod(lambda *args, **kwargs: strategy),
+    )
+
+    processor = PlainTextProcessor("de", action)
+    df = pd.DataFrame({source_col: ["source text"]})
+
+    result = processor._process_dataframe(df)
+
+    assert strategy.calls == ["source text"]
+    assert result.at[0, target_col] == "ok:source text"
+
+
+@pytest.mark.parametrize(
     ("language", "action", "instruction", "source_col", "target_cols"),
     [
         (
@@ -234,10 +270,11 @@ def test_labvanced_text_processor_writes_expected_target_column(
 ):
     from inference.processors.labvanced.labvanced_text import LabvancedTextProcessor
 
+    strategy = FakeStrategy()
     monkeypatch.setattr(
         StrategyFactory,
         "get_strategy",
-        staticmethod(lambda *args, **kwargs: FakeStrategy()),
+        staticmethod(lambda *args, **kwargs: strategy),
     )
 
     processor = LabvancedTextProcessor(language, action, instruction)
@@ -245,6 +282,7 @@ def test_labvanced_text_processor_writes_expected_target_column(
 
     result = processor._process_dataframe(df)
 
+    assert strategy.calls == ["source text"]
     assert result.at[0, target_col] == "ok:source text"
 
 

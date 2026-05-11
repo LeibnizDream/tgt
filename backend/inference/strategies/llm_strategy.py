@@ -140,19 +140,24 @@ class LLMStrategy(AbstractStrategy):
 
     def _call_with_ollama(self, items: list, examples: list) -> str:
         system = self._build_system_prompt(include_schema_hint=True)
-        payload = {"examples": self._normalize_examples(examples), "items": items}
+        payload_json = json.dumps(
+            {"examples": self._normalize_examples(examples), "items": items},
+            ensure_ascii=False,
+        )
+        estimated_input_tokens = len(payload_json) // 4
+        num_ctx = max(1024, estimated_input_tokens * 2)
         response = self.nlp.chat(
             model=self.model_name,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": json.dumps(payload, ensure_ascii=False)},
+                {"role": "user",   "content": payload_json},
             ],
             format=self._response_model.model_json_schema(),
             stream=False, think=False, keep_alive="10m",
             options={
                 "temperature": 0,
                 "num_predict": _NUM_PREDICT.get(self.action, 8000),
-                "num_ctx": 4096,
+                "num_ctx": num_ctx,
             },
         )
         content = response["message"]["content"].strip()
@@ -175,11 +180,12 @@ class LLMStrategy(AbstractStrategy):
         return prompt
 
     def _normalize_examples(self, examples: list) -> list:
-        key = self.result_key
+        stored_key = self.action      # how ExampleStore saved it: "translate", "gloss", …
+        output_key = self.result_key  # what the LLM prompt expects: "translation", "gloss", …
         return [
-            {"text": ex["source"], key: ex[key]}
+            {"text": ex["source"], output_key: ex[stored_key]}
             for ex in examples
-            if ex.get("source") and ex.get(key)
+            if ex.get("source") and ex.get(stored_key)
         ]
 
     def _validate_input_items(self, items: list) -> None:
