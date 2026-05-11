@@ -4,7 +4,6 @@ Factory for selecting the appropriate inference data processor.
 from inference.processors.abstract_processor import AbstractProcessor
 
 
-
 class ProcessorFactory:
 
     @staticmethod
@@ -21,7 +20,9 @@ class ProcessorFactory:
     @staticmethod
     def _get_labvanced(language, action, instruction, model) -> AbstractProcessor:
         if action == "transcribe":
-            from inference.processors.labvanced.labvanced_transcription import LabvancedTranscriptionProcessor
+            from inference.processors.labvanced.labvanced_transcription import (
+                LabvancedTranscriptionProcessor,
+            )
             return LabvancedTranscriptionProcessor(language, action, instruction)
         elif action in ["translate", "gloss", "transliterate"]:
             from inference.processors.labvanced.labvanced_text import LabvancedTextProcessor

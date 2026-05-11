@@ -1,4 +1,5 @@
 import re
+
 import pykakasi
 from inference.strategies.abstract_strategy import AbstractStrategy
 

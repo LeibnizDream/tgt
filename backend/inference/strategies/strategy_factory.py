@@ -1,6 +1,5 @@
-from inference.strategies.transliteration.default import DefaultStrategy
 from inference.strategies.llm_strategy import is_llm
-
+from inference.strategies.transliteration.default import DefaultStrategy
 
 _TRANSLATION_DEEPL_LANGUAGES = {
     'ar', 'de', 'el', 'es', 'et', 'it', 'ja', 'pt', 'ro', 'ru', 'th', 'tr', 'uk', 'vi', 'zh', 'hu',
@@ -30,7 +29,9 @@ class StrategyFactory:
             from inference.strategies.transcription.thai import ThaiTranscriptionStrategy
             return ThaiTranscriptionStrategy(language)
         if language == 'vi':
-            from inference.strategies.transcription.vietnamese import VietnameseTranscriptionStrategy
+            from inference.strategies.transcription.vietnamese import (
+                VietnameseTranscriptionStrategy,
+            )
             return VietnameseTranscriptionStrategy(language)
         if language == 'bn':
             from inference.strategies.transcription.bengali import BengaliTranscriptionStrategy
@@ -75,7 +76,9 @@ class StrategyFactory:
             from inference.strategies.transliteration.chinese import ChineseTransliterationStrategy
             return ChineseTransliterationStrategy()
         if language == "ja":
-            from inference.strategies.transliteration.japanese import JapaneseTransliterationStrategy
+            from inference.strategies.transliteration.japanese import (
+                JapaneseTransliterationStrategy,
+            )
             return JapaneseTransliterationStrategy()
         if language == "bn":
             from inference.strategies.transliteration.bengali import BengaliTransliterationStrategy

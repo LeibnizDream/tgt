@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jan  9 18:59:32 2024
 
 @author: camelo.cruz
 """
 
-import os
 import argparse
+import os
+
 import pandas as pd
+
 
 def convert_csv_to_excel(csv_file_path):
     # Read CSV file into a pandas DataFrame

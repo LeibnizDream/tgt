@@ -11,14 +11,12 @@ transforms a raw Labvanced export into the annotated-sheet format expected by
 all other processors.
 """
 import os
+from pathlib import Path
+
 import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
+from utils.functions import format_excel_output, set_global_variables
 from utils.reorder_columns import create_columns
-from utils.functions import (
-    set_global_variables,
-    format_excel_output
-)
-from pathlib import Path
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 

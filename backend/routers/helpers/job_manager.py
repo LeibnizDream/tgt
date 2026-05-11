@@ -14,18 +14,16 @@ training routers:
 - :class:`JobCleanupService`– Removes temporary files and directories once a
   job's results have been downloaded or cancelled.
 """
+import logging
 import os
 import shutil
 import tempfile
-from typing import Optional
 import uuid
-import logging
+from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from zipfile import ZipFile
-from fastapi import APIRouter, HTTPException, UploadFile
-from multiprocessing import Process, Queue, Event
-from multiprocessing import Process
 
+from fastapi import APIRouter, HTTPException, UploadFile
 from routers.inference.inference_workers import OneDriveWorker, ZipWorker
 
 logger = logging.getLogger(__name__)
@@ -99,7 +97,7 @@ class ProcessingService:
         return proc
     
     @staticmethod
-    def normalize_model_name(model: Optional[str]) -> Optional[str]:
+    def normalize_model_name(model: str | None) -> str | None:
         """Normalize model name, converting 'Default' to None."""
         return None if model == DEFAULT_MODEL else model
     

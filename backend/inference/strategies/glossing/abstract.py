@@ -20,10 +20,8 @@ into the Leipzig Glossing Rules notation (e.g. {'Case':'Nom','Number':'Sing'}
 → 'SG.NOM').  These helpers live here because every NLP-based strategy needs
 them and they depend on the shared LEIPZIG_GLOSSARY constant.
 """
-from abc import abstractmethod
-from utils.functions import load_glossing_rules
-from inference.strategies.translation.marian import MarianStrategy
 from inference.strategies.abstract_strategy import AbstractStrategy
+from utils.functions import load_glossing_rules
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 

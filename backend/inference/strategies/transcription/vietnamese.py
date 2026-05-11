@@ -1,5 +1,5 @@
-from transformers import pipeline
 from inference.strategies.abstract_strategy import AbstractStrategy
+from transformers import pipeline
 
 
 class VietnameseTranscriptionStrategy(AbstractStrategy):

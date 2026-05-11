@@ -1,5 +1,6 @@
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from inference.strategies.abstract_strategy import AbstractStrategy
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 
 class MarianStrategy(AbstractStrategy):
 
@@ -9,7 +10,7 @@ class MarianStrategy(AbstractStrategy):
             If it fails, _marian_model and _marian_tokenizer stay as None.
             """
             if self.language_code == "yo":
-                model_name = f"Helsinki-NLP/opus-mt-mul-en"
+                model_name = "Helsinki-NLP/opus-mt-mul-en"
             elif self.language_code == "pt":
                 model_name = "Helsinki-NLP/opus-mt-tc-big-en-pt"
             else:

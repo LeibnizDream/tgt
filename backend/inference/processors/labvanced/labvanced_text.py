@@ -9,12 +9,13 @@ Column mappings (source, target) are defined here by (action, instruction)
 so that concrete subclasses only need a minimal __init__ naming the action.
 TranscriptionProcessor overrides _process_dataframe for its audio-file pattern.
 """
-import os
 import fnmatch
+import os
+
 import pandas as pd
-from utils.functions import set_global_variables, format_excel_output
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
+from utils.functions import format_excel_output, set_global_variables
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 

@@ -1,12 +1,11 @@
 import re
-import spacy
 from pathlib import Path
+
+import spacy
+from inference.strategies.glossing.abstract import GlossingStrategy
 from spacy.cli import download
 from spacy.util import is_package
-
 from utils.functions import load_glossing_rules
-from inference.strategies.glossing.abstract import GlossingStrategy
-
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 

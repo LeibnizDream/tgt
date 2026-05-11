@@ -1,9 +1,9 @@
-import stanza
 import re
-import torch
 
-from utils.functions import load_glossing_rules
+import stanza
+import torch
 from inference.strategies.glossing.abstract import GlossingStrategy
+from utils.functions import load_glossing_rules
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 

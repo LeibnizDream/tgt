@@ -2,12 +2,11 @@ import os
 import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
+
 from dotenv import load_dotenv
-from utils.functions import find_language, set_global_variables
-
-
-from inference.processors.processor_factory import ProcessorFactory
 from inference.processing_options import ProcessingOptions
+from inference.processors.processor_factory import ProcessorFactory
+from utils.functions import find_language, set_global_variables
 
 _SECRETS = Path(__file__).resolve().parent.parent / "materials" / "secrets.env"
 REQUIRED_ENV_KEYS = [
@@ -109,7 +108,7 @@ class AbstractInferenceWorker(ABC):
         missing = [key for key in required_keys if key not in os.environ]
 
         if missing:
-            raise EnvironmentError(
+            raise OSError(
                 "Missing required environment variable(s): "
                 + ", ".join(missing)
                 + "\nThey must exist in secrets.env, even if left empty."

@@ -85,9 +85,21 @@ name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
-markers = [
-    "integration: tests that load real external models or services",
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (variables sin usar, imports sin usar)
+    "I",   # isort (orden de imports)
+    "UP",  # pyupgrade (sintaxis moderna)
+]
+ignore = [
+    "E501",  # líneas largas (ya controlado por line-length)
 ]

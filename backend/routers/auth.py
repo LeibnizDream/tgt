@@ -15,8 +15,8 @@ OAuth2 flow for the application:
 Credentials are read from environment variables ``TENANT_ID``, ``CLIENT_ID``,
 and ``CLIENT_SECRET`` or from ``materials/secrets.env``.
 """
-import os
 import logging
+import os
 from pathlib import Path
 
 import msal
@@ -63,7 +63,7 @@ def _load_cache() -> msal.SerializableTokenCache:
     print("Loading token cache from", CACHE_FILE)
     cache = msal.SerializableTokenCache()
     if CACHE_FILE.exists():
-        with open(CACHE_FILE, "r") as f:
+        with open(CACHE_FILE) as f:
             cache.deserialize(f.read())
     return cache
 

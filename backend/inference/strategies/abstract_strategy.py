@@ -3,6 +3,7 @@ Abstract base for all inference strategies.
 """
 import os
 from abc import ABC, abstractmethod
+
 import torch
 from huggingface_hub import login
 

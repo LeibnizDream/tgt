@@ -1,15 +1,14 @@
-import os
-import sys
 import json
-import string
 import os
+import re
 import shutil
-import logging
+import string
 import subprocess
+import sys
 import time
 import urllib.request
 import zipfile
-import re
+
 
 def get_materials_path(filename):
     """Get the path to a file in the materials directory."""
@@ -24,7 +23,7 @@ def get_materials_path(filename):
 def load_json_file(file_path):
     """Utility function to load JSON files with error handling."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding='utf-8') as file:
             return json.load(file)
     except FileNotFoundError:
         print(f"Error: {file_path} not found.")
@@ -39,7 +38,7 @@ def load_text_file(filename):
     file_path = get_materials_path(filename)
     
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding='utf-8') as file:
             return file.read().splitlines()
     except FileNotFoundError:
         print(f"Error: {file_path} not found.")

@@ -17,10 +17,11 @@ Usage:
       directly.
 """
 import traceback
+from abc import ABC, abstractmethod
+
 import pandas as pd
 from training.preprocessing.factory import PreProcessorFactory
 from training.training.factory import TrainerFactory
-from abc import ABC, abstractmethod
 from utils.functions import find_language, set_global_variables
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()

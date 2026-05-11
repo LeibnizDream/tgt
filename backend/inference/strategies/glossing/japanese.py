@@ -1,7 +1,7 @@
 import re
-from utils.functions import load_glossing_rules
-from inference.strategies.glossing.spacy import SpaCyGlossingStrategy
 
+from inference.strategies.glossing.spacy import SpaCyGlossingStrategy
+from utils.functions import load_glossing_rules
 
 LEIPZIG_GLOSSARY = load_glossing_rules("LEIPZIG_GLOSSARY.json")
 

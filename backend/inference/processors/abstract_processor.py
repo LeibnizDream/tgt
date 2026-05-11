@@ -34,9 +34,9 @@ inside __init__, so subclasses never import individual strategy classes or
 factories directly.
 """
 
-from abc import ABC, abstractmethod
 import logging
 import os
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import pandas as pd

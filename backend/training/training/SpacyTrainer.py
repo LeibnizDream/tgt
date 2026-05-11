@@ -21,30 +21,24 @@ Supported pretrained spaCy models
 ``ru``, ``uk`` – all use the ``*_core_*_lg`` package.  All other languages
 use a blank pipeline without pretrained vectors.
 """
-import math
 import random
 import tempfile
 from pathlib import Path
-from typing import Optional
-import sys
 
-import pandas as pd
 import spacy
-from spacy.cli._util import setup_gpu
-from spacy.cli import download
-from spacy.util import is_package
 from spacy import util
-from spacy.tokens import DocBin
-from spacy.training.corpus import Corpus
+from spacy.cli import download
+from spacy.cli._util import setup_gpu
 from spacy.cli.debug_data import debug_data
 from spacy.cli.init_config import fill_config
+from spacy.tokens import DocBin
+from spacy.training.corpus import Corpus
 from spacy.training.initialize import init_nlp
 from spacy.training.loop import train as train_nlp
-from spacy.util import load_config
-from wasabi import msg
-
-from utils.functions import set_global_variables
+from spacy.util import is_package, load_config
 from training.training.abstract import AbstractTrainer
+from utils.functions import set_global_variables
+from wasabi import msg
 
 METRICS = ["token_acc", "morph_acc"]
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
@@ -75,7 +69,7 @@ class SpacyTrainer(AbstractTrainer):
         preserve_hyphenated: bool = True,
     ):
         super().__init__(lang, study, use_gpu, log_to_wandb, wandb_project)
-        self.pretrained_model: Optional[str] = None  # name of vectors pkg if used
+        self.pretrained_model: str | None = None  # name of vectors pkg if used
         self.data = None
 
         self.base_training_dir = Path(__file__).resolve().parents[0]

@@ -16,10 +16,10 @@ Functions:
     :func:`upload_file_replace_in_onedrive` – Upload (or replace) a local file
         in a OneDrive drive item.
 """
-import os
-import requests
 import base64
+import os
 
+import requests
 from routers.auth import get_fresh_token
 
 

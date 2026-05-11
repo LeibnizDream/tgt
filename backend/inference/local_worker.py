@@ -1,6 +1,8 @@
 import argparse
+
 from inference.abstract_worker import AbstractInferenceWorker
 from inference.processing_options import ProcessingOptions
+
 
 class LocalWorker(AbstractInferenceWorker):
     """

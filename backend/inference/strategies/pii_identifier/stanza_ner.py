@@ -1,10 +1,9 @@
 import re
-import sys
-import stanza
-from typing import List, Tuple, Dict
-from inference.strategies.abstract_strategy import AbstractStrategy
-import torch
 from functools import wraps
+
+import stanza
+import torch
+from inference.strategies.abstract_strategy import AbstractStrategy
 
 _original_torch_load = torch.load
 
@@ -24,7 +23,7 @@ class StanzaIdentifier(AbstractStrategy):
     """
 
     # Regex patterns for other PII
-    REGEX_PATTERNS: Dict[str, str] = {
+    REGEX_PATTERNS: dict[str, str] = {
         "EMAIL": r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
         "PHONE": r"(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}",
         "SSN": r"\b\d{3}-\d{2}-\d{4}\b",
@@ -37,20 +36,13 @@ class StanzaIdentifier(AbstractStrategy):
         Initialize the Stanza pipeline for the given language.
         If the model is not downloaded, it will be fetched automatically.
         """
-        try:
-            stanza.download(self.lang)
-        except Exception:
-            print(f"Warning: Failed to download Stanza model for language '{self.lang}': {e}")
+        stanza.download(self.lang)
 
-        try:
-            self.nlp = stanza.Pipeline(lang=self.lang, processors='tokenize,ner')
-            print(f"Stanza NER initialized for language: {self.lang}")
-            print('nlp in identifier initialization', self.nlp)
-        except Exception as e:
-            print('error details', e)
-            raise RuntimeError(f"Failed to initialize Stanza NER for language: {self.lang}. Please check if the language code is correct or if the model is available.")
+        self.nlp = stanza.Pipeline(lang=self.lang, processors='tokenize,ner')
+        print(f"Stanza NER initialized for language: {self.lang}")
+        print('nlp in identifier initialization', self.nlp)
 
-    def _run_one(self, text: str) -> Tuple[List[Tuple[int, int, str, str]], str]:
+    def _run_one(self, text: str) -> tuple[list[tuple[int, int, str, str]], str]:
         """
         Identify PII spans and return both the spans and an annotated text.
 
@@ -58,7 +50,7 @@ class StanzaIdentifier(AbstractStrategy):
             spans: List of tuples (start_char, end_char, label, span_text)
             annotated_text: Original text with PII spans wrapped as [LABEL: span_text]
         """
-        spans: List[Tuple[int, int, str, str]] = []
+        spans: list[tuple[int, int, str, str]] = []
         if not self.nlp:
             return spans, text
         
@@ -75,7 +67,7 @@ class StanzaIdentifier(AbstractStrategy):
 
         # sort & annotate
         spans = sorted(spans, key=lambda x: x[0])
-        annotated_parts: List[str] = []
+        annotated_parts: list[str] = []
         last_idx = 0
         for start, end, label, span_text in spans:
             annotated_parts.append(text[last_idx:start])

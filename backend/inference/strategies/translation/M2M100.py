@@ -1,5 +1,6 @@
-from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 from inference.strategies.abstract_strategy import AbstractStrategy
+from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+
 
 class M2M100Strategy(AbstractStrategy):
 

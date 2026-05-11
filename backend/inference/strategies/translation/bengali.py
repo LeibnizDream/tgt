@@ -1,5 +1,6 @@
-from inference.strategies.abstract_strategy import AbstractStrategy
 from bntrans import Translator
+from inference.strategies.abstract_strategy import AbstractStrategy
+
 
 class BengaliTranslationStrategy(AbstractStrategy):
 

@@ -6,6 +6,7 @@ pipeline.  Rather than structured experiment directories, plain processors work
 on flat folders of audio files and produce a single transcribed.xlsx per folder.
 """
 import os
+
 import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory

@@ -1,16 +1,11 @@
 import json
 import sys
-from abc import ABC, abstractmethod
-from typing import List
 
-from pydantic import create_model
-from pydantic import ValidationError
+from inference.strategies.abstract_strategy import AbstractStrategy
 from langchain_google_genai import ChatGoogleGenerativeAI
 from ollama import Client
-from inference.strategies.abstract_strategy import AbstractStrategy
-
+from pydantic import ValidationError, create_model
 from utils.functions import ensure_ollama_running
-
 
 _RESULT_KEYS = {
     "translate":    "translation",
@@ -50,7 +45,7 @@ _SYSTEM_PROMPTS = {
 
 def _make_response_model(result_key: str):
     Item = create_model("Item", id=(int, ...), **{result_key: (str, ...)})
-    Response = create_model("Response", items=(List[Item], ...))
+    Response = create_model("Response", items=(list[Item], ...))
     return Response
 
 

@@ -3,6 +3,7 @@ import re
 from inference.strategies.abstract_strategy import AbstractStrategy
 from transliterate import translit
 
+
 class DefaultStrategy(AbstractStrategy):
     def load_model(self) -> None:
         pass

@@ -1,4 +1,5 @@
 import os
+
 import deepl
 from inference.strategies.abstract_strategy import AbstractStrategy
 

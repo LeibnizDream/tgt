@@ -14,11 +14,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-
 from routers.auth import router as auth_router
 from routers.inference.inference import router as inference_router
 from routers.training.train import router as train_router
-
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent

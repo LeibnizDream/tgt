@@ -11,16 +11,17 @@ filename are used instead.
 import os
 import re
 import warnings
+
 import pandas as pd
+from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
 from tqdm import tqdm
 from utils.functions import (
-    set_global_variables,
     clean_german_transcription,
     find_ffmpeg,
     format_excel_output,
+    set_global_variables,
 )
-from inference.processors.abstract_processor import AbstractProcessor
-from inference.strategies.strategy_factory import StrategyFactory
 
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()

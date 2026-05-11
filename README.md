@@ -133,15 +133,22 @@ The application will be available at: `http://127.0.0.1:8000`
 
 ---
 
-## Running Tests
+## Linting
 
-From the project root, run:
+The backend uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting.
 
 ```bash
-uv run --with pytest pytest -s
+# Check for issues
+uv run ruff check .
+
+# Fix issues automatically (safe fixes only)
+uv run ruff check . --fix
+
+# Format code style
+uv run ruff format .
 ```
 
-The `-s` flag shows test output and debug prints in the terminal. Some integration tests load real models or call external services, so make sure the required secrets and local model services are configured before running the full suite.
+Rules and line length are configured under `[tool.ruff]` in `pyproject.toml`.
 
 ---
 

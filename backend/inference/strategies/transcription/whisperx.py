@@ -1,6 +1,9 @@
-import os
+import huggingface_hub
 import torch
+import whisperx
+from huggingface_hub import hf_hub_download as _original_hf_download
 from inference.strategies.abstract_strategy import AbstractStrategy
+from whisperx.diarize import DiarizationPipeline
 
 # Patch torch.load FIRST
 _original_load = torch.load
@@ -10,17 +13,13 @@ def patched_load(*args, **kwargs):
 torch.load = patched_load
 
 # Patch hf_hub_download BEFORE whisperx imports it
-from huggingface_hub import hf_hub_download as _original_hf_download
 def patched_hf_download(*args, **kwargs):
     if 'use_auth_token' in kwargs:
         kwargs['token'] = kwargs.pop('use_auth_token')
     return _original_hf_download(*args, **kwargs)
 
-import huggingface_hub
 huggingface_hub.hf_hub_download = patched_hf_download
 
-import whisperx
-from whisperx.diarize import DiarizationPipeline
 
 class WhisperxStrategy(AbstractStrategy):
     def __init__(self, *args, **kwargs):

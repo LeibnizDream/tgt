@@ -1,9 +1,10 @@
 import re
-import spacy
-from typing import List, Tuple, Dict
-from spacy.cli import download as spacy_download
 from importlib import util
+
+import spacy
 from inference.strategies.abstract_strategy import AbstractStrategy
+from spacy.cli import download as spacy_download
+
 
 class SpacyIdentifier(AbstractStrategy):
     """
@@ -15,7 +16,7 @@ class SpacyIdentifier(AbstractStrategy):
     SPACY_LABELS = {"PER", "ORG", "GPE", "LOC", "DATE"}
 
     # Regex patterns for other PII
-    REGEX_PATTERNS: Dict[str, str] = {
+    REGEX_PATTERNS: dict[str, str] = {
         "EMAIL":   r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
         "PHONE":   r"(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}",
         "SSN":     r"\b\d{3}-\d{2}-\d{4}\b",
@@ -64,7 +65,7 @@ class SpacyIdentifier(AbstractStrategy):
 
 
     def _run_one(self, text: str):
-        spans: List[Tuple[int,int,str,str]] = []
+        spans: list[tuple[int,int,str,str]] = []
         doc = self.nlp(text)
         # 1) spaCy NER
         for ent in doc.ents:

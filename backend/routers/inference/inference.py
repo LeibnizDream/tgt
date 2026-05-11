@@ -12,20 +12,28 @@ Exposes the following REST endpoints under ``/api/inference``:
 - ``GET /models/{task}``             – List custom models available for a task.
 - ``DELETE /models/{task}/{model}``  – Delete a custom model directory.
 """
-import os
-import shutil
 import asyncio
 import logging
+import os
+import shutil
 from pathlib import Path
-from typing import Optional
-from fastapi import status
-from fastapi import APIRouter, HTTPException, Request, Form, UploadFile, File, Body, BackgroundTasks
-from fastapi.responses import FileResponse
-from sse_starlette.sse import EventSourceResponse
 
-from routers.helpers.job_manager import JobManager, ProcessingService, JobCleanupService
-from routers.auth import get_fresh_token
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse
 from inference.processing_options import ProcessingOptions
+from routers.auth import get_fresh_token
+from routers.helpers.job_manager import JobCleanupService, JobManager, ProcessingService
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -37,11 +45,11 @@ async def process(
     request: Request,
     action: str = Form(...),
     language: str = Form(...),
-    model: Optional[str] = Form(None),
-    instruction: Optional[str] = Form(None),
-    format: Optional[str] = Form(None),
-    zipfile: Optional[UploadFile] = File(None),
-    base_dir: Optional[str] = Form(None),
+    model: str | None = Form(None),
+    instruction: str | None = Form(None),
+    format: str | None = Form(None),
+    zipfile: UploadFile | None = File(None),
+    base_dir: str | None = Form(None),
 ):
     """Process files either from uploaded zip or OneDrive."""
     job = JobManager.create()

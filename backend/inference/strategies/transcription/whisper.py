@@ -1,6 +1,7 @@
 import whisper
 from inference.strategies.abstract_strategy import AbstractStrategy
 
+
 class WhisperStrategy(AbstractStrategy):
 
     def load_model(self):

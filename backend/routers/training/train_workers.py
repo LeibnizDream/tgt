@@ -15,13 +15,13 @@ import tempfile
 from pathlib import Path
 
 import requests
-from training.abstract_worker import AbstractTrainingWorker
 from routers.helpers.onedrive import (
     download_sharepoint_folder,
-    upload_file_replace_in_onedrive,
     encode_share_link,
-    list_session_children
+    list_session_children,
+    upload_file_replace_in_onedrive,
 )
+from training.abstract_worker import AbstractTrainingWorker
 
 # Configure module-level logger
 logging.basicConfig(level=logging.INFO)

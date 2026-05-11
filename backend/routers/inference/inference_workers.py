@@ -13,17 +13,18 @@ Both classes are instantiated by the inference router and run in isolated
 worker processes so that CPU-intensive ML work does not block the event loop.
 """
 import os
-import tempfile
 import shutil
-from zipfile import ZipFile, ZIP_DEFLATED
+import tempfile
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from inference.abstract_worker import AbstractInferenceWorker
 from routers.helpers.onedrive import (
     download_sharepoint_folder,
-    upload_file_replace_in_onedrive,
     list_session_children,
+    upload_file_replace_in_onedrive,
 )
+
 
 class ZipWorker(AbstractInferenceWorker):
     """

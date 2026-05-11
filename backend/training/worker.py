@@ -1,5 +1,7 @@
 import argparse
+
 from training.abstract_worker import AbstractTrainingWorker
+
 
 class TrainingWorker(AbstractTrainingWorker):
     """

@@ -13,12 +13,11 @@ The :meth:`train` method acts as the public entry point:
 3. :meth:`training_step` – fit the model and return ``{metric: value}`` dicts.
 4. Log metrics to W&B and finalize the run.
 """
-from pathlib import Path
-from typing import Dict
-import pandas as pd
 from abc import ABC, abstractmethod
-import wandb
+from pathlib import Path
 
+import pandas as pd
+import wandb
 from wasabi import msg
 
 METRICS = ["token_acc", "morph_acc"]
@@ -64,7 +63,7 @@ class AbstractTrainer(ABC):
             msg.warning("wandb not installed; skipping W&B logging")
     
     @abstractmethod
-    def training_step(self) -> Dict[str, float]:
+    def training_step(self) -> dict[str, float]:
         '''
         return metrics: Dict[str, float]
         This method should be implemented by concrete trainers to define the training logic.
@@ -79,7 +78,7 @@ class AbstractTrainer(ABC):
         pass
 
 
-    def train(self, data_df: pd.DataFrame) -> Dict[str, float]:
+    def train(self, data_df: pd.DataFrame) -> dict[str, float]:
         """Concrete trainers must implement their training logic and return metrics."""
         """
         Execute the training workflow:

@@ -7,10 +7,11 @@ sheet per audio folder, then transcribes each file and fills in the
 ``transcribed.xlsx`` are skipped to avoid overwriting prior work.
 """
 import os
+
 import pandas as pd
-from tqdm import tqdm
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
+from tqdm import tqdm
 
 
 class PlainTranscriptionProcessor(AbstractProcessor):

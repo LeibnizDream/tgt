@@ -1,5 +1,6 @@
-from pypinyin import lazy_pinyin, Style
 from inference.strategies.abstract_strategy import AbstractStrategy
+from pypinyin import lazy_pinyin
+
 
 class ChineseTransliterationStrategy(AbstractStrategy):
     def __init__(self):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Copyright (C) 2024  Alejandra Camelo Cruz
 
@@ -20,6 +19,7 @@ Leibniz Institute General Linguistics (ZAS)
 """
 
 import os
+
 import pandas as pd
 
 from utils.functions import (
