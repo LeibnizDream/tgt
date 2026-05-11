@@ -10,8 +10,11 @@ class BengaliTranscriptionStrategy(AbstractStrategy):
             model="mozilla-ai/whisper-large-v3-bn",
             device=self.device
         )
+    
+    def _run_one(*args):
+        raise ValueError('no batch processing allowed')
 
-    def _run_one(self, path_to_audio: str):
+    def run_strategy(self, path_to_audio: str):
         self.whisper_asr.model.config.forced_decoder_ids = (
             self.whisper_asr.tokenizer.get_decoder_prompt_ids(language=self.language_code, task="transcribe")
         )

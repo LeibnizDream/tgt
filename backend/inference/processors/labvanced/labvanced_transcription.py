@@ -70,7 +70,7 @@ class LabvancedTranscriptionProcessor(AbstractProcessor):
             path = os.path.join(bin_dir, file)
             print(path)
             try:
-                text = self.strategy._run_one(path)
+                text = self.strategy.run_strategy(path)
                 if self.language == 'de':
                     text = clean_german_transcription(text)
                 self.add_transcription_to_df(

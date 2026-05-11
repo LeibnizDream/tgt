@@ -47,8 +47,11 @@ class WhisperxStrategy(AbstractStrategy):
             print(f"float16 failed: {e}, falling back to int8")
             self.model = whisperx.load_model("large-v2", self.device, compute_type="int8", language=self.language_code)
         print(f"Whisperx model loaded on device {self.device}")
+    
+    def _run_one(*args):
+        raise ValueError('no batch processing allowed')
 
-    def _run_one(self, path_to_audio):
+    def run_strategy(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)
         result = self.model.transcribe(audio, batch_size=self.batch_size, language=self.language_code)
 

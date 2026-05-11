@@ -37,7 +37,7 @@ class ProcessorFactory:
     def _get_plain(language, action, model) -> AbstractProcessor:
         if action == "transcribe":
             from inference.processors.plain.plain_transcription import PlainTranscriptionProcessor
-            return PlainTranscriptionProcessor(language)
+            return PlainTranscriptionProcessor(language, action)
         elif action in ["translate", "gloss", "transliterate"]:
             from inference.processors.plain.plain_text import PlainTextProcessor
             return PlainTextProcessor(language, action, model)

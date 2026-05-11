@@ -13,8 +13,11 @@ class ThaiTranscriptionStrategy(AbstractStrategy):
             chunk_length_s=30,
             device=self.device,
         )
+
+    def _run_one(*args):
+        raise ValueError('no batch processing allowed')
     
-    def _run_one(self, path_to_audio: str) -> str | None:
+    def run_strategy(self, path_to_audio: str) -> str | None:
         self.pipe.model.config.forced_decoder_ids = self.pipe.tokenizer.get_decoder_prompt_ids(
         language=self.language_code,
         task="transcribe"
