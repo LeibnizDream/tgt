@@ -78,7 +78,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
                 text = self.strategy.run_strategy(path)
                 df.at[i, "transcription"] = text
             except Exception as e:
-                self.logger.error(f"Error transcribing '{row['file_name']}': {e}")
+                self.logger.exception(f"Error transcribing '{row['file_name']}': {e}")
                 self._emit(f"[WARNING] Error transcribing '{row['file_name']}': {e}")
             if progress_cb:
                 progress_cb(i + 1, total)

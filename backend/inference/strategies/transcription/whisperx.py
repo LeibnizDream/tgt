@@ -1,6 +1,7 @@
 import huggingface_hub
 import torch
 import whisperx
+
 from huggingface_hub import hf_hub_download as _original_hf_download
 from inference.strategies.abstract_strategy import AbstractStrategy
 from whisperx.diarize import DiarizationPipeline
