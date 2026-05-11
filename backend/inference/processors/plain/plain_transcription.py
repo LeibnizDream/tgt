@@ -32,6 +32,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
                 out_path = os.path.join(root, "transcribed.xlsx")
 
                 if os.path.exists(out_path):
+                    self._emit(f"[WARNING] Output already exists at {out_path}, skipping transcription for this folder.")
                     self.logger.warning(f"[bold red]Skipping existing output: {out_path}")
                     continue
 

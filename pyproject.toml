@@ -16,14 +16,14 @@ dependencies = [
     "numpy==2.3.5",
     "wandb==0.26.1",
     # PyTorch (platform-specific via [tool.uv.sources])
-    "torch==2.6.0",
-    "torchvision==0.21.0",
-    "torchaudio==2.6.0",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "torchaudio==2.8.0",
     # Speech / transcription
     "openai-whisper==20250625",
-    "whisperx==3.4.3",
+    "whisperx==3.8.5",
     "faster-whisper==1.2.1",
-    "pyannote-audio==3.4.0",
+    "pyannote-audio==4.0.4",
     # NLP
     "spacy==3.8.11",
     "spacy-stanza==1.0.4",
@@ -58,22 +58,22 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-# Windows: CUDA 12.4 build from PyTorch index
+# Windows: CUDA 12.6 build from PyTorch index
 torch = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+    { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
 ]
 torchvision = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+    { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
 ]
 torchaudio = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+    { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
 ]
 # Bengali romanizer — no PyPI release
 bengali-romanizer = { git = "https://github.com/apakabarfm/bengali-romanizer" }
 
 [[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [dependency-groups]

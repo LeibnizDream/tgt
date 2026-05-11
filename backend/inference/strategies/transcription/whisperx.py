@@ -23,25 +23,9 @@ huggingface_hub.hf_hub_download = patched_hf_download
 
 
 class WhisperxStrategy(AbstractStrategy):
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the Whisperx transcription strategy.	"""
-        super().__init__(*args, **kwargs)
-        self.batch_size = kwargs.get('batch_size', 8)
-        cuda_available = torch.cuda.is_available()
-        cudnn_available = torch.backends.cudnn.is_available() if cuda_available else False
-
-        if cuda_available and cudnn_available:
-            device = "cuda"
-            cudnn_version = torch.backends.cudnn.version()
-            print(f"Using CUDA with cuDNN {cudnn_version}")
-        else:
-            device = "cpu"
-            print(f"Using CPU (CUDA available: {cuda_available}, cuDNN available: {cudnn_available})")
-
-        self.device = device
     
     def load_model(self):
+        print("using device: ", self.device)
         try:
             self.model = whisperx.load_model("large-v2", self.device, compute_type="float16", language=self.language_code)
         except Exception as e:
@@ -51,7 +35,7 @@ class WhisperxStrategy(AbstractStrategy):
 
     def run_strategy(self, path_to_audio):
         audio = whisperx.load_audio(path_to_audio)
-        result = self.model.transcribe(audio, batch_size=self.batch_size, language=self.language_code)
+        result = self.model.transcribe(audio, batch_size=8, language=self.language_code)
 
         model_a, metadata = whisperx.load_align_model(
             language_code=result["language"],

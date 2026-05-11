@@ -29,6 +29,6 @@ class MarianStrategy(AbstractStrategy):
                     "Call _init_marian_model() before translating."
                 )
 
-            inputs = self._marian_tokenizer.encode(text, return_tensors="pt")
+            inputs = self._marian_tokenizer.encode(text, return_tensors="pt").to(self.device)
             outputs = self._marian_model.generate(inputs)
             return self._marian_tokenizer.decode(outputs[0], skip_special_tokens=True)
