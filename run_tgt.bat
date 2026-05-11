@@ -2,6 +2,8 @@
 REM Set UTF-8 code page for proper character encoding
 chcp 65001 >nul
 
+
+
 REM ==== Kill any existing Nginx processes ====
 taskkill /f /im nginx.exe >nul 2>&1
 
@@ -26,17 +28,18 @@ if errorlevel 1 (
 REM ==== Switch to project root ====
 cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT
 
+REM ==== Ensure logs folder exists ====
+cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT
+if not exist ".\logs" mkdir ".\logs"
+
 REM ==== Sync Python environment ====
+set PATH=%PATH%;C:\Users\camelo.cruz\.local\bin
 uv sync
 
 REM ==== Build frontend ====
 cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT\frontend
 if exist "dist" rmdir /s /q dist
 call npm run build
-
-REM ==== Ensure logs folder exists ====
-cd /d C:\Users\camelo.cruz\Documents\GitHub\TGT
-if not exist ".\logs" mkdir ".\logs"
 
 REM ==== Set Python UTF-8 environment variables ====
 set PYTHONIOENCODING=utf-8
