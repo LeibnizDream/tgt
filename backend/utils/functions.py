@@ -1,31 +1,14 @@
-import functools
-import os
-import sys
 import json
-import string
 import os
+import re
 import shutil
-import logging
+import string
 import subprocess
-import threading
+import sys
 import time
 import urllib.request
 import zipfile
-import openpyxl
-import re
-from openpyxl.styles import Font
 
-def load_json_file(file_path):
-    """Utility function to load JSON files with error handling."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print(f"Error: {file_path} not found.")
-        sys.exit(1)
-    except json.JSONDecodeError:
-        print(f"Error: Failed to parse JSON from {file_path}.")
-        sys.exit(1)
 
 def get_materials_path(filename):
     """Get the path to a file in the materials directory."""
@@ -37,13 +20,25 @@ def get_materials_path(filename):
 
     return os.path.join(base_path, filename)
 
+def load_json_file(file_path):
+    """Utility function to load JSON files with error handling."""
+    try:
+        with open(file_path, encoding='utf-8') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Error: {file_path} not found.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print(f"Error: Failed to parse JSON from {file_path}.")
+        sys.exit(1)
+
 def load_text_file(filename):
     """Utility function to load text files with error handling."""
     # Resolve the file path using get_materials_path
     file_path = get_materials_path(filename)
     
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding='utf-8') as file:
             return file.read().splitlines()
     except FileNotFoundError:
         print(f"Error: {file_path} not found.")
@@ -154,20 +149,24 @@ def find_ffmpeg():
         return ffmpeg_path
 
 
-def format_excel_output(excel_output_file, columns_to_highlight: list):
+def format_excel_output(excel_output_file, columns_to_highlight: str | list, row_indices: set | None = None):
     import openpyxl
     from openpyxl.styles import Font
-    from copy import copy
-    
+
+    target_cols = {columns_to_highlight} if isinstance(columns_to_highlight, str) else set(columns_to_highlight)
+
     wb = openpyxl.load_workbook(excel_output_file)
     ws = wb.active
-    
+
     # Get header mapping
     headers = [cell.value for cell in ws[1]]
-    col_indices = [i for i, h in enumerate(headers) if h in columns_to_highlight]
-    
-    # Apply red color to specified columns
+    col_indices = [i for i, h in enumerate(headers) if h in target_cols]
+
+    # Apply red color to specified columns (only row_indices rows if provided)
     for row in ws.iter_rows(min_row=2):
+        pandas_idx = row[0].row - 2  # Excel row 2 → pandas index 0
+        if row_indices is not None and pandas_idx not in row_indices:
+            continue
         for col_idx in col_indices:
             cell = row[col_idx]
             if cell.value:
@@ -183,7 +182,7 @@ def format_excel_output(excel_output_file, columns_to_highlight: list):
                     strike=old_font.strike,
                     color="FF0000"  # Only this changes
                 )
-    
+
     wb.save(excel_output_file)
 
 
@@ -207,12 +206,16 @@ def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 6
     print(f"[Ollama] Not reachable at {host} — reason: {status}", file=sys.stderr)
     print("[Ollama] Launching 'ollama serve'...", file=sys.stderr)
 
+    kwargs = {}
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
     try:
         proc = subprocess.Popen(
             ["ollama", "serve"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NO_WINDOW,
+            **kwargs,
         )
         print(f"[Ollama] Process started with PID {proc.pid}", file=sys.stderr)
     except FileNotFoundError:
@@ -245,29 +248,3 @@ def ensure_ollama_running(host: str = "http://127.0.0.1:11434", timeout: int = 6
         f"stdout: {out.decode(errors='replace')}\n"
         f"stderr: {err.decode(errors='replace')}"
     )
-
-
-def setup_logging(logger, log_path):
-    logger.setLevel(logging.DEBUG)
-
-    # Clear existing handlers (avoid duplicates if run multiple times)
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    console_formatter = logging.Formatter("%(message)s")
-    console_handler.setFormatter(console_formatter)
-
-    # File handler
-    file_handler = logging.FileHandler(log_path, mode='w', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(file_formatter)
-
-    # Add both handlers
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-    return file_handler

@@ -21,6 +21,8 @@ export function useJobSubmission(
     language,
     glossingModel,
     translationModel,
+    model,
+    format,
   }: {
     mode: "online" | "upload";
     baseDir: string;
@@ -29,6 +31,8 @@ export function useJobSubmission(
     language: string;
     glossingModel?: string;
     translationModel?: string;
+    model?: string;
+    format?: string;
   }) => {
     // Hosts where offline uploads are NOT allowed
     const OFFLINE_BLOCKED_HOSTS = new Set<string>([
@@ -55,11 +59,12 @@ export function useJobSubmission(
     form.append("action", action);
     form.append("instruction", instruction);
     form.append("language", language);
-    if (glossingModel) {
-      form.append("glossingModel", glossingModel);
+    if (format) {
+      form.append("format", format);
     }
-    if (translationModel) {
-      form.append("translationModel", translationModel);
+    const resolvedModel = model || glossingModel || translationModel;
+    if (resolvedModel) {
+      form.append("model", resolvedModel);
     }
 
     if (mode === "online") {
@@ -108,8 +113,22 @@ export function useJobSubmission(
         }
       };
       xhr.onload = () => {
-        const { job_id } = JSON.parse(xhr.responseText);
-        streamerOpen(job_id);
+        if (xhr.status >= 400) {
+          addLog(`Upload failed (HTTP ${xhr.status}): ${xhr.responseText}`, "error");
+          setIsProcessing(false);
+          return;
+        }
+        try {
+          const { job_id } = JSON.parse(xhr.responseText);
+          streamerOpen(job_id);
+        } catch {
+          addLog(`Unexpected server response: ${xhr.responseText}`, "error");
+          setIsProcessing(false);
+        }
+      };
+      xhr.onerror = () => {
+        addLog("Upload failed: network error.", "error");
+        setIsProcessing(false);
       };
       xhr.send(form);
     }

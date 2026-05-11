@@ -16,16 +16,21 @@ Functions:
     :func:`upload_file_replace_in_onedrive` – Upload (or replace) a local file
         in a OneDrive drive item.
 """
-import os
-import requests
 import base64
+import os
 
+import requests
 from routers.auth import get_fresh_token
 
 
-def list_session_children(share_link: str, token: str):
-    """
-    Helper for the online worker: list all Session_* folders under a OneDrive share link.
+def list_session_children(share_link: str, token: str, name_filter: str | None = "Session_"):
+    """List child folders under a OneDrive share link.
+
+    Args:
+        share_link: OneDrive share URL.
+        token: OAuth2 access token.
+        name_filter: Only return folders whose name contains this string.
+            Pass ``None`` to return all subfolders regardless of name.
     """
     share_id = base64.urlsafe_b64encode(share_link.encode()).decode().rstrip("=")
     url = f"https://graph.microsoft.com/v1.0/shares/u!{share_id}/driveItem/children"
@@ -36,9 +41,8 @@ def list_session_children(share_link: str, token: str):
     resp.raise_for_status()
     entries = resp.json().get("value", [])
     return [
-        entry
-        for entry in entries
-        if entry.get("folder") and "Session_" in entry["name"]
+        entry for entry in entries
+        if entry.get("folder") and (name_filter is None or name_filter in entry["name"])
     ]
 
 def encode_share_link(link):

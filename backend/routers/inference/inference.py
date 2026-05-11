@@ -12,19 +12,28 @@ Exposes the following REST endpoints under ``/api/inference``:
 - ``GET /models/{task}``             – List custom models available for a task.
 - ``DELETE /models/{task}/{model}``  – Delete a custom model directory.
 """
-import os
-import shutil
 import asyncio
 import logging
+import os
+import shutil
 from pathlib import Path
-from typing import Optional
-from fastapi import status
-from fastapi import APIRouter, HTTPException, Request, Form, UploadFile, File, Body, BackgroundTasks
-from fastapi.responses import FileResponse
-from sse_starlette.sse import EventSourceResponse
 
-from routers.helpers.job_manager import JobManager, ProcessingService, JobCleanupService
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse
+from inference.processing_options import ProcessingOptions
 from routers.auth import get_fresh_token
+from routers.helpers.job_manager import JobCleanupService, JobManager, ProcessingService
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -36,38 +45,38 @@ async def process(
     request: Request,
     action: str = Form(...),
     language: str = Form(...),
-    glossingModel: Optional[str] = Form(None),
-    translationModel: Optional[str] = Form(None),
-    instruction: Optional[str] = Form(None),
-    zipfile: Optional[UploadFile] = File(None),
-    base_dir: Optional[str] = Form(None),
+    model: str | None = Form(None),
+    instruction: str | None = Form(None),
+    format: str | None = Form(None),
+    zipfile: UploadFile | None = File(None),
+    base_dir: str | None = Form(None),
 ):
     """Process files either from uploaded zip or OneDrive."""
-    # Initialize job
     job = JobManager.create()
 
-    # Normalize model names
-    glossing_model = ProcessingService.normalize_model_name(glossingModel)
-    translation_model = ProcessingService.normalize_model_name(translationModel)
+    print("hello I am receiving this model ", model)
+    print("after normalization ", ProcessingService.normalize_model_name(model))
 
-    logger.info(f"Processing job {job.id} - action {action}, - glossingModel: {glossing_model}, translationModel: {translation_model}")
+    options = ProcessingOptions(
+        language=language,
+        action=action,
+        format=format,
+        instruction=instruction,
+        model=ProcessingService.normalize_model_name(model),
+    )
 
-    # Validate required parameters
+    logger.info(f"Processing job {job.id} - action {action}, format {format}, model: {options.model}")
+
     if not language:
         job.queue.put("[ERROR] Missing language")
         return {"job_id": job.id}
 
     try:
         if zipfile:
-            # Handle zip file upload
             tmp_dir = await ProcessingService.extract_zipfile(zipfile)
-            worker = ProcessingService.create_zip_worker(
-                tmp_dir, action, language, instruction,
-                translation_model, glossing_model, job
-            )
+            worker = ProcessingService.create_zip_worker(tmp_dir, options, job)
             job.base_dir = tmp_dir
         else:
-            # Handle OneDrive processing
             if not base_dir:
                 raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
             try:
@@ -76,10 +85,7 @@ async def process(
                 raise HTTPException(status_code=401, detail=str(e))
             job.token = access_token
 
-            worker = ProcessingService.create_onedrive_worker(
-                base_dir, action, language, instruction,
-                translation_model, glossing_model, access_token, job
-            )
+            worker = ProcessingService.create_onedrive_worker(base_dir, options, access_token, job)
 
         # Start worker process
         job.process = await ProcessingService.create_worker_process(worker.run)

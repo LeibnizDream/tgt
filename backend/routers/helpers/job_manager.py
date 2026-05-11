@@ -14,18 +14,16 @@ training routers:
 - :class:`JobCleanupService`– Removes temporary files and directories once a
   job's results have been downloaded or cancelled.
 """
+import logging
 import os
 import shutil
 import tempfile
-from typing import Optional
 import uuid
-import logging
+from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from zipfile import ZipFile
-from fastapi import APIRouter, HTTPException, UploadFile
-from multiprocessing import Process, Queue, Event
-from multiprocessing import Process
 
+from fastapi import APIRouter, HTTPException, UploadFile
 from routers.inference.inference_workers import OneDriveWorker, ZipWorker
 
 logger = logging.getLogger(__name__)
@@ -99,7 +97,7 @@ class ProcessingService:
         return proc
     
     @staticmethod
-    def normalize_model_name(model: Optional[str]) -> Optional[str]:
+    def normalize_model_name(model: str | None) -> str | None:
         """Normalize model name, converting 'Default' to None."""
         return None if model == DEFAULT_MODEL else model
     
@@ -127,24 +125,12 @@ class ProcessingService:
             raise HTTPException(status_code=400, detail=f"Failed to extract zip file: {str(e)}")
     
     @staticmethod
-    def create_zip_worker(tmp_dir: str, action: str, language: str, 
-                         instruction: Optional[str], translation_model: Optional[str], 
-                         glossing_model: Optional[str], job) -> ZipWorker:
-        """Create a ZipWorker instance."""
-        return ZipWorker(
-            tmp_dir, action, language, instruction,
-            translation_model, glossing_model, job
-        )
-    
+    def create_zip_worker(tmp_dir: str, options, job) -> ZipWorker:
+        return ZipWorker(tmp_dir, options, job)
+
     @staticmethod
-    def create_onedrive_worker(base_dir: str, action: str, language: str,
-                              instruction: Optional[str], translation_model: Optional[str],
-                              glossing_model: Optional[str], access_token: str, job) -> OneDriveWorker:
-        """Create an OneDriveWorker instance."""
-        return OneDriveWorker(
-            base_dir, action, language, instruction,
-            translation_model, glossing_model, access_token, job
-        )
+    def create_onedrive_worker(base_dir: str, options, access_token: str, job) -> OneDriveWorker:
+        return OneDriveWorker(base_dir, options, access_token, job)
 
 
 class JobCleanupService:

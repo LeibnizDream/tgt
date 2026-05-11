@@ -22,14 +22,13 @@ reported via :meth:`_after_write`.
 """
 import re
 import unicodedata
-import pandas as pd
-from wasabi import msg
-from typing import Union, List
-from training.preprocessing.abstract import BasePreprocessor
-from utils.functions import load_glossing_rules
 
+import pandas as pd
 import spacy
 from spacy.util import compile_infix_regex, get_lang_class
+from training.preprocessing.abstract import BasePreprocessor
+from utils.functions import load_glossing_rules
+from wasabi import msg
 
 
 class UDPreprocessor(BasePreprocessor):
@@ -89,7 +88,7 @@ class UDPreprocessor(BasePreprocessor):
 
         return nlp
 
-    def _tokenize(self, s: str) -> List[str]:
+    def _tokenize(self, s: str) -> list[str]:
         return [t.text for t in self._nlp.make_doc(s)]
 
     @staticmethod
@@ -107,7 +106,7 @@ class UDPreprocessor(BasePreprocessor):
         # standardize line breaks and convert literal "\n" to real newlines
         return s.replace("\r\n", "\n").replace("\r", "\n").replace("\\n", "\n")
 
-    def _clean_line(self, text: Union[str, float]) -> str:
+    def _clean_line(self, text: str | float) -> str:
         """Clean within a single line (no newline collapsing)."""
         if not isinstance(text, str):
             return ""
@@ -184,7 +183,7 @@ class UDPreprocessor(BasePreprocessor):
         )
 
     # ---------- gloss mapping & alignment ----------
-    def _map_gloss_aligned(self, text_tokens: List[str], gloss_line: str) -> List[str]:
+    def _map_gloss_aligned(self, text_tokens: list[str], gloss_line: str) -> list[str]:
         """Align gloss tokens to non-punctuation text tokens; punctuation -> '_'."""
         gloss_iter = iter(gloss_line.split())
         feats = []

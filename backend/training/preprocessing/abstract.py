@@ -12,17 +12,14 @@ The :meth:`preprocess` method produces a single CSV under
 ``training/data/<ClassName>_<lang>_<study>.csv`` and returns the combined
 :class:`pandas.DataFrame`.
 """
-import os
-import re
-import sys
 import logging
-from pathlib import Path
+import sys
 from abc import ABC, abstractmethod
-from typing import List, Union
+from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
-from utils.functions import set_global_variables, find_language
+from utils.functions import set_global_variables
 
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 
@@ -56,7 +53,7 @@ class BasePreprocessor(ABC):
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s: %(message)s"))
         self.logger.addHandler(handler)
 
-    def preprocess(self, input_dir: Union[str, Path]) -> pd.DataFrame:
+    def preprocess(self, input_dir: str | Path) -> pd.DataFrame:
         """
         Main entry point: finds matching files, processes each,
         aggregates into one DataFrame, writes a single CSV,
@@ -71,7 +68,7 @@ class BasePreprocessor(ABC):
         file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s: %(message)s"))
         self.logger.addHandler(file_handler)
 
-        processed_dfs: List[pd.DataFrame] = []
+        processed_dfs: list[pd.DataFrame] = []
         try:
             for path in tqdm(files, desc=f"Processing {input_dir}"):
                 self.logger.info(f"Starting session: {path.name}")
@@ -97,7 +94,7 @@ class BasePreprocessor(ABC):
 
         return combined
 
-    def _find_files(self, base_dir: Path) -> List[Path]:
+    def _find_files(self, base_dir: Path) -> list[Path]:
         matches = list(base_dir.rglob(self.file_pattern))
         self.logger.info(f"Found {len(matches)} files matching '{self.file_pattern}' in {base_dir}")
         return matches

@@ -58,15 +58,15 @@ export default function Inference() {
   const [language, setLanguage] = useState("");
   const [logsExpanded, setLogsExpanded] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [format, setFormat] = useState<"labvanced" | "plain">("labvanced");
   const [selectedGlossingModel, setSelectedGlossingModel] = useState("Default");
   const [selectedTranslationModel, setSelectedTranslationModel] = useState("Default");
+  const [selectedTransliterationModel, setSelectedTransliterationModel] = useState("Default");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableGlossingModels, setAvailableGlossingModels] = useState<
     string[]
   >([]);
-  const [availableTranslationModels, setAvailableTranslationModels] = useState<
-    string[]
-  >([]);
+const [availableTransliterationModels, setAvailableTransliterationModels] = useState<string[]>([]);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "online" | "offline"
   >("checking");
@@ -153,12 +153,9 @@ export default function Inference() {
           }
         }
       } else if (action === "gloss") {
-        // Fetch both glossing and translation models for glossing action
+        // Fetch glossing models for glossing action
         try {
-          const [glossRes, transRes] = await Promise.all([
-            fetch(`/api/inference/models/glossing`),
-            fetch(`/api/inference/models/translation`),
-          ]);
+          const glossRes = await fetch(`/api/inference/models/glossing`);
 
           setBackendStatus("online");
 
@@ -176,28 +173,11 @@ export default function Inference() {
               );
             }
           }
-
-          if (transRes.ok) {
-            const transData = await transRes.json();
-            if (Array.isArray(transData.models)) {
-              const FIXED_TRANSLATION = ["Default", "deepl", "gemini", "qwen", "marian", "m2m100"];
-              const custom = transData.models.filter((m: string) => !FIXED_TRANSLATION.includes(m));
-              const models = [...FIXED_TRANSLATION, ...custom];
-              setAvailableTranslationModels(models);
-              setSelectedTranslationModel("Default");
-              addLog(
-                `Loaded ${transData.models.length} translation models`,
-                "success",
-              );
-            }
-          }
         } catch (err) {
           console.error("Model fetch error:", err);
           setBackendStatus("offline");
           setAvailableGlossingModels(["Default"]);
-          setAvailableTranslationModels(["Default"]);
           setSelectedGlossingModel("Default");
-          setSelectedTranslationModel("Default");
           if (err instanceof TypeError && err.message.includes("fetch")) {
             addLog(
               "Backend server is not running. Please start the backend server on port 8000.",
@@ -210,12 +190,35 @@ export default function Inference() {
             );
           }
         }
+      } else if (action === "transliterate") {
+        try {
+          const res = await fetch(`/api/inference/models/transliteration`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          const data = await res.json();
+          setBackendStatus("online");
+          if (Array.isArray(data.models)) {
+            const FIXED_TRANSLITERATION = ["Default", "qwen", "gemini"];
+            const custom = data.models.filter((m: string) => !FIXED_TRANSLITERATION.includes(m));
+            setAvailableTransliterationModels([...FIXED_TRANSLITERATION, ...custom]);
+            setSelectedTransliterationModel("Default");
+          }
+        } catch (err) {
+          setBackendStatus("offline");
+          setAvailableTransliterationModels(["Default", "qwen", "gemini"]);
+          setSelectedTransliterationModel("Default");
+          if (err instanceof TypeError && err.message.includes("fetch")) {
+            addLog("Backend server is not running. Please start the backend server on port 8000.", "error");
+          } else {
+            addLog(`Failed to load models: ${(err as Error).message}. Using default.`, "warning");
+          }
+        }
       } else {
         setAvailableModels([]);
         setAvailableGlossingModels([]);
-        setAvailableTranslationModels([]);
+        setAvailableTransliterationModels([]);
         setSelectedGlossingModel("Default");
         setSelectedTranslationModel("Default");
+        setSelectedTransliterationModel("Default");
       }
     };
 
@@ -228,7 +231,7 @@ export default function Inference() {
     addLog("Please select an action", "error");
     return;
   }
-  if (action !== "transcribe" && !instruction) {
+  if (format === "labvanced" && action !== "transcribe" && action !== "create columns" && !instruction) {
     addLog("Please select an instruction", "error");
     return;
   }
@@ -260,6 +263,10 @@ export default function Inference() {
     addLog("Please select both glossing and translation models", "error");
     return;
   }
+  if (action === "transliterate" && !selectedTransliterationModel) {
+    addLog("Please select a transliteration model", "error");
+    return;
+  }
 
   // 3) Build payload
   const payload: {
@@ -268,25 +275,26 @@ export default function Inference() {
     action: string;
     instruction: string;
     language: string;
+    format: string;
     model?: string;
-    glossingModel?: string;
-    translationModel?: string;
   } = {
     mode,
     baseDir,
     action,
     instruction,
     language,
+    format
   };
 
   if (action === "translate") {
-    payload.translationModel = selectedTranslationModel || "Default";
-    addLog(`translation model: ${payload.translationModel}`, "info");
+    payload.model = selectedTranslationModel || "Default";
+    addLog(`translation model: ${payload.model}`, "info");
   } else if (action === "gloss") {
-    payload.glossingModel = selectedGlossingModel || "Default";
-    payload.translationModel = selectedTranslationModel || "Default";
-    addLog(`glossing model: ${payload.glossingModel}`, "info");
-    addLog(`translation model: ${payload.translationModel}`, "info");
+    payload.model = selectedGlossingModel || "Default";
+    addLog(`glossing model: ${payload.model}`, "info");;
+  } else if (action === "transliterate") {
+    payload.model = selectedTransliterationModel || "Default";
+    addLog(`transliteration model: ${payload.model}`, "info");
   }
 
   // 4) Submit
@@ -326,7 +334,6 @@ export default function Inference() {
         // Remove from appropriate model list
         if (modelType === "translation") {
           setAvailableModels(prev => prev.filter(m => m !== modelName));
-          setAvailableTranslationModels(prev => prev.filter(m => m !== modelName));
           // Reset to Default if deleted model was selected
           if (selectedTranslationModel === modelName) {
             setSelectedTranslationModel("Default");
@@ -481,7 +488,20 @@ export default function Inference() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`grid gap-4 ${action !== "transcribe" && action !== "create columns" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="format">Format</Label>
+                <Select value={format} onValueChange={(v) => setFormat(v as "labvanced" | "plain")}>
+                  <SelectTrigger id="format">
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="labvanced">Labvanced</SelectItem>
+                    <SelectItem value="plain">Plain</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="action">Action</Label>
                 <Select value={action || "transcribe"} onValueChange={setAction}>
@@ -498,7 +518,7 @@ export default function Inference() {
                 </Select>
               </div>
 
-              {action !== "transcribe" && action !== "create columns" && (
+              {format === "labvanced" && action !== "transcribe" && action !== "create columns" && (
                 <div className="space-y-2">
                   <Label htmlFor="instruction">Instruction</Label>
                   <Select value={instruction || "automatic"} onValueChange={setInstruction}>
@@ -526,24 +546,25 @@ export default function Inference() {
               />
             )}
 
-            {/* Model Selection for Glossing - Dual Models */}
+            {/* Model Selection for Transliteration */}
+            {action === "transliterate" && (
+              <ModelToggle
+                label="Choose Transliteration Model"
+                models={availableTransliterationModels}
+                selectedModel={selectedTransliterationModel}
+                onModelChange={setSelectedTransliterationModel}
+              />
+            )}
+
+            {/* Model Selection for Glossing */}
             {action === "gloss" && (
-              <div className="space-y-4">
-                <ModelToggle
-                  label="Choose Glossing Model"
-                  models={availableGlossingModels}
-                  selectedModel={selectedGlossingModel}
-                  onModelChange={setSelectedGlossingModel}
-                  onModelDelete={(model) => handleModelDelete(model, "glossing")}
-                />
-                <ModelToggle
-                  label="Choose Translation Model"
-                  models={availableTranslationModels}
-                  selectedModel={selectedTranslationModel}
-                  onModelChange={setSelectedTranslationModel}
-                  onModelDelete={(model) => handleModelDelete(model, "translation")}
-                />
-              </div>
+              <ModelToggle
+                label="Choose Glossing Model"
+                models={availableGlossingModels}
+                selectedModel={selectedGlossingModel}
+                onModelChange={setSelectedGlossingModel}
+                onModelDelete={(model) => handleModelDelete(model, "glossing")}
+              />
             )}
 
             <div className="space-y-2">

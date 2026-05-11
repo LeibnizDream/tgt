@@ -1,0 +1,105 @@
+"""
+Plain-format base processor.
+
+Provides file discovery and write conventions for the plain (non-Labvanced)
+pipeline.  Rather than structured experiment directories, plain processors work
+on flat folders of audio files and produce a single transcribed.xlsx per folder.
+"""
+import os
+
+import pandas as pd
+from inference.processors.example_store import ExampleStore
+from inference.processors.abstract_processor import AbstractProcessor
+from inference.strategies.strategy_factory import StrategyFactory
+
+_SOURCE_COLS = {
+    "translate": "transcription",
+    "gloss": "to_gloss",
+    "transliterate": "transcription"
+}
+
+_TARGET_COLS = {
+    "translate": ["translation"],
+    "gloss": ["glossing"],
+    "transliterate": ["transliteration"],
+}
+
+
+class PlainTextProcessor(AbstractProcessor):
+    """Base class for plain-format processors.
+
+    Discovers transcribed.xlsx files under a root directory and applies
+    the shared _process_dataframe skeleton for translation and glossing.
+    PlainTranscriber overrides _process_dataframe for its audio-file pattern.
+    """
+
+    def __init__(self, language, action, model=None):
+        super().__init__(language, action, model)
+        self.strategy = StrategyFactory.get_strategy(language, action, model)
+        self._example_store = ExampleStore()
+
+    def _find_files(self, base_dir: str) -> list[str]:
+        """Return all transcribed.xlsx files under base_dir."""
+        matches = []
+        for root, _, files in os.walk(base_dir):
+            for f in files:
+                if f.lower() == "transcribed.xlsx":
+                    matches.append(os.path.join(root, f))
+        self.logger.info(f"Found {len(matches)} matching files in {base_dir}")
+        return sorted(matches)
+
+    def _write_file(self, path: str, df: pd.DataFrame) -> None:
+        """Write df to the Excel file at path."""
+        df.to_excel(path, index=False)
+        self.logger.info(f"Wrote output to {path}")
+
+    def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Translate/gloss pending rows and write results to target columns."""
+        source_col = _SOURCE_COLS.get(self.action)
+        target_cols = _TARGET_COLS.get(self.action, [])
+
+        if not source_col or source_col not in df.columns:
+            self.logger.warning(f"Source column '{source_col}' not found, skipping.")
+            self._emit(f"[WARNING] Source column '{source_col}' not found in file, skipping.")
+            self.file_changed = False
+            return df
+
+        for col in target_cols:
+            if col not in df.columns:
+                df[col] = pd.NA
+            df[col] = df[col].astype(object)
+
+        target_col = target_cols[-1]
+        todo_items = []
+        for i in range(len(df)):
+            source = df.at[i, source_col]
+            target = df.at[i, target_col] if target_col in df.columns else None
+            if not isinstance(source, str) or not source.strip():
+                continue
+            if isinstance(target, str) and target.strip():
+                self._example_store.add(source, self.action, self.action, target)
+            else:
+                todo_items.append({"id": i, "text": source})
+
+        if not todo_items:
+            self.file_changed = False
+            return df
+
+        id_to_result = {}
+        if self.model in ["gemini", "qwen"]:
+            examples = self._example_store.get(self.action, self.action)
+            id_to_result = self.strategy.run_strategy(todo_items, examples)
+        else:
+            total = len(todo_items)
+            remaining = total
+            for todo in todo_items:
+                id_to_result[todo["id"]] = self.strategy.run_strategy(todo["text"])
+                remaining -= 1
+                if self._progress_callback:
+                    self._progress_callback(remaining, total)
+
+        for i, result in id_to_result.items():
+            for col in target_cols:
+                df.at[i, col] = result
+
+        return df
