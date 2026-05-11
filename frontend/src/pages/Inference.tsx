@@ -22,7 +22,6 @@ import { ModelToggle } from "@/components/ui/model-toggle";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Upload,
   Globe,
   FolderOpen,
   Play,
@@ -51,7 +50,6 @@ export default function Inference() {
   >([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [mode, setMode] = useState<"online" | "upload">("online");
   const [baseDir, setBaseDir] = useState("");
   const [action, setAction] = useState("transcribe");
   const [instruction, setInstruction] = useState("automatic");
@@ -94,7 +92,7 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
   useEffect(() => {
     handleLogout();
   }, []);
-  const { fileInputRef, submit } = useJobSubmission(
+  const { submit } = useJobSubmission(
     isProcessing,
     setIsProcessing,
     addLog,
@@ -239,15 +237,8 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
     addLog("Please enter a language", "error");
     return;
   }
-  if (mode === "online" && !baseDir.trim()) {
+  if (!baseDir.trim()) {
     addLog("Please enter base directory", "error");
-    return;
-  }
-  if (
-    mode === "upload" &&
-    (!fileInputRef.current?.files || fileInputRef.current.files.length === 0)
-  ) {
-    addLog("Please select files to upload", "error");
     return;
   }
 
@@ -270,7 +261,6 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
 
   // 3) Build payload
   const payload: {
-    mode: "online" | "upload";
     baseDir: string;
     action: string;
     instruction: string;
@@ -278,12 +268,11 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
     format: string;
     model?: string;
   } = {
-    mode,
     baseDir,
     action,
     instruction,
     language,
-    format
+    format,
   };
 
   if (action === "translate") {
@@ -412,67 +401,21 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <Button
-                variant={mode === "online" ? "default" : "outline"}
-                onClick={() => setMode("online")}
-                className="flex-1"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                OneDrive
-              </Button>
-              <Button
-                variant={mode === "upload" ? "default" : "outline"}
-                onClick={() => setMode("upload")}
-                className="flex-1"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Files
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="baseDir">OneDrive Directory Path</Label>
+              <Input
+                id="baseDir"
+                value={baseDir || ""}
+                onChange={(e) => setBaseDir(e.target.value)}
+                placeholder="e.g., /Documents/my-project"
+                disabled={!isConnected}
+              />
+              {!isConnected && (
+                <p className="text-sm text-red-600">
+                  Please connect to OneDrive first
+                </p>
+              )}
             </div>
-
-            {mode === "online" ? (
-              <div className="space-y-2">
-                <Label htmlFor="baseDir">OneDrive Directory Path</Label>
-                <Input
-                  id="baseDir"
-                  value={baseDir || ""}
-                  onChange={(e) => setBaseDir(e.target.value)}
-                  placeholder="e.g., /Documents/my-project"
-                  disabled={!isConnected}
-                />
-                {!isConnected && (
-                  <p className="text-sm text-red-600">
-                    Please connect to OneDrive first
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Label htmlFor="fileUpload" className="text-base font-medium">Select Files</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <Input
-                    ref={fileInputRef}
-                    id="fileUpload"
-                    type="file"
-                    multiple
-                    // @ts-ignore
-                    webkitdirectory=""
-                    directory=""
-                    className="h-16 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-base file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer"
-                  />
-                  <div className="mt-4 text-center">
-                    <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-base font-medium text-gray-700">
-                      Choose a folder to upload
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      All contents of the selected folder will be uploaded
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

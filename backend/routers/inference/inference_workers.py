@@ -1,22 +1,13 @@
-"""
-Concrete inference worker implementations for the TGT backend.
+“””
+Concrete inference worker implementation for the TGT backend.
 
-This module provides two :class:`~inference.worker.AbstractInferenceWorker`
-subclasses that handle different input sources:
-
-- :class:`ZipWorker`      – Processes a locally extracted ZIP archive and
-  bundles the output files into a new ZIP for download.
-- :class:`OneDriveWorker` – Downloads session folders from a OneDrive share,
-  processes them, and uploads the results back to OneDrive.
-
-Both classes are instantiated by the inference router and run in isolated
-worker processes so that CPU-intensive ML work does not block the event loop.
-"""
+:class:`OneDriveWorker` downloads session folders from a OneDrive share,
+processes them, and uploads the results back to OneDrive.
+“””
 import os
 import shutil
 import tempfile
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
 
 from inference.abstract_worker import AbstractInferenceWorker
 from routers.helpers.onedrive import (
@@ -24,62 +15,6 @@ from routers.helpers.onedrive import (
     list_session_children,
     upload_file_replace_in_onedrive,
 )
-
-
-class ZipWorker(AbstractInferenceWorker):
-    """
-    Inference worker that processes a locally extracted ZIP archive.
-
-    After the processor runs, the output files listed in
-    :attr:`ALLOWED_FILENAMES` are collected from the processed folder tree
-    and bundled into a new ZIP archive.  The archive path is reported via the
-    job queue so the SSE stream can relay it to the download endpoint.
-    """
-    # allow-list for files to include in the zip
-    ALLOWED_FILENAMES = {
-        "trials_and_sessions_annotated.xlsx",
-        "transcribed.xlsx",
-        "transcription.log",
-        "translation.log",
-    }
-
-    """
-    Processes a single local folder (or multiple if your base_dir contains
-    sub-folders named “Session_*”), then zips up only the output files you care
-    about and reports the zip path.
-    """
-    def _initial_message(self):
-        """Emit a start-up message before processing begins."""
-        self._put("Preparing to process and zip outputs…")
-    
-    def _folder_to_process(self):
-        """Yield the single base directory extracted from the uploaded ZIP."""
-        yield self.base_dir
-
-    def _after_process(self):
-        """
-        After processing each folder, walk the folder tree and zip
-        up only the files in ALLOWED_FILENAMES, preserving their
-        path relative to self.base_dir.
-        """
-        base_dir = Path(self.base_dir)
-        zip_path = Path(tempfile.gettempdir()) / f"{self.job_id}_output.zip"
-        
-        try:
-            self._put(f"Creating ZIP archive at {zip_path}")
-            with ZipFile(zip_path, "w", compression=ZIP_DEFLATED) as zf:
-                for file_path in Path(self.current_folder).rglob("*"):
-                    # only include files in our allow-list
-                    if file_path.name in self.ALLOWED_FILENAMES:
-                        # compute path inside zip relative to the base dir
-                        arcname = file_path.relative_to(base_dir)
-                        zf.write(file_path, arcname=arcname)
-                        print(f"Added to zip: {arcname}")
-            print(f"Created ZIP archive at {zip_path}")
-            self._put(f"[ZIP PATH] {zip_path}")
-        except Exception as e:
-            print(f"Failed to create ZIP for job {self.job_id}: {e}")
-            self._put(f"[ERROR] Could not bundle outputs: {e}")
 
 
 class OneDriveWorker(AbstractInferenceWorker):

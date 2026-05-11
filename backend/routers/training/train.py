@@ -13,12 +13,9 @@ Exposes the following REST endpoints under ``/api/train``:
 
 import asyncio
 import logging
-import tempfile
 from multiprocessing import Process
-from pathlib import Path
-from zipfile import ZipFile
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Body, Form, HTTPException, Request
 from routers.auth import get_fresh_token
 from routers.helpers.job_manager import JobManager
 from routers.training.train_workers import OneDriveWorker
@@ -43,40 +40,22 @@ async def process(
     study: str | None = Form(None),
     action: str = Form(...),
     language: str = Form(...),
-    zipfile: UploadFile | None = File(None),
 ):
-    """
-    Create and start a training job.
-
-    Accepts data either as an uploaded ZIP file or as a OneDrive share link
-    (*base_dir*).  Returns the ``job_id`` that the client should use to
-    stream progress via ``GET /{job_id}/stream``.
-    """
+    """Create and start a training job from OneDrive. Returns the job_id."""
     job = JobManager.create()
 
     if not language:
         job.queue.put("[ERROR] Missing language")
         return {"job_id": job.id}
 
-    if zipfile:
-        tmp_dir = tempfile.mkdtemp()
-        archive_path = Path(tmp_dir) / "upload.zip"
-        contents = await zipfile.read()
-        archive_path.write_bytes(contents)
-        with ZipFile(archive_path, 'r') as archive:
-            archive.extractall(tmp_dir)
-        archive_path.unlink()
-
-        #TODO: Handle the case where multiple files are uploaded
-    else:
-        if not base_dir:
-            raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
-        try:
-            access_token = get_fresh_token()
-        except RuntimeError as e:
-            raise HTTPException(status_code=401, detail=str(e))
-        job.token = access_token
-        worker_fn = OneDriveWorker(base_dir, language, action, study, access_token, job)
+    if not base_dir:
+        raise HTTPException(status_code=400, detail="Missing base_dir")
+    try:
+        access_token = get_fresh_token()
+    except RuntimeError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    job.token = access_token
+    worker_fn = OneDriveWorker(base_dir, language, action, study, access_token, job)
 
     job.process = await run_worker(worker_fn.run)
     return {"job_id": job.id}

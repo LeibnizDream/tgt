@@ -22,7 +22,6 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Globe,
-  Upload,
   FolderOpen,
   Play,
   X,
@@ -50,7 +49,6 @@ export default function Train() {
   >([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
-  const [mode, setMode] = useState<"online" | "upload">("online");
   const [directoryPath, setDirectoryPath] = useState("");
   const [trainAction, setTrainAction] = useState<"gloss" | "translate">(
     "gloss",
@@ -81,7 +79,7 @@ export default function Train() {
     handleLogout();
   }, []);
 
-  const { fileInputRef, submit } = useTrainSubmission(
+  const { submit } = useTrainSubmission(
     isTraining,
     setIsTraining,
     addLog,
@@ -94,26 +92,13 @@ export default function Train() {
     if (!language.trim()) return addLog("Please enter a language", "error");
     if (!study.trim()) return addLog("Please enter a study", "error");
 
-    if (mode === "online") {
-      if (!directoryPath.trim())
-        return addLog("Please enter OneDrive directory path", "error");
-      if (!isConnected)
-        return addLog("Please connect to OneDrive first", "error");
-    } else {
-      if (
-        !fileInputRef.current?.files ||
-        fileInputRef.current.files.length === 0
-      ) {
-        return addLog("Please select files to upload", "error");
-      }
-    }
+    if (!directoryPath.trim())
+      return addLog("Please enter OneDrive directory path", "error");
+    if (!isConnected)
+      return addLog("Please connect to OneDrive first", "error");
 
     addLog("Starting training job...", "info");
-    
-    // Only set training state after all validations pass
-    // The submit function will handle setting/resetting the processing state
     await submit({
-      mode,
       baseDir: directoryPath,
       action: trainAction,
       study,

@@ -22,11 +22,9 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Body,
-    File,
     Form,
     HTTPException,
     Request,
-    UploadFile,
     status,
 )
 from fastapi.responses import FileResponse
@@ -48,14 +46,10 @@ async def process(
     model: str | None = Form(None),
     instruction: str | None = Form(None),
     format: str | None = Form(None),
-    zipfile: UploadFile | None = File(None),
     base_dir: str | None = Form(None),
 ):
-    """Process files either from uploaded zip or OneDrive."""
+    """Process files from OneDrive."""
     job = JobManager.create()
-
-    print("hello I am receiving this model ", model)
-    print("after normalization ", ProcessingService.normalize_model_name(model))
 
     options = ProcessingOptions(
         language=language,
@@ -72,25 +66,18 @@ async def process(
         return {"job_id": job.id}
 
     try:
-        if zipfile:
-            tmp_dir = await ProcessingService.extract_zipfile(zipfile)
-            worker = ProcessingService.create_zip_worker(tmp_dir, options, job)
-            job.base_dir = tmp_dir
-        else:
-            if not base_dir:
-                raise HTTPException(status_code=400, detail="Missing base_dir for online processing")
-            try:
-                access_token = get_fresh_token()
-            except RuntimeError as e:
-                raise HTTPException(status_code=401, detail=str(e))
-            job.token = access_token
+        if not base_dir:
+            raise HTTPException(status_code=400, detail="Missing base_dir")
+        try:
+            access_token = get_fresh_token()
+        except RuntimeError as e:
+            raise HTTPException(status_code=401, detail=str(e))
+        job.token = access_token
 
-            worker = ProcessingService.create_onedrive_worker(base_dir, options, access_token, job)
-
-        # Start worker process
+        worker = ProcessingService.create_onedrive_worker(base_dir, options, access_token, job)
         job.process = await ProcessingService.create_worker_process(worker.run)
         return {"job_id": job.id}
-        
+
     except HTTPException:
         raise
     except Exception as e:

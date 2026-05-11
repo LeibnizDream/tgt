@@ -17,14 +17,12 @@ training routers:
 import logging
 import os
 import shutil
-import tempfile
 import uuid
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from zipfile import ZipFile
 
-from fastapi import APIRouter, HTTPException, UploadFile
-from routers.inference.inference_workers import OneDriveWorker, ZipWorker
+from fastapi import APIRouter, HTTPException
+from routers.inference.inference_workers import OneDriveWorker
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -88,45 +86,18 @@ class JobManager:
 
 class ProcessingService:
     """Service class to handle processing logic."""
-    
+
     @staticmethod
     async def create_worker_process(process_fn) -> Process:
         """Create and start a worker process."""
         proc = Process(target=process_fn, daemon=True)
         proc.start()
         return proc
-    
+
     @staticmethod
     def normalize_model_name(model: str | None) -> str | None:
         """Normalize model name, converting 'Default' to None."""
         return None if model == DEFAULT_MODEL else model
-    
-    @staticmethod
-    async def extract_zipfile(zipfile: UploadFile) -> str:
-        """Extract uploaded zip file to temporary directory."""
-        tmp_dir = tempfile.mkdtemp()
-        archive_path = Path(tmp_dir) / "upload.zip"
-        
-        try:
-            contents = await zipfile.read()
-            archive_path.write_bytes(contents)
-            
-            with ZipFile(archive_path, 'r') as archive:
-                archive.extractall(tmp_dir)
-            
-            archive_path.unlink()
-            return tmp_dir
-            
-        except Exception as e:
-            # Cleanup on failure
-            if archive_path.exists():
-                archive_path.unlink()
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-            raise HTTPException(status_code=400, detail=f"Failed to extract zip file: {str(e)}")
-    
-    @staticmethod
-    def create_zip_worker(tmp_dir: str, options, job) -> ZipWorker:
-        return ZipWorker(tmp_dir, options, job)
 
     @staticmethod
     def create_onedrive_worker(base_dir: str, options, access_token: str, job) -> OneDriveWorker:
