@@ -237,5 +237,4 @@ class LLMStrategy(AbstractStrategy):
             file=sys.stderr,
         )
         if done_reason == "length":
-            print("[DEBUG] WARNING: output cut off — num_predict limit reached", file=sys.stderr)
-        print(f"[DEBUG] raw ollama content: {content}", file=sys.stderr)
+            raise ValueError("[DEBUG] WARNING: output cut off — num_predict limit reached", file=sys.stderr)
