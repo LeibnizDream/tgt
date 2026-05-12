@@ -10,7 +10,9 @@ Routers:
     - ``/api/inference`` – Data processing (transcription, translation, glossing, etc.)
     - ``/api/train``     – Model training pipeline
 """
+
 from pathlib import Path
+
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse

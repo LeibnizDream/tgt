@@ -2,6 +2,7 @@ import os
 import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
+import sys
 from huggingface_hub import login
 
 from dotenv import load_dotenv
@@ -9,6 +10,10 @@ from inference.processing_options import ProcessingOptions
 from inference.processors.processor_factory import ProcessorFactory
 from routers.helpers.job_manager import JobPublisher
 from utils.functions import find_language, set_global_variables
+
+# torchcodec requires FFmpeg shared DLLs which are not available;
+# marking it absent so torchaudio/transformers fall back to other loaders.
+sys.modules["torchcodec"] = None  # type: ignore[assignment]
 
 _SECRETS = Path(__file__).resolve().parent.parent / "materials" / "secrets.env"
 REQUIRED_ENV_KEYS = [

@@ -67,33 +67,10 @@ export function useStreamer(
       if (msg.type === "done") {
         doneRef.current = true;
         addLog("Workflow completed successfully!", "success");
-        if (prefix === "inference") {
-          const downloadUrl = `/api/${prefix}/${jobId}/download`;
-          try {
-            const res = await fetch(downloadUrl);
-            if (!res.ok) throw new Error(`No ZIP (status ${res.status})`);
-
-            const blob = await res.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = blobUrl;
-            a.download = `${jobId}_results.zip`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(blobUrl);
-
-            addLog("Download started…", "info");
-          } catch {
-            addLog("No files to download.");
-          } finally {
-            finish();
-          }
-        } else {
+        if (prefix === "train") {
           addLog("Model saved in models!", "success");
-          finish();
         }
+        finish();
         return;
       }
 
