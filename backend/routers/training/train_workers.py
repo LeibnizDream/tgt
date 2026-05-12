@@ -44,8 +44,8 @@ class OneDriveWorker(AbstractTrainingWorker):
         job: Optional :class:`~routers.helpers.job_manager.Job` object for
             queue-based messaging.
     """
-    def __init__(self, base_dir, language, action, study, token, job):
-        super().__init__(base_dir, language, action, study, job)
+    def __init__(self, base_dir, language, action, study, token, publisher):
+        super().__init__(base_dir, language, action, study, publisher)
         self.share_link = base_dir
         self.token = token
         self.sessions_meta = []
@@ -69,11 +69,11 @@ class OneDriveWorker(AbstractTrainingWorker):
             self.root_drive_id = self.item["parentReference"]["driveId"]
             self.root_parent_folder_id = self.item["id"]
         except Exception as e:
-            self._put(f"Failed to fetch metadata for share link {self.share_link}: {e}")
+            self.inform(f"Failed to fetch metadata for share link {self.share_link}: {e}")
             raise ValueError(f"Failed to fetch metadata for share link {self.share_link}: {e}")
 
     def _initial_message(self):
-        self._put("Checking for sessions on OneDrive…")
+        self.inform("Checking for sessions on OneDrive…")
         # Use the shared helper so all paths are consistent
         self._ensure_metadata()
 
@@ -82,12 +82,12 @@ class OneDriveWorker(AbstractTrainingWorker):
         Download all session folders under the SharePoint link and return
         the root directory containing downloaded sessions.
         """
-        self._put(f"[INFO] Temporary root directory: {self.temp_root}")
+        self.inform(f"[INFO] Temporary root directory: {self.temp_root}")
         entries = list_session_children(self.share_link, self.token)
 
         for entry in entries:
             name = entry.get("name", "root")
-            self._put(f"[INFO] Downloading session '{name}'")
+            self.inform(f"[INFO] Downloading session '{name}'")
 
             session_dir = self.temp_root / name
             session_dir.mkdir(parents=True, exist_ok=True)
@@ -100,7 +100,7 @@ class OneDriveWorker(AbstractTrainingWorker):
                     file_suffix=["annotated.xlsx"],
                 )
             except Exception as e:
-                self._put(f"[WARNING] Download failed for '{name}': {e}")
+                self.inform(f"[WARNING] Download failed for '{name}': {e}")
                 logger.exception("Download error for session %s", name)
                 continue
 
@@ -116,12 +116,12 @@ class OneDriveWorker(AbstractTrainingWorker):
             # _put already messaged the failure in _ensure_metadata
             # proceed to cleanup to avoid leaving temp dirs behind
             self._tempdir_obj.cleanup()
-            self._put(f"[INFO] Deleted temporary directory {self.temp_root}")
+            self.inform(f"[INFO] Deleted temporary directory {self.temp_root}")
             return
 
         log_file = self.temp_root / f"{self.preprocessor.__class__.__name__}.log"
         if not log_file.exists():
-            self._put(f"[WARNING] Log file {log_file} not found, skipping upload")
+            self.inform(f"[WARNING] Log file {log_file} not found, skipping upload")
         else:
             try:
                 upload_file_replace_in_onedrive(
@@ -131,13 +131,13 @@ class OneDriveWorker(AbstractTrainingWorker):
                     file_name_in_folder=log_file.name,
                     access_token=self.token
                 )
-                self._put(f"[INFO] Uploaded '{log_file.name}'")
+                self.inform(f"[INFO] Uploaded '{log_file.name}'")
             except Exception as e:
-                self._put(f"[WARNING] Upload failed for '{log_file.name}': {e}")
+                self.inform(f"[WARNING] Upload failed for '{log_file.name}': {e}")
                 logger.exception("Upload error for %s", log_file)
 
         self._tempdir_obj.cleanup()
-        self._put(f"[INFO] Deleted temporary directory {self.temp_root}")
+        self.inform(f"[INFO] Deleted temporary directory {self.temp_root}")
     
     def _after_train(self):
         return super()._after_train()

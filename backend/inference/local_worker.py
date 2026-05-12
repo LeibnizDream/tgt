@@ -14,13 +14,13 @@ class LocalWorker(AbstractInferenceWorker):
         """
         Print or queue the initial job start message.
         """
-        self._put(f"Starting job {self.job_id} – action: {self.options.action}")
+        self.inform(f"Starting action: {self.options.action}")
 
     def _after_process(self) -> None:
         """
         Print or queue a message after processing a folder.
         """
-        self._put(f"Processed folder {self.current_folder} for job {self.job_id}")
+        self.inform(f"Processed folder {self.current_folder}")
 
 
 def main() -> None:

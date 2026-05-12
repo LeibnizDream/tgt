@@ -63,10 +63,10 @@ class AbstractProcessor(ABC):
 
         logging.captureWarnings(True)
 
-    def _emit(self, msg: str) -> None:
+    def _emit(self, msg: str, level: str = "info") -> None:
         if self._put_callback:
-            self._put_callback(msg)
-        self.logger.info(msg)
+            self._put_callback(msg, level)
+        self.logger.log(getattr(logging, level.upper(), logging.INFO), msg)
 
     def _attach_session_handler(self, session_path: str) -> logging.FileHandler:
         """Attach file and rich console handlers for one processing session."""
@@ -138,11 +138,11 @@ class AbstractProcessor(ABC):
 
                 except FileNotFoundError as e:
                     self.logger.warning("[yellow]Skipping missing file:[/yellow] %s", e)
-                    self._emit(f"[WARNING] Skipping missing file: {e}")
+                    self._emit(f"Skipping missing file: {e}", level="warning")
 
                 except Exception as e:
                     self.logger.exception("[bold red]Failed processing file[/bold red] %s", file)
-                    self._emit(f"[WARNING] Failed processing file {os.path.basename(file)}: {e}")
+                    self._emit(f"Failed processing file {os.path.basename(file)}: {e}", level="warning")
 
         finally:
             self.logger.info("[bold green]Finished session[/bold green] %s", folder)

@@ -5,7 +5,6 @@ Concrete inference worker implementation for the TGT backend.
 processes them, and uploads the results back to OneDrive.
 """
 import os
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -22,21 +21,21 @@ class OneDriveWorker(AbstractInferenceWorker):
     Downloads every session folder from a OneDrive share, processes them,
     then uploads the outputs back to OneDrive and cleans up.
     """
-    def __init__(self, base_dir, options, token, job):
-        super().__init__(base_dir, options, job)
+    def __init__(self, base_dir, options, token, publisher):
+        super().__init__(base_dir, options, publisher)
         self.share_link = base_dir
         self.token = token
         self.sessions_meta = []
         self.current_info = {}
 
     def _initial_message(self):
-        self._put("Checking for folders on OneDrive…")
+        self.inform("Checking for folders on OneDrive…")
         name_filter = "Session_" if self.options.format == "labvanced" else None
         self.sessions_meta = list_session_children(self.share_link, self.token, name_filter=name_filter)
 
         if not self.sessions_meta:
             self.sessions_meta = [{"webUrl": self.share_link}]
-        self._put(f"Found {len(self.sessions_meta)} folder(s).")
+        self.inform(f"Found {len(self.sessions_meta)} folder(s).")
 
     def _folder_to_process(self):
         for meta in self.sessions_meta:
@@ -44,36 +43,36 @@ class OneDriveWorker(AbstractInferenceWorker):
                 break
 
             link = meta.get("webUrl")
-            self._put("Downloading from OneDrive…")
-            self._tempdir_obj = tempfile.TemporaryDirectory(prefix=f"{self.job_id}_")
-            self.temp_root = Path(self._tempdir_obj.name)
+            self.inform("Downloading from OneDrive…")
 
-            try:
-                self.current_folder, drive_id, _, sess_map = download_sharepoint_folder(
-                    share_link=link,
-                    temp_dir=str(self.temp_root),
-                    access_token=self.token,
-                )
-            except Exception as e:
-                self._put(f"Failed to download session: {e}. Skipping.")
-                shutil.rmtree(self.temp_root, ignore_errors=True)
-                continue
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self.temp_root = Path(tmpdir)
 
-            # Determine the session directory on disk
-            name = meta.get("name") or next(iter(sess_map.keys()), Path(self.current_folder).name)
-            session_path = os.path.join(self.current_folder, name)
-            if os.path.isdir(session_path):
-                self.current_folder = session_path
-            else:
-                self._put(f"Warning: expected session folder '{name}' not found; using {self.current_folder}")
+                try:
+                    self.current_folder, drive_id, _, sess_map = download_sharepoint_folder(
+                        share_link=link,
+                        temp_dir=str(self.temp_root),
+                        access_token=self.token,
+                    )
+                except Exception as e:
+                    self.inform(f"Failed to download session: {e}. Skipping.")
+                    continue
 
-            self.current_info = {
-                "drive_id": drive_id,
-                "sess_map": sess_map,
-                "session_name": name,
-            }
+                name = meta.get("name") or next(iter(sess_map.keys()), Path(self.current_folder).name)
+                session_path = os.path.join(self.current_folder, name)
+                if os.path.isdir(session_path):
+                    self.current_folder = session_path
+                else:
+                    self.inform(f"Warning: expected session folder '{name}' not found; using {self.current_folder}")
 
-            yield self.current_folder
+                self.current_info = {
+                    "drive_id": drive_id,
+                    "sess_map": sess_map,
+                    "session_name": name,
+                }
+
+                yield self.current_folder
+                # _after_process runs before reaching here; temp_root is cleaned up when with exits
 
     def _after_process(self):
         name = self.current_info["session_name"]
@@ -81,16 +80,14 @@ class OneDriveWorker(AbstractInferenceWorker):
         sess_map = self.current_info["sess_map"]
         parent_id = sess_map.get(name, "")
 
-        files_to_upload = self._collect_output_files()
-
-        for local_fp in files_to_upload:
+        for local_fp in self._collect_output_files():
             if self.cancel.is_set():
-                self._put("[CANCELLED UPLOAD]")
+                self.inform("[CANCELLED UPLOAD]")
                 break
             if not os.path.exists(local_fp):
                 continue
             fname = os.path.basename(local_fp)
-            self._put(f"Uploading '{fname}' for session '{name}'")
+            self.inform(f"Uploading '{fname}' for session '{name}'")
             upload_file_replace_in_onedrive(
                 local_file_path=local_fp,
                 target_drive_id=drive_id,
@@ -99,11 +96,7 @@ class OneDriveWorker(AbstractInferenceWorker):
                 access_token=self.token,
             )
 
-        shutil.rmtree(self.temp_root, ignore_errors=True)
-        self._put(f"[DONE UPLOADED] {name}")
-
-        self._tempdir_obj.cleanup()
-        self._put(f"[INFO] Deleted temporary directory {self.temp_root}")
+        self.inform(f"[DONE UPLOADED] {name}")
 
     def _collect_output_files(self) -> list[str]:
         """Return local paths of all output files that should be uploaded."""

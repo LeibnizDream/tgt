@@ -9,16 +9,15 @@ Inference API router for the TGT backend.
 - ``DELETE /models/{task}/{model}``  – Delete a custom model directory.
 """
 import asyncio
+import json
 import logging
-import os
 import shutil
 from multiprocessing import Process
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Form, HTTPException, Request, status
-from fastapi.responses import FileResponse
 from inference.processing_options import ProcessingOptions
-from routers.inference.inference_workers import OneDriveWorker
+from routers.inference.onedrive_worker import OneDriveWorker
 from routers.auth import get_fresh_token
 from routers.helpers.job_manager import JobManager, normalize_model_name
 from sse_starlette.sse import EventSourceResponse
@@ -32,15 +31,14 @@ MODELS_BASE = Path(__file__).resolve().parent.parent.parent / "models"
 @router.post("/process")
 async def process(
     request: Request,
+    base_dir: str = Form(...),
     action: str = Form(...),
     language: str = Form(...),
     model: str | None = Form(None),
     instruction: str | None = Form(None),
     format: str | None = Form(None),
-    base_dir: str | None = Form(None),
 ):
     """Process files from OneDrive."""
-    job = JobManager.create()
 
     options = ProcessingOptions(
         language=language,
@@ -50,32 +48,23 @@ async def process(
         model=normalize_model_name(model),
     )
 
-    logger.info(f"Processing job {job.id} - action {action}, format {format}, model: {options.model}")
-
-    if not language:
-        job.queue.put("[ERROR] Missing language")
-        return {"job_id": job.id}
-
     try:
-        if not base_dir:
-            raise HTTPException(status_code=400, detail="Missing base_dir")
-        try:
-            access_token = get_fresh_token()
-        except RuntimeError as e:
-            raise HTTPException(status_code=401, detail=str(e))
+        access_token = get_fresh_token()
+        job = JobManager.create()
         job.token = access_token
 
-        worker = OneDriveWorker(base_dir, options, access_token, job)
-        proc = Process(target=worker.run, daemon=True)
-        proc.start()
-        job.process = proc
+
+        worker = OneDriveWorker(base_dir, options, access_token, job.publisher)
+        process = Process(target=worker.run, daemon=True)
+        process.start()
+        job.process = process
+
         return {"job_id": job.id}
 
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Failed to create worker for job {job.id}: {e}")
-        job.queue.put(f"[ERROR] Failed to initialize processing: {str(e)}")
+        job.publisher.inform(f"Failed to initialize processing: {str(e)}", level="error")
+        job.publisher.done()
         return {"job_id": job.id}
 
 
@@ -86,37 +75,22 @@ async def stream(job_id: str):
 
     async def event_generator():
         loop = asyncio.get_event_loop()
-        while True:
-            try:
-                message = await loop.run_in_executor(None, job.queue.get)
-                if isinstance(message, str) and message.startswith("[ZIP PATH] "):
-                    job.zip_path = message.replace("[ZIP PATH] ", "").strip()
+        try:
+            while True:
+                msg = await loop.run_in_executor(None, job.publisher.get_message)
+                if isinstance(msg, dict) and msg.get("type") == "zip_path":
+                    job.zip_path = msg["path"]
                     continue
-                yield {"data": message}
-                if message == "[DONE ALL]":
+                yield {"data": json.dumps(msg)}
+                if isinstance(msg, dict) and msg.get("type") in ("done", "cancelled", "error"):
                     break
-            except Exception as e:
-                logger.error(f"Error in event generator for job {job_id}: {e}")
-                yield {"data": f"[ERROR] Stream error: {str(e)}"}
-                break
+        except Exception as e:
+            logger.error(f"Error in event generator for job {job_id}: {e}")
+            yield {"data": json.dumps({"type": "error", "message": f"Stream error: {str(e)}"})}
+        finally:
+            JobManager.remove(job_id)
 
     return EventSourceResponse(event_generator())
-
-
-@router.get("/{job_id}/download")
-async def download(job_id: str):
-    """Download processed results as zip file."""
-    job = JobManager.get(job_id)
-
-    if not job.zip_path or not os.path.exists(job.zip_path):
-        raise HTTPException(status_code=404, detail="Results not ready")
-
-    JobManager.remove(job_id)
-    return FileResponse(
-        path=job.zip_path,
-        media_type="application/zip",
-        filename=f"{job_id}_results.zip",
-    )
 
 
 @router.post("/cancel")
@@ -129,8 +103,8 @@ async def cancel(payload: dict = Body(...)):
     job = JobManager.get(job_id)
 
     try:
-        job.queue.put("[CANCELLED]")
-        job.queue.put("[DONE ALL]")
+        job.cancel_event.set()  # signal worker to stop gracefully
+        job.publisher.cancelled()  # fallback if process is killed before finally runs
         if job.process and job.process.is_alive():
             job.process.terminate()
             job.process.join(timeout=5)

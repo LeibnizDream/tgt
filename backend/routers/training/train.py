@@ -6,6 +6,7 @@ Training API router for the TGT backend.
 - ``POST /cancel``         – Signal a running training job to stop.
 """
 import asyncio
+import json
 import logging
 from multiprocessing import Process
 
@@ -31,7 +32,7 @@ async def process(
     job = JobManager.create()
 
     if not language:
-        job.queue.put("[ERROR] Missing language")
+        job.publisher.inform("Missing language", level="error")
         return {"job_id": job.id}
 
     if not base_dir:
@@ -42,7 +43,7 @@ async def process(
         raise HTTPException(status_code=401, detail=str(e))
 
     job.token = access_token
-    worker = OneDriveWorker(base_dir, language, action, study, access_token, job)
+    worker = OneDriveWorker(base_dir, language, action, study, access_token, job.publisher)
     proc = Process(target=worker.run, daemon=True)
     proc.start()
     job.process = proc
@@ -51,21 +52,22 @@ async def process(
 
 @router.get("/{job_id}/stream")
 async def stream(job_id: str):
-    """Stream training progress as Server-Sent Events until ``[DONE ALL]`` is received."""
+    """Stream training progress as Server-Sent Events until done."""
     job = JobManager.get(job_id)
 
     async def event_generator():
         loop = asyncio.get_event_loop()
-        while True:
-            try:
-                message = await loop.run_in_executor(None, job.queue.get)
-                yield {"data": message}
-                if message == "[DONE ALL]":
+        try:
+            while True:
+                msg = await loop.run_in_executor(None, job.publisher.get_message)
+                yield {"data": json.dumps(msg)}
+                if isinstance(msg, dict) and msg.get("type") in ("done", "cancelled", "error"):
                     break
-            except Exception as e:
-                logger.error(f"Error in event generator for job {job_id}: {e}")
-                yield {"data": f"[ERROR] Stream error: {str(e)}"}
-                break
+        except Exception as e:
+            logger.error(f"Error in event generator for job {job_id}: {e}")
+            yield {"data": json.dumps({"type": "error", "message": f"Stream error: {str(e)}"})}
+        finally:
+            JobManager.remove(job_id)
 
     return EventSourceResponse(event_generator())
 
@@ -77,8 +79,8 @@ async def cancel(payload: dict = Body(...)):
     if not job_id:
         raise HTTPException(status_code=400, detail="Missing job_id")
     job = JobManager.get(job_id)
-    job.queue.put("[CANCELLED]")
-    job.queue.put("[DONE ALL]")
+    job.cancel_event.set()
+    job.publisher.cancelled()  # fallback if process is killed before finally runs
     if job.process and job.process.is_alive():
         job.process.terminate()
     JobManager.remove(job_id)

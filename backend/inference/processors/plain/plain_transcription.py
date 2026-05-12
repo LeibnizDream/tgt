@@ -32,7 +32,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
                 out_path = os.path.join(root, "transcribed.xlsx")
 
                 if os.path.exists(out_path):
-                    self._emit(f"[WARNING] Output already exists at {out_path}, skipping transcription for this folder.")
+                    self._emit(f"Output already exists , skipping transcription for this folder.", level="error")
                     self.logger.warning(f"[bold red]Skipping existing output: {out_path}")
                     continue
 
@@ -80,7 +80,7 @@ class PlainTranscriptionProcessor(AbstractProcessor):
                 df.at[i, "transcription"] = text
             except Exception as e:
                 self.logger.exception(f"Error transcribing '{row['file_name']}': {e}")
-                self._emit(f"[WARNING] Error transcribing '{row['file_name']}': {e}")
+                self._emit(f"Error transcribing '{row['file_name']}'", level="warning")
             if progress_cb:
                 progress_cb(i + 1, total)
 

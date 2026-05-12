@@ -39,65 +39,72 @@ export function useStreamer(
     };
 
     evt.onmessage = async (e) => {
-    const data = e.data;
-    if (data === "[PING]") return;
+      let msg: { type: string; message?: string; current?: number; total?: number };
+      try {
+        msg = JSON.parse(e.data);
+      } catch {
+        addLog(e.data, "info");
+        return;
+      }
 
-    if (data.startsWith("[PROGRESS]")) {
-      const [cur, tot] = data.replace("[PROGRESS]", "").trim().split("/").map(Number);
-      setProgress?.(cur, tot);
-      return;
-    }
+      if (msg.type === "ping") return;
 
-    if (data.includes("[ERROR]")) {
-      addLog(data, "error");
-      return finish();
-    }
+      if (msg.type === "progress") {
+        setProgress?.(msg.current ?? 0, msg.total ?? 0);
+        return;
+      }
 
-    if (data.includes("[WARNING]")) {
-      addLog(data, "warning");
-      return;
-    }
+      if (msg.type === "error") {
+        addLog(msg.message ?? "Unknown error", "error");
+        return finish();
+      }
 
-    if (data === "[DONE ALL]") {
-      doneRef.current = true;
-      addLog("Workflow completed successfully!", "success");
-      if (prefix === "inference") {
-        const downloadUrl = `/api/${prefix}/${jobId}/download`;
-        try {
-          // try to GET the zip; if it 404s, this'll go to catch
-          const res = await fetch(downloadUrl);
-          if (!res.ok) throw new Error(`No ZIP (status ${res.status})`);
+      if (msg.type === "cancelled") {
+        addLog("Job cancelled.", "warning");
+        return finish();
+      }
 
-          // pull it down as a blob…
-          const blob = await res.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
+      if (msg.type === "done") {
+        doneRef.current = true;
+        addLog("Workflow completed successfully!", "success");
+        if (prefix === "inference") {
+          const downloadUrl = `/api/${prefix}/${jobId}/download`;
+          try {
+            const res = await fetch(downloadUrl);
+            if (!res.ok) throw new Error(`No ZIP (status ${res.status})`);
 
-          // …and trigger the download
-          const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = `${jobId}_results.zip`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(blobUrl);
+            const blob = await res.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
 
-          addLog("Download started…", "info");
-        } catch (err) {
-          // either a 404 or network error → no files to download
-          addLog("No files to download.");
-        } finally {
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = `${jobId}_results.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+
+            addLog("Download started…", "info");
+          } catch {
+            addLog("No files to download.");
+          } finally {
+            finish();
+          }
+        } else {
+          addLog("Model saved in models!", "success");
           finish();
         }
-      } else {
-        addLog("Model saved in models!", "success");
-        finish();
+        return;
       }
-    } else {
-      addLog(data, "info");
-    }
-  };
 
-  }; // ← **this** closes the open() function
+      if (msg.type === "warning") {
+        addLog(msg.message ?? "", "warning");
+        return;
+      }
+
+      addLog(msg.message ?? "", "info");
+    };
+  };
 
   const cancel = () => {
     const jobId = localStorage.getItem(JOB_KEY);

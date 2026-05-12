@@ -9,8 +9,8 @@ class TrainingWorker(AbstractTrainingWorker):
 
     Implements abstract methods for local usage context.
     """
-    def __init__(self, base_dir, language, action, study, job=None):
-        super().__init__(base_dir, language, action, study, job)
+    def __init__(self, base_dir, language, action, study, publisher=None):
+        super().__init__(base_dir, language, action, study, publisher)
 
     def _initial_message(self):
         return f"Initializing local training worker for {self.language}"
@@ -20,10 +20,10 @@ class TrainingWorker(AbstractTrainingWorker):
         return self.base_dir
 
     def _after_preprocess(self):
-        self._put(f"Local preprocessing completed for job {self.job_id} – action: {self.action}")
+        self.inform(f"Local preprocessing completed for job {self.job_id} – action: {self.action}")
 
     def _after_train(self):
-        self._put(f"Local training completed for job {self.job_id} – action: {self.action}")
+        self.inform(f"Local training completed for job {self.job_id} – action: {self.action}")
 
 
 def main():

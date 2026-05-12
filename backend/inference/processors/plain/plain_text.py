@@ -60,7 +60,7 @@ class PlainTextProcessor(AbstractProcessor):
 
         if not source_col or source_col not in df.columns:
             self.logger.warning(f"Source column '{source_col}' not found, skipping.")
-            self._emit(f"[WARNING] Source column '{source_col}' not found in file, skipping.")
+            self._emit(f"Source column '{source_col}' not found in file, skipping.", level="warning")
             self.file_changed = False
             return df
 
