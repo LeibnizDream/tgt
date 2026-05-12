@@ -123,10 +123,10 @@ class LabvancedTextProcessor(AbstractProcessor):
             id_to_result = self.strategy.run_strategy(todo_items, examples)
         else:
             total = len(todo_items)
-            remaining = total
+            remaining = 0
             for todo in todo_items:
                 id_to_result[todo["id"]] = self.strategy.run_strategy(todo["text"])
-                remaining -= 1
+                remaining += 1
                 if self._progress_callback:
                     self._progress_callback(remaining, total)
 
