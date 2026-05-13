@@ -49,21 +49,33 @@ AUTH_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 GRAPH     = "https://graph.microsoft.com/v1.0"
 
-CACHE_FILE = Path(__file__).parent.parent / "materials" / "token_cache.json"
+CACHE_DIR = Path(__file__).parent.parent / "materials" / "token_cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-def _save_cache(cache: msal.SerializableTokenCache):
-    """Persist the MSAL token cache to ``materials/token_cache.json`` if it changed."""
-    print("Saving token cache to", CACHE_FILE)
+def _get_cache_path(user_id: str) -> Path:
+    return CACHE_DIR / f"token_cache_{user_id}.json"
+
+def _save_cache(user_id: str, cache: msal.SerializableTokenCache):
+    """
+    Persist the MSAL token cache to a user-specific cache file
+    if the cache state has changed.
+    """
+    cache_path = _get_cache_path(user_id)
+    print("Saving token cache to", cache_path)
     if cache.has_state_changed:
-        with open(CACHE_FILE, "w") as f:
+        with open(cache_path, "w") as f:
             f.write(cache.serialize())
 
-def _load_cache() -> msal.SerializableTokenCache:
-    """Load and deserialize the MSAL token cache from disk, or return an empty cache."""
-    print("Loading token cache from", CACHE_FILE)
+def _load_cache(user_id: str) -> msal.SerializableTokenCache:
+    """
+    Load and deserialize the MSAL token cache from disk,
+    or return an empty cache for specific user id.
+    """
     cache = msal.SerializableTokenCache()
-    if CACHE_FILE.exists():
-        with open(CACHE_FILE) as f:
+    cache_path = _get_cache_path(user_id)
+    print("Loading token cache from", cache_path)
+    if cache_path.exists():
+        with open(cache_path) as f:
             cache.deserialize(f.read())
     return cache
 
@@ -76,9 +88,9 @@ def _build_msal_app(cache=None):
         token_cache=cache
     )
 
-def get_fresh_token() -> str:
+def get_fresh_token(user_id:str) -> str:
     """Get a valid access token from the MSAL cache, refreshing silently if needed."""
-    cache = _load_cache()
+    cache = _load_cache(user_id)
     app = _build_msal_app(cache)
     accounts = app.get_accounts()
     if not accounts:
@@ -86,14 +98,13 @@ def get_fresh_token() -> str:
     result = app.acquire_token_silent(SCOPES, account=accounts[0])
     if not result or "access_token" not in result:
         raise RuntimeError("Token refresh failed. User must reconnect.")
-    _save_cache(cache)
+    _save_cache(user_id, cache)
     return result["access_token"]
 
-
 @router.get("/me")
-async def auth_me():
+async def auth_me(user_id):
     """Return whether a cached MSAL account exists."""
-    cache = _load_cache()
+    cache = _load_cache(user_id)
     app = _build_msal_app(cache) 
     accounts = app.get_accounts()
     if accounts:
@@ -102,12 +113,13 @@ async def auth_me():
 
 
 @router.post("/logout")
-async def auth_logout():
+async def auth_logout(user_id):
     """Remove all cached accounts except the configured ACCOUNT."""
-    if not CACHE_FILE.exists():
+    cache_path = _get_cache_path(user_id)
+    if not cache_path.exists():
         return {"status": "logged_out"}
 
-    cache = _load_cache()
+    cache = _load_cache(user_id)
     app = _build_msal_app(cache)
     accounts = app.get_accounts()
 
@@ -116,7 +128,7 @@ async def auth_logout():
             app.remove_account(account)
             print(f"Removed account {account.get('username')} from cache.")
 
-    _save_cache(cache)
+    _save_cache(user_id, cache)
     return {"status": "logged_out"}
 
 
@@ -127,14 +139,14 @@ async def start_onedrive_auth(request: Request):
 
     Attempts a silent token acquisition first. If a valid cached token is found,
     the user is redirected directly to the frontend success page with the token
-    in the URL fragment. Otherwise the user is redirected to the Microsoft
+    in the URL fragment. Otherwise, the user is redirected to the Microsoft
     consent/login page.
     """
     host   = request.headers.get("host")
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
-
-    cache = _load_cache()
+    user_id = request.query_params.get("user_id")
+    cache = _load_cache(user_id)
     app = _build_msal_app(cache)
 
     # 1) Try silent first (no UI)
@@ -145,7 +157,7 @@ async def start_onedrive_auth(request: Request):
             result = app.acquire_token_silent(SCOPES, account=accounts[0])
             if result and "access_token" in result:
                 print("Using cached token, no login required.")
-                _save_cache(cache)
+                _save_cache(user_id, cache)
                 token = result["access_token"]
                 frontend_success = f"{scheme}://{host}/success-auth#token={token}"
                 return RedirectResponse(url=frontend_success, status_code=302)
@@ -177,6 +189,7 @@ async def onedrive_auth_redirect(request: Request):
     success page with the token in the URL fragment.
     """
     code = request.query_params.get("code")
+    user_id = request.query_params.get("user_id")
     if not code:
         return JSONResponse({"error": "No code in callback"}, status_code=400)
 
@@ -184,14 +197,14 @@ async def onedrive_auth_redirect(request: Request):
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
 
-    cache = _load_cache()
+    cache = _load_cache(user_id)
     app   = _build_msal_app(cache)
     result = app.acquire_token_by_authorization_code(code, scopes=SCOPES, redirect_uri=redirect_uri)
 
     if "access_token" not in result:
         return JSONResponse({"error": "Token error", "details": {k: result.get(k) for k in ("error","error_description","correlation_id")}}, status_code=400)
 
-    _save_cache(cache)
+    _save_cache(user_id, cache)
     token = result["access_token"]
     frontend_success = f"{scheme}://{host}/success-auth#token={token}"
     return RedirectResponse(url=frontend_success, status_code=302)
