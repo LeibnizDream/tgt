@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-ACCOUNT = os.getenv("ACCOUNT")
 
 if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     envf = Path(__file__).parent.parent / "materials" / "secrets.env"
@@ -39,12 +38,11 @@ if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
         TENANT_ID = os.getenv("TENANT_ID")
         CLIENT_ID = os.getenv("CLIENT_ID")
         CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-        ACCOUNT = os.getenv("ACCOUNT")
 if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     raise ValueError("Missing OneDrive OAuth credentials")
 
 # Keep your scopes as requested
-SCOPES    = ["Files.ReadWrite.All", "User.Read"]
+SCOPES    = ["Files.ReadWrite", "User.Read"]
 AUTH_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 GRAPH     = "https://graph.microsoft.com/v1.0"
@@ -54,6 +52,19 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _get_cache_path(user_id: str) -> Path:
     return CACHE_DIR / f"token_cache_{user_id}.json"
+
+def _get_single_account(app):
+    accounts = app.get_accounts()
+
+    if not accounts:
+        raise RuntimeError("No cached account")
+
+    if len(accounts) != 1:
+        raise RuntimeError(
+            f"Expected exactly one account, found {len(accounts)}"
+        )
+
+    return accounts[0]
 
 def _save_cache(user_id: str, cache: msal.SerializableTokenCache):
     """
@@ -92,10 +103,11 @@ def get_fresh_token(user_id:str) -> str:
     """Get a valid access token from the MSAL cache, refreshing silently if needed."""
     cache = _load_cache(user_id)
     app = _build_msal_app(cache)
-    accounts = app.get_accounts()
-    if not accounts:
-        raise RuntimeError("No cached account. User must connect first.")
-    result = app.acquire_token_silent(SCOPES, account=accounts[0])
+    account = _get_single_account(app)
+    result = app.acquire_token_silent(
+        SCOPES,
+        account=account,
+    )
     if not result or "access_token" not in result:
         raise RuntimeError("Token refresh failed. User must reconnect.")
     _save_cache(user_id, cache)
@@ -105,30 +117,25 @@ def get_fresh_token(user_id:str) -> str:
 async def auth_me(user_id):
     """Return whether a cached MSAL account exists."""
     cache = _load_cache(user_id)
-    app = _build_msal_app(cache) 
-    accounts = app.get_accounts()
-    if accounts:
-        return {"authenticated": True, "account": accounts[0].get("username")}
-    return {"authenticated": False}
+    app = _build_msal_app(cache)
+    try:
+        account = _get_single_account(app)
+        return {
+            "authenticated": True,
+            "account": account.get("username"),
+        }
+    except RuntimeError:
+        return {"authenticated": False}
 
 
 @router.post("/logout")
 async def auth_logout(user_id):
-    """Remove all cached accounts except the configured ACCOUNT."""
+    """Delete the user-specific MSAL token cache."""
+
     cache_path = _get_cache_path(user_id)
-    if not cache_path.exists():
-        return {"status": "logged_out"}
 
-    cache = _load_cache(user_id)
-    app = _build_msal_app(cache)
-    accounts = app.get_accounts()
+    cache_path.unlink(missing_ok=True)
 
-    for account in accounts:
-        if not ACCOUNT or account.get("username") != ACCOUNT:
-            app.remove_account(account)
-            print(f"Removed account {account.get('username')} from cache.")
-
-    _save_cache(user_id, cache)
     return {"status": "logged_out"}
 
 
@@ -146,36 +153,42 @@ async def start_onedrive_auth(request: Request):
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
     user_id = request.query_params.get("user_id")
+    print("START user_id =", user_id)
+    print("START PARAMS =", dict(request.query_params))
+    if not user_id:
+        return JSONResponse(
+            {"error": "Missing user_id"},
+            status_code=400,
+        )
     cache = _load_cache(user_id)
     app = _build_msal_app(cache)
 
     # 1) Try silent first (no UI)
-    if cache:
-        accounts = app.get_accounts(username=ACCOUNT) if ACCOUNT else app.get_accounts()
-        if accounts:
-            print("Account(s) in cache:", ", ".join(a["username"] for a in accounts))
-            result = app.acquire_token_silent(SCOPES, account=accounts[0])
-            if result and "access_token" in result:
-                print("Using cached token, no login required.")
-                _save_cache(user_id, cache)
-                token = result["access_token"]
-                frontend_success = f"{scheme}://{host}/success-auth#token={token}"
-                return RedirectResponse(url=frontend_success, status_code=302)
-            else:
-                print("Silent token acquisition failed, need to login.")
+    try:
+        account = _get_single_account(app)
+        print("Account in cache:", account["username"])
+        result = app.acquire_token_silent(
+            SCOPES,
+            account=account,
+        )
+        if result and "access_token" in result:
+            print("Using cached token, no login required.")
+            _save_cache(user_id, cache)
+            token = result["access_token"]
+            frontend_success = f"{scheme}://{host}/success-auth#token={token}"
+            return RedirectResponse(url=frontend_success,
+                                    status_code=302)
+    except RuntimeError:
+        print("No valid cached account found.")
 
     print("No suitable token exists in cache. Redirecting to login.")
-    eqp = {}
-    if ACCOUNT:
-        eqp["login_hint"]  = ACCOUNT
-        # eqp["domain_hint"] = "leibniz-zas.de"
 
     auth_url = app.get_authorization_request_url(
         scopes=SCOPES,
         redirect_uri=redirect_uri,
         response_mode="query",
-        extra_query_parameters=eqp or None,
         prompt="select_account",
+        state=user_id,
     )
     return RedirectResponse(url=auth_url, status_code=302)
 
@@ -189,7 +202,12 @@ async def onedrive_auth_redirect(request: Request):
     success page with the token in the URL fragment.
     """
     code = request.query_params.get("code")
-    user_id = request.query_params.get("user_id")
+    user_id = request.query_params.get("state")
+    if not user_id:
+        return JSONResponse(
+            {"error": "Missing user_id"},
+            status_code=400,
+        )
     if not code:
         return JSONResponse({"error": "No code in callback"}, status_code=400)
 
