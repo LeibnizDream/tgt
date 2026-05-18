@@ -126,7 +126,7 @@ npm run build
 From the `backend` directory:
 
 ```bash
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+uv run uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
 The application will be available at: `http://127.0.0.1:8000`
