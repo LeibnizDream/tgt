@@ -4,12 +4,15 @@ chcp 65001 >nul
 
 
 
-REM ==== Kill any existing Nginx processes ====
-taskkill /f /im nginx.exe >nul 2>&1
-
-REM ==== Start Nginx ====
-cd /d C:\nginx
-start "" nginx
+REM ==== Start Nginx if not already running ====
+tasklist /fi "imagename eq nginx.exe" 2>nul | find /i "nginx.exe" >nul
+if errorlevel 1 (
+    cd /d C:\nginx
+    start "" nginx
+) else (
+    cd /d C:\nginx
+    nginx -s reload
+)
 
 REM ==== Start Ollama if not already running ====
 tasklist /fi "imagename eq ollama.exe" 2>nul | find /i "ollama.exe" >nul
