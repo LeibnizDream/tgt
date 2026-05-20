@@ -12,6 +12,10 @@ import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
 from tqdm import tqdm
+from utils.functions import find_ffmpeg
+
+
+ffmpeg_path = find_ffmpeg()
 
 
 class PlainTranscriptionProcessor(AbstractProcessor):
