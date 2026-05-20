@@ -90,7 +90,7 @@ Never commit `.env` files to GitHub.
 ## 1. Clone Repository
 
 ```bash
-git clone https://github.com/LeibnizDream
+git clone https://github.com/LeibnizDream/tgt
 cd TGT
 ```
 
