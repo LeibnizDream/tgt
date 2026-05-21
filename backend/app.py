@@ -12,10 +12,12 @@ Routers:
 """
 
 from pathlib import Path
+import os
 
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from starlette.middleware.sessions import SessionMiddleware
 from routers.auth import router as auth_router
 from routers.inference.inference import router as inference_router
 from routers.training.train import router as train_router
@@ -24,11 +26,18 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
+SESSION_SECRET = os.getenv("SESSION_SECRET")
+
 app = FastAPI()
 
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(inference_router, prefix="/api/inference")
 app.include_router(train_router, prefix="/api/train")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="SESSION_SECRET",
+)
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
