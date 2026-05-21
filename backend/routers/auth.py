@@ -42,7 +42,7 @@ if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
     raise ValueError("Missing OneDrive OAuth credentials")
 
 # Keep your scopes as requested
-SCOPES    = ["Files.ReadWrite", "User.Read"]
+SCOPES    = ["Files.ReadWrite.All", "User.Read"]
 AUTH_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 GRAPH     = "https://graph.microsoft.com/v1.0"
@@ -103,39 +103,60 @@ def get_fresh_token(user_id:str) -> str:
     """Get a valid access token from the MSAL cache, refreshing silently if needed."""
     cache = _load_cache(user_id)
     app = _build_msal_app(cache)
-    account = _get_single_account(app)
+    accounts = app.get_accounts()
+    if not accounts:
+        raise RuntimeError(
+            "No cached account. User must reconnect."
+        )
+    account = next(
+        (
+            a
+            for a in accounts
+            if a["home_account_id"] == user_id
+        ),
+        None,
+    )
+    if account is None:
+        raise RuntimeError(
+            "Account not found in cache."
+        )
+
     result = app.acquire_token_silent(
         SCOPES,
         account=account,
     )
     if not result or "access_token" not in result:
-        raise RuntimeError("Token refresh failed. User must reconnect.")
+        raise RuntimeError(
+            "Token refresh failed. User must reconnect."
+        )
     _save_cache(user_id, cache)
     return result["access_token"]
 
 @router.get("/me")
-async def auth_me(user_id):
+async def auth_me(request: Request):
     """Return whether a cached MSAL account exists."""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return {"authenticated": False}
     cache = _load_cache(user_id)
     app = _build_msal_app(cache)
     try:
-        account = _get_single_account(app)
+        accounts = app.get_accounts()
         return {
             "authenticated": True,
-            "account": account.get("username"),
+            "account": accounts[0].get("username"),
         }
     except RuntimeError:
         return {"authenticated": False}
 
 
 @router.post("/logout")
-async def auth_logout(user_id):
+async def auth_logout(request: Request):
     """Delete the user-specific MSAL token cache."""
-
-    cache_path = _get_cache_path(user_id)
-
-    cache_path.unlink(missing_ok=True)
-
+    user_id = request.session.get("user_id")
+    if user_id:
+        _get_cache_path(user_id).unlink(missing_ok=True)
+    request.session.clear()
     return {"status": "logged_out"}
 
 
@@ -152,43 +173,41 @@ async def start_onedrive_auth(request: Request):
     host   = request.headers.get("host")
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
-    user_id = request.query_params.get("user_id")
-    print("START user_id =", user_id)
-    print("START PARAMS =", dict(request.query_params))
-    if not user_id:
-        return JSONResponse(
-            {"error": "Missing user_id"},
-            status_code=400,
+    user_id = request.session.get("user_id")
+    if user_id:
+        cache = _load_cache(user_id)
+        app = _build_msal_app(cache)
+        accounts = app.get_accounts()
+        account = next(
+            (
+                a
+                for a in accounts
+                if a["home_account_id"] == user_id
+            ),
+            None,
         )
-    cache = _load_cache(user_id)
-    app = _build_msal_app(cache)
-
-    # 1) Try silent first (no UI)
-    try:
-        account = _get_single_account(app)
-        print("Account in cache:", account["username"])
-        result = app.acquire_token_silent(
-            SCOPES,
-            account=account,
-        )
-        if result and "access_token" in result:
-            print("Using cached token, no login required.")
-            _save_cache(user_id, cache)
-            token = result["access_token"]
-            frontend_success = f"{scheme}://{host}/success-auth#token={token}"
-            return RedirectResponse(url=frontend_success,
-                                    status_code=302)
-    except RuntimeError:
-        print("No valid cached account found.")
+        if account:
+            result = app.acquire_token_silent(
+                SCOPES,
+                account=account,
+            )
+            if result and "access_token" in result:
+                _save_cache(cache, user_id)
+                token = result["access_token"]
+                frontend_success = (
+                    f"{scheme}://{host}"
+                    f"/success-auth#token={token}"
+                )
+                return RedirectResponse(url=frontend_success, status_code=302)
 
     print("No suitable token exists in cache. Redirecting to login.")
 
+    app = _build_msal_app()
     auth_url = app.get_authorization_request_url(
         scopes=SCOPES,
         redirect_uri=redirect_uri,
         response_mode="query",
         prompt="select_account",
-        state=user_id,
     )
     return RedirectResponse(url=auth_url, status_code=302)
 
@@ -202,25 +221,27 @@ async def onedrive_auth_redirect(request: Request):
     success page with the token in the URL fragment.
     """
     code = request.query_params.get("code")
-    user_id = request.query_params.get("state")
-    if not user_id:
-        return JSONResponse(
-            {"error": "Missing user_id"},
-            status_code=400,
-        )
     if not code:
         return JSONResponse({"error": "No code in callback"}, status_code=400)
 
     host   = request.headers.get("host")
     scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
     redirect_uri = f"{scheme}://{host}/api/auth/redirect"
-
-    cache = _load_cache(user_id)
+    cache = msal.SerializableTokenCache()  # Temporary cache until identity is known
     app   = _build_msal_app(cache)
     result = app.acquire_token_by_authorization_code(code, scopes=SCOPES, redirect_uri=redirect_uri)
 
     if "access_token" not in result:
         return JSONResponse({"error": "Token error", "details": {k: result.get(k) for k in ("error","error_description","correlation_id")}}, status_code=400)
+    accounts = app.get_accounts()
+    if not accounts:
+        return JSONResponse(
+            {"error": "No account returned by MSAL"},
+            status_code=400,
+        )
+    account = accounts[0]
+    user_id = account["home_account_id"]
+    request.session["user_id"] = user_id
 
     _save_cache(user_id, cache)
     token = result["access_token"]

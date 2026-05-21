@@ -23,12 +23,13 @@ import requests
 from routers.auth import get_fresh_token
 
 
-def list_session_children(share_link: str, token: str, name_filter: str | None = "Session_"):
+def list_session_children(share_link: str, token: str, user_id: str, name_filter: str | None = "Session_"):
     """List child folders under a OneDrive share link.
 
     Args:
         share_link: OneDrive share URL.
         token: OAuth2 access token.
+        user_id: OneDrive user ID.
         name_filter: Only return folders whose name contains this string.
             Pass ``None`` to return all subfolders regardless of name.
     """
@@ -36,7 +37,7 @@ def list_session_children(share_link: str, token: str, name_filter: str | None =
     url = f"https://graph.microsoft.com/v1.0/shares/u!{share_id}/driveItem/children"
     resp = requests.get(url, headers={"Authorization": f"Bearer {token}"})
     if resp.status_code == 401:
-        token = get_fresh_token()
+        token = get_fresh_token(user_id)
         resp = requests.get(url, headers={"Authorization": f"Bearer {token}"})
     resp.raise_for_status()
     entries = resp.json().get("value", [])
@@ -58,7 +59,7 @@ def encode_share_link(link):
     encoded_url = base64.urlsafe_b64encode(link.encode()).decode().rstrip("=")
     return f"u!{encoded_url}"
 
-def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: list = None):
+def download_sharepoint_folder(share_link, temp_dir, access_token, user_id, file_suffix: list = None):
     """
     Recursively download all files from a SharePoint / OneDrive folder.
 
@@ -90,7 +91,7 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
         resp = requests.get(url, headers=get_headers())
         if resp.status_code == 401:
             print('code has expired. Renewed automatically')
-            access_token = get_fresh_token()
+            access_token = get_fresh_token(user_id)
             resp = requests.get(url, headers=get_headers())
         resp.raise_for_status()
         return resp
@@ -132,7 +133,7 @@ def download_sharepoint_folder(share_link, temp_dir, access_token, file_suffix: 
     return temp_dir, drive_id, parent_folder_id, session_folder_id_map
 
 
-def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_folder_id, file_name_in_folder, access_token):
+def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_folder_id, file_name_in_folder, access_token, user_id):
     """
     Upload a local file to OneDrive, replacing any existing file with the same name.
 
@@ -168,7 +169,7 @@ def upload_file_replace_in_onedrive(local_file_path, target_drive_id, parent_fol
     resp = do_upload(access_token)
     if resp.status_code == 401:
         print('fresh token has expired, renewing automatically')
-        access_token = get_fresh_token()
+        access_token = get_fresh_token(user_id)
         resp = do_upload(access_token)
 
     graph_msg = None

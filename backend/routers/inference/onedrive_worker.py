@@ -21,17 +21,18 @@ class OneDriveWorker(AbstractInferenceWorker):
     Downloads every session folder from a OneDrive share, processes them,
     then uploads the outputs back to OneDrive and cleans up.
     """
-    def __init__(self, base_dir, options, token, publisher):
+    def __init__(self, base_dir, options, token, user_id, publisher):
         super().__init__(base_dir, options, publisher)
         self.share_link = base_dir
         self.token = token
+        self.user_id = user_id
         self.sessions_meta = []
         self.current_info = {}
 
     def _initial_message(self):
         self.inform("Checking for folders on OneDrive…")
         name_filter = "Session_" if self.options.format == "labvanced" else None
-        self.sessions_meta = list_session_children(self.share_link, self.token, name_filter=name_filter)
+        self.sessions_meta = list_session_children(self.share_link, self.token, self.user_id, name_filter=name_filter)
 
         if not self.sessions_meta:
             self.sessions_meta = [{"webUrl": self.share_link}]
@@ -53,6 +54,7 @@ class OneDriveWorker(AbstractInferenceWorker):
                         share_link=link,
                         temp_dir=str(self.temp_root),
                         access_token=self.token,
+                        user_id=self.user_id,
                     )
                 except Exception as e:
                     self.inform(f"Failed to download session: {e}. Skipping.")
@@ -94,6 +96,7 @@ class OneDriveWorker(AbstractInferenceWorker):
                 parent_folder_id=parent_id,
                 file_name_in_folder=fname,
                 access_token=self.token,
+                user_id=self.user_id,
             )
 
         self.inform(f"[DONE UPLOADED] {name}")
