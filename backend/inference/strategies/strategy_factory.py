@@ -103,4 +103,7 @@ class StrategyFactory:
         if m and m != "default":
             from inference.strategies.glossing.spacy import SpaCyGlossingStrategy
             return SpaCyGlossingStrategy(language, model)
+        if not m or m == "default":
+            from inference.strategies.llm_strategy import LLMStrategy
+            return LLMStrategy(language, "gloss", 'gemini')
         raise ValueError(f"No glossing strategy for language: {language!r}")
