@@ -3,6 +3,9 @@ import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
 import sys
+import os
+import ssl
+import certifi
 from huggingface_hub import login
 
 from dotenv import load_dotenv
@@ -14,6 +17,15 @@ from utils.functions import find_language, set_global_variables
 # torchcodec requires FFmpeg shared DLLs which are not available;
 # marking it absent so torchaudio/transformers fall back to other loaders.
 sys.modules["torchcodec"] = None  # type: ignore[assignment]
+
+CA_FILE = certifi.where()
+
+os.environ.setdefault("SSL_CERT_FILE", CA_FILE)
+os.environ.setdefault("REQUESTS_CA_BUNDLE", CA_FILE)
+
+ssl._create_default_https_context = lambda: ssl.create_default_context(
+    cafile=CA_FILE
+)
 
 _SECRETS = Path(__file__).resolve().parent.parent / "materials" / "secrets.env"
 REQUIRED_ENV_KEYS = [

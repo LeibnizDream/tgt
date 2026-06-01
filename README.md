@@ -8,32 +8,32 @@ TGT (Transcription Glossing Translation) is an end-to-end system designed to sup
 
 It provides a unified pipeline that integrates:
 
-- **Automatic Speech Recognition (ASR)** for transcription
-- **Machine Translation (MT)** for translation
-- **Glossing models** for linguistic annotation
-- **Data handling utilities** for structured datasets (e.g., Excel/CSV)
+- Automatic Speech Recognition (ASR) for transcription
+- Machine Translation (MT) for translation
+- Glossing models for linguistic annotation
+- Data handling utilities for structured datasets such as Excel and CSV files
 
-The system is built to be **usable by non-technical users**, while maintaining a modular and extensible backend architecture that allows developers to integrate new models or processing strategies.
+The system is designed to be usable by non-technical users while maintaining a modular and extensible backend architecture that allows developers to integrate new models or processing strategies.
 
 ---
 
 ## Key Capabilities
 
-- Process raw linguistic data (audio or text) into annotated formats
-- Automate repetitive annotation tasks (transcription, translation, glossing)
-- Support multiple model providers (local and API-based)
-- Handle structured datasets (e.g., spreadsheet-based workflows)
+- Process raw linguistic data including audio and text
+- Automate repetitive annotation tasks such as transcription, translation, and glossing
+- Support multiple model providers, both local and API-based
+- Handle structured datasets and spreadsheet-based workflows
 - Provide a web-based interface for interaction
 
 ---
 
 ## Design Goals
 
-- **Modularity**: Clear separation between processing strategies (ASR, translation, glossing)
-- **Extensibility**: Easy integration of new models or providers
-- **Reproducibility**: Consistent processing pipelines
-- **Usability**: Accessible to linguists without programming experience
-- **Deployment flexibility**: Local, server-based, or containerized
+- Modularity
+- Extensibility
+- Reproducibility
+- Usability
+- Deployment flexibility
 
 ---
 
@@ -41,79 +41,85 @@ The system is built to be **usable by non-technical users**, while maintaining a
 
 ## Prerequisites
 
-- **Python**: `3.11+`
-- **uv**: Fast Python package manager
-- **Node.js**: `18+` (for the frontend build)
+- Python 3.11+
+- uv
+- Node.js 18+
+- Nginx (only needed for server deployment)
+- OpenSSL (only needed for HTTPS certificate generation)
 
-## Configuration
+---
 
-### Environment Variables
+# Configuration
 
-Create a `.env` file in the `backend/materials/` directory to store your API keys and configuration secrets.
+## Environment Variables
 
-> ⚠️ **Important**: Without this file, OneDrive integration will not be available, and some models for transcription and translation will not be accessible.
+Create a `.env` file in:
 
-### `.env` File Contents
+```text
+backend/materials/.env
+```
+
+This file stores API keys and configuration secrets.
+
+Without this file, OneDrive integration and some models will not be available.
+
+### Example `.env`
 
 ```env
-# Hugging Face API Key (required)
-# Get your key from: https://huggingface.co/settings/tokens
+# Hugging Face API Key
 HUGGING_KEY=your_huggingface_api_key_here
 
-# OneDrive Integration (required for OneDrive support)
-# Register an app in Azure Portal and obtain these credentials
+# Azure / OneDrive
 TENANT_ID=your_azure_tenant_id_here
 CLIENT_ID=your_azure_client_id_here
 CLIENT_SECRET=your_azure_client_secret_here
 
-# Optional: DeepL Translation API
-# Sign up at: https://www.deepl.com/pro-api
+# Optional: DeepL
 DEEPL_API_KEY=your_deepl_api_key_here
 
-# Optional: Google Gemini API
-# Get your key from: https://aistudio.google.com
+# Optional: Google Gemini
 GOOGLE_API_KEY=your_google_gemini_api_key_here
 ```
 
-## Installation & Deployment Options
+Never commit `.env` files to GitHub.
 
-### Option 1: ZAS Members
+---
 
-If you're part of ZAS:
+# Installation
 
-1. Contact the code owner for server connection details
-2. Follow the specific connection instructions provided by the owner
-
-> 🔒 **Security Note**: Server paths are not included in this documentation for security reasons.
-
-### Option 2: Local Development Setup
-
-For local development or custom server deployment (always pull the latest version of the code):
-
-#### 1. Clone repository
+## 1. Clone Repository
 
 ```bash
-# Clone repository
-git clone https://github.com/camelo-cruz/TGT.git
-
-# Navigate into the project directory
+git clone https://github.com/LeibnizDream/tgt
 cd TGT
 ```
 
-#### 2. Set up the Python environment
+---
+
+## 2. Backend Setup
 
 ```bash
-# Create virtual environment and install all dependencies from the lock file
+cd backend
 uv sync
-
-# Activate the environment
-source .venv/bin/activate          # macOS / Linux
-.venv\Scripts\activate             # Windows
 ```
 
-All exact package versions are pinned in `backend/uv.lock` — no version conflicts, reproducible across machines.
+Activate the environment:
 
-#### 3. Build the frontend
+### macOS / Linux
+
+```bash
+source .venv/bin/activate
+```
+
+### Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+---
+
+## 3. Frontend Setup
 
 ```bash
 cd ../frontend
@@ -121,83 +127,211 @@ npm install
 npm run build
 ```
 
-#### 4. Start the Application
+---
 
-From the `backend` directory:
+## 4. Start the Application Locally
+
+From the backend directory:
 
 ```bash
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+cd ../backend
+uv run uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-The application will be available at: `http://127.0.0.1:8000`
+The application will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Port `8000` is completely fine for production as long as Uvicorn remains bound to:
+
+```text
+127.0.0.1
+```
+
+and is only exposed through Nginx.
 
 ---
 
-## Linting
+# Server Deployment with Nginx and HTTPS
 
-The backend uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting.
+The deployment architecture is:
 
-```bash
-# Check for issues
-uv run ruff check .
-
-# Fix issues automatically (safe fixes only)
-uv run ruff check . --fix
-
-# Format code style
-uv run ruff format .
+```text
+Browser
+  ↓ HTTPS
+Nginx
+  ↓ HTTP on localhost
+Uvicorn / FastAPI
 ```
 
-Rules and line length are configured under `[tool.ruff]` in `pyproject.toml`.
+Nginx receives HTTPS requests and forwards them internally to:
+
+```text
+127.0.0.1:8000
+```
 
 ---
 
-## CLI Usage
+# HTTPS Setup
 
-The backend can also be used directly from the terminal without the web interface, using `backend/inference/worker.py`.
+## 1. Create SSL Directory
 
-Run it from the main folder *backend*
-### Syntax
+Create:
 
-```bash
-python -m inference.local_worker <action> <language> <base_dir> [options]
+```text
+C:/nginx/ssl
 ```
 
-### Arguments
+---
+
+## 2. Create OpenSSL Configuration File
+
+
+Copy openssl.cnf file to:
+
+```text
+C:/nginx/ssl/openssl.cnf
+```
+
+---
+
+## 3. Generate Private Key
+
+Open a terminal in:
+
+```text
+C:/nginx/ssl
+```
+
+Run:
+
+```bash
+openssl genrsa -out selfsigned.key 2048
+```
+
+This creates:
+
+```text
+selfsigned.key
+```
+
+This is the private key.
+
+Never commit this file to GitHub.
+
+Never share it publicly.
+
+---
+
+## 4. Generate Self-Signed Certificate
+
+From the same directory:
+
+### Windows CMD
+
+```bash
+openssl req -x509 -nodes ^
+-days 365 ^
+-key selfsigned.key ^
+-out selfsigned.crt ^
+-config openssl.cnf
+```
+
+### PowerShell / Linux / macOS
+
+```bash
+openssl req -x509 -nodes \
+-days 365 \
+-key selfsigned.key \
+-out selfsigned.crt \
+-config openssl.cnf
+```
+
+This creates:
+
+```text
+selfsigned.crt
+```
+
+The final structure should look like:
+
+```text
+C:/nginx/
+├── conf/
+│   └── nginx.conf
+├── html/
+├── logs/
+└── ssl/
+    ├── openssl.cnf
+    ├── selfsigned.crt
+    └── selfsigned.key
+```
+
+---
+
+# Nginx Configuration
+
+Copy `nginx.conf` to:
+
+```text
+C:/nginx/conf/nginx.conf
+```
+
+---
+
+# CLI Usage
+
+The backend can also be used directly from the terminal.
+
+Run from the backend directory:
+
+```bash
+python -m inference.worker <action> <language> <base_dir> [options]
+```
+
+## Arguments
 
 | Argument | Description |
-|----------|-------------|
-| `action` | `transcribe` \| `translate` \| `gloss` \| `transliterate` |
-| `language` | Language name or code (e.g. `english`, `german`, `zh`) |
-| `base_dir` | Path to the folder containing the data to process |
+|---|---|
+| `action` | `transcribe`, `translate`, `gloss`, or `transliterate` |
+| `language` | Language name or code |
+| `base_dir` | Path to data |
 
-### Options
+## Options
 
 | Option | Description |
-|--------|-------------|
-| `--format` | `plain` (default) or `labvanced` |
-| `--instruction` | Required for labvanced: `automatic` \| `corrected` \| `sentences` |
-| `--translation-model` | Translation model name (e.g. `gemini`, `deepl`, `qwen`) |
-| `--glossing-model` | Glossing model name (e.g. `gemini`, `qwen`, `spacy`) |
+|---|---|
+| `--format` | `plain` or `labvanced` |
+| `--instruction` | `automatic`, `corrected`, or `sentences` |
+| `--translation-model` | Translation model |
+| `--glossing-model` | Glossing model |
 
-### Examples
+---
 
-**Transcribe audio files in a folder (plain format):**
+# Examples
+
+## Transcribe Audio Files
+
 ```bash
 python -m inference.worker transcribe english /data/recordings
 ```
 
-**Translate an already-transcribed folder:**
+## Translate a Folder
+
 ```bash
 python -m inference.worker translate german /data/recordings --translation-model gemini
 ```
 
-**Process a Labvanced export:**
+## Process Labvanced Export
+
 ```bash
 python -m inference.worker transcribe greek /data/experiment --format labvanced --instruction automatic
 ```
 
-**Gloss a Labvanced dataset using a local model:**
+## Gloss Dataset Using Local Qwen
+
 ```bash
 python -m inference.worker gloss turkish /data/experiment \
   --format labvanced \
@@ -206,52 +340,95 @@ python -m inference.worker gloss turkish /data/experiment \
   --translation-model qwen
 ```
 
-> For labvanced format, `base_dir` should contain one or more folders named `Session_*`. The CLI will only process those.
+---
 
-## Important Notes
+# Ruff Linting
 
-### Security Best Practices
+```bash
+uv run ruff check .
+uv run ruff check . --fix
+uv run ruff format .
+```
 
-- 🚫 **Never commit your `.env` file to version control**
-- 🔐 Keep all API keys and secrets private
-- 📁 Ensure the `.env` file has proper file permissions (readable only by the application user)
+---
 
-### Optional Features
+# Ollama / Local Qwen Setup
 
-- **DeepL Translation**: If you don't plan to use DeepL API, you can skip adding the `DEEPL_API_KEY` or modify the translation factory to remove the DeepL strategy.
-- **OneDrive Integration**: Requires all Azure-related environment variables to be properly configured. If OneDrive is used, be sure to:
-  - Add the correct paths for authentication in Azure.
-  - Give full permissions to users.
-- **Local Inference with Qwen (via Ollama)**: If you want to run Qwen models locally without an API key, you need to install [Ollama](https://ollama.com) and pull the desired Qwen model before starting the application:
+Install Ollama:
 
-  ```bash
-  # Install Ollama (see https://ollama.com for platform-specific instructions)
-  # Then pull the Qwen model you intend to use, for example:
-  ollama pull qwen2.5:7b
-  ```
+```text
+https://ollama.com
+```
 
-  Once Ollama is running and the model is available, the application will use it automatically for local inference. No API key is required for this option.
+Pull a model:
 
-### Troubleshooting
+```bash
+ollama pull qwen2.5:7b
+```
 
-- Verify Python version: `python --version`
-- Check installed packages: `uv pip list`
-- Re-sync the environment: `uv sync` (run from `backend/`)
-- Ensure the `.env` file is in the correct location: `backend/materials/.env`
-- Validate API keys are correctly formatted and have necessary permissions
+Once Ollama is running locally, the application can use local inference without API keys.
 
-## Getting API Keys
+---
 
-| Service | How to Get API Key |
-|---------|-------------------|
-| **Hugging Face** | 1. Create account at [huggingface.co](https://huggingface.co)<br>2. Go to Settings > Access Tokens<br>3. Create new token |
-| **Azure/OneDrive** | 1. Go to [Azure Portal](https://portal.azure.com)<br>2. Register new application<br>3. Note down Tenant ID, Client ID, and Client Secret |
-| **DeepL** | 1. Sign up at [DeepL Pro](https://www.deepl.com/pro-api)<br>2. Get API key from account dashboard |
-| **Google Gemini** | 1. Go to https://aistudio.google.com<br>2. Sign in with your Google account<br>3. Click “Get API key”<br>4. Create a new API key<br>5. Copy and store it securely |
+# Security Notes
 
-## Support
+Never commit:
+
+```text
+.env
+*.key
+```
+
+Recommended `.gitignore`:
+
+```gitignore
+.env
+*.key
+*.pem
+```
+
+Safe to commit:
+
+```text
+openssl.cnf
+nginx.conf
+```
+
+---
+
+# Troubleshooting
+
+## Verify Python Version
+
+```bash
+python --version
+```
+
+## List Installed Packages
+
+```bash
+uv pip list
+```
+
+## Re-sync Dependencies
+
+```bash
+uv sync
+```
+
+## Reload Nginx
+
+```bash
+nginx -s reload
+```
+
+---
+
+# Support
 
 For additional help:
-- Contact your code administrator at camelo.cruz@leibniz-zas.de
-- Check the application logs for error details
-- Verify all environment variables are correctly set
+
+- Contact the project administrator
+- Check application logs
+- Verify all environment variables
+- Ensure Nginx and Uvicorn are both running
