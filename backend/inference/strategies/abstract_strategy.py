@@ -13,7 +13,7 @@ class AbstractStrategy(ABC):
     here once.  run_strategy processes the batch item by item by default;
     LLM subclasses override it to send the whole batch in one call.
     """
-
+    batch_mode = False
     def __init__(self, language_code: str):
         self.language_code = language_code.lower()
         cuda_available = torch.cuda.is_available()

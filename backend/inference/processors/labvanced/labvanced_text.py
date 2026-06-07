@@ -118,7 +118,7 @@ class LabvancedTextProcessor(AbstractProcessor):
 
         self._todo_row_ids = {item["id"] for item in todo_items}
         id_to_result = {}
-        if self.model in ["gemini", "qwen"]:
+        if self.strategy.batch_mode:
             examples = self._example_store.get(self.action, self.action)
             id_to_result = self.strategy.run_strategy(todo_items, examples)
         else:
