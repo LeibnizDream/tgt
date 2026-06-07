@@ -1,12 +1,14 @@
 import whisper
 from inference.strategies.abstract_strategy import AbstractStrategy
+from utils.functions import find_ffmpeg
 
 
 class WhisperStrategy(AbstractStrategy):
 
     def load_model(self):
-         self.model = whisper.load_model("large-v3", self.device)
-         print(f"Whisper model loaded on device {self.device}")
+        ffmpeg_path = find_ffmpeg()
+        self.model = whisper.load_model("large-v3", self.device)
+        print(f"Whisper model loaded on device {self.device}")
         
     def _run_one(*args):
         raise ValueError('no batch processing allowed')
