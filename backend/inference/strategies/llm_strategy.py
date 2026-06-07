@@ -60,7 +60,7 @@ class LLMStrategy(AbstractStrategy):
     result key, and response schema.  Gemini vs Ollama dispatch is driven by
     the model hint passed at construction time.
     """
-
+    batch_mode = True
     def __init__(self, language: str, action: str, model: str = None):
         self.action = action
         self.result_key = _RESULT_KEYS[action]
