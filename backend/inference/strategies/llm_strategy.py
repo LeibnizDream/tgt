@@ -8,13 +8,14 @@ from pydantic import ValidationError, create_model
 from utils.functions import ensure_ollama_running
 
 _RESULT_KEYS = {
-    "translate":    "translation",
-    "gloss":        "gloss",
+    "translate": "translation",
+    "gloss": "gloss",
     "transliterate": "transliteration",
 }
 
 _NUM_PREDICT = {
     "gloss": 10000,
+    "translate": 20000,
 }
 
 _SYSTEM_PROMPTS = {
@@ -54,23 +55,21 @@ def is_llm(model: str | None) -> bool:
 
 
 class LLMStrategy(AbstractStrategy):
-    """Single LLM strategy for translation, glossing, and transliteration.
-
-    The action ("translate", "gloss", "transliterate") determines the prompt,
-    result key, and response schema.  Gemini vs Ollama dispatch is driven by
-    the model hint passed at construction time.
-    """
     batch_mode = True
+
     def __init__(self, language: str, action: str, model: str = None):
+        if action not in _RESULT_KEYS:
+            raise ValueError(f"Unsupported LLM action: {action!r}")
+
         self.action = action
         self.result_key = _RESULT_KEYS[action]
         self._model = (model or "qwen").lower()
         self._response_model = _make_response_model(self.result_key)
+
         super().__init__(language)
+
         if self._model == "qwen":
             self._warmup()
-
-    # ------------------------------------------------------------------ setup
 
     def load_model(self) -> None:
         if self._model == "gemini":
@@ -87,7 +86,7 @@ class LLMStrategy(AbstractStrategy):
             self.model_name = "qwen3.5:9b"
         else:
             raise ValueError(f"Unsupported LLM model: {self._model!r}")
-        
+
     def _run_one(self, text: str):
         raise NotImplementedError("LLMStrategy only supports batch inference")
 
@@ -96,37 +95,49 @@ class LLMStrategy(AbstractStrategy):
         try:
             resp = self.nlp.chat(
                 model=self.model_name,
-                messages=[{"role": "user", "content": '{"items": [{"id": 0, "text": "test"}]}'}],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": '{"items": [{"id": 0, "text": "test"}]}',
+                    }
+                ],
                 format=self._response_model.model_json_schema(),
-                stream=False, think=False, keep_alive="10m",
+                stream=False,
+                think=False,
+                keep_alive="10m",
                 options={"temperature": 0, "num_predict": 50, "num_ctx": 512},
             )
             load_ms = resp.get("load_duration", 0) / 1e6
-            eval_ms  = resp.get("eval_duration",  0) / 1e6
-            print(f"[Ollama] Warmup done — load: {load_ms:.0f}ms, eval: {eval_ms:.0f}ms", file=sys.stderr)
+            eval_ms = resp.get("eval_duration", 0) / 1e6
+            print(
+                f"[Ollama] Warmup done — load: {load_ms:.0f}ms, eval: {eval_ms:.0f}ms",
+                file=sys.stderr,
+            )
         except Exception as e:
             print(f"[Ollama] Warmup failed (non-fatal): {e}", file=sys.stderr)
 
-    # --------------------------------------------------------------- interface
-
     def run_strategy(self, todo_items: list, examples: list = None) -> dict:
         examples = examples or []
+
         if 0 < len(examples) < 10:
             raise ValueError(
                 f"Only {len(examples)} few-shot example(s) — at least 10 required for LLM processing."
             )
+
         if not todo_items:
             raise ValueError("No items provided")
+
         self._validate_input_items(todo_items)
+
         if self._model == "qwen":
             response_json = self._call_with_ollama(todo_items, examples)
         elif self._model == "gemini":
             response_json = self._call_with_gemini(todo_items, examples)
-        parsed = json.loads(response_json)
-        result = {item["id"]: item[self.result_key] for item in parsed["items"]}
-        return result
+        else:
+            raise ValueError(f"Unsupported LLM model: {self._model!r}")
 
-    # ---------------------------------------------------------------- dispatch
+        parsed = json.loads(response_json)
+        return {item["id"]: item[self.result_key] for item in parsed["items"]}
 
     def _call_with_gemini(self, items: list, examples: list) -> str:
         system = self._build_system_prompt(include_schema_hint=True)
@@ -134,8 +145,14 @@ class LLMStrategy(AbstractStrategy):
             {"examples": self._normalize_examples(examples), "items": items},
             ensure_ascii=False,
         )
+
         response = self.nlp.invoke([("system", system), ("human", human)])
-        text = self._strip_code_fences(response.content.strip())
+        content = response.content
+
+        if not isinstance(content, str):
+            content = json.dumps(content, ensure_ascii=False)
+
+        text = self._strip_code_fences(content.strip())
         return self._validate_output_text(text, items).model_dump_json()
 
     def _call_with_ollama(self, items: list, examples: list) -> str:
@@ -144,30 +161,34 @@ class LLMStrategy(AbstractStrategy):
             {"examples": self._normalize_examples(examples), "items": items},
             ensure_ascii=False,
         )
+
         estimated_input_tokens = len(payload_json) // 4
         num_ctx = max(1024, estimated_input_tokens * 2)
+
         response = self.nlp.chat(
             model=self.model_name,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": payload_json},
+                {"role": "user", "content": payload_json},
             ],
             format=self._response_model.model_json_schema(),
-            stream=False, think=False, keep_alive="10m",
+            stream=False,
+            think=False,
+            keep_alive="10m",
             options={
                 "temperature": 0,
                 "num_predict": _NUM_PREDICT.get(self.action, 8000),
                 "num_ctx": num_ctx,
             },
         )
+
         content = response["message"]["content"].strip()
         self._log_ollama_timings(response, len(items), content)
         return self._validate_output_text(content, items).model_dump_json()
 
-    # ----------------------------------------------------------------- helpers
-
     def _build_system_prompt(self, include_schema_hint: bool = False) -> str:
         prompt = _SYSTEM_PROMPTS[self.action]
+
         if include_schema_hint:
             key = self.result_key
             prompt += (
@@ -175,13 +196,16 @@ class LLMStrategy(AbstractStrategy):
                 f'\n{{"items": [{{"id": <integer>, "{key}": "<string>"}}, ...]}}'
                 f"\n\nDo NOT return a flat dictionary."
                 f"\nDo NOT use string keys for IDs."
+                f"\nDo NOT use any other key name for the string. The key should be exactly {key}."
                 f"\nThe 'items' array must contain exactly the same IDs as the input."
             )
+
         return prompt
 
     def _normalize_examples(self, examples: list) -> list:
-        stored_key = self.action      # how ExampleStore saved it: "translate", "gloss", …
-        output_key = self.result_key  # what the LLM prompt expects: "translation", "gloss", …
+        stored_key = self.action
+        output_key = self.result_key
+
         return [
             {"text": ex["source"], output_key: ex[stored_key]}
             for ex in examples
@@ -190,37 +214,62 @@ class LLMStrategy(AbstractStrategy):
 
     def _validate_input_items(self, items: list) -> None:
         seen_ids = set()
+
         for item in items:
             if "id" not in item or "text" not in item:
                 raise ValueError(f"Each item must contain 'id' and 'text'. Bad item: {item}")
+
             if item["id"] in seen_ids:
                 raise ValueError(f"Duplicate item id: {item['id']}")
+
             seen_ids.add(item["id"])
+
+    def _normalize_model_output_keys(self, text: str) -> str:
+        data = json.loads(text)
+
+        if "items" not in data or not isinstance(data["items"], list):
+            return text
+
+        for item in data["items"]:
+            if "text" in item and self.result_key not in item:
+                item[self.result_key] = item.pop("text")
+
+        return json.dumps(data, ensure_ascii=False)
 
     def _validate_output_text(self, text: str, input_items: list):
         text = self._strip_code_fences(text)
+
         try:
+            text = self._normalize_model_output_keys(text)
             parsed = self._response_model.model_validate_json(text)
-        except ValidationError as e:
+        except (json.JSONDecodeError, ValidationError) as e:
             raise ValueError(f"Invalid {self.result_key} JSON:\n{text}") from e
-        input_ids  = {item["id"] for item in input_items}
+
+        input_ids = {item["id"] for item in input_items}
         output_ids = {item.id for item in parsed.items}
+
         if input_ids != output_ids:
             raise ValueError(f"ID mismatch. Input: {input_ids}, Output: {output_ids}")
+
         return parsed
 
     def _strip_code_fences(self, text: str) -> str:
         if text.startswith("```"):
             lines = text.splitlines()
+
             if lines and lines[0].startswith("```"):
                 lines = lines[1:]
+
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
+
             return "\n".join(lines).strip()
+
         return text
 
     def _log_ollama_timings(self, response: dict, num_items: int, content: str) -> None:
         done_reason = response.get("done_reason")
+
         print(
             f"Ollama {self.result_key} timings | "
             f"total={response.get('total_duration')} "
@@ -232,9 +281,11 @@ class LLMStrategy(AbstractStrategy):
             f"done_reason={done_reason}",
             file=sys.stderr,
         )
+
         print(
             f"[DEBUG] num_items={num_items} output_chars={len(content)}",
             file=sys.stderr,
         )
+
         if done_reason == "length":
-            raise ValueError("[DEBUG] WARNING: output cut off — num_predict limit reached", file=sys.stderr)
+            raise ValueError("[DEBUG] WARNING: output cut off — num_predict limit reached")
