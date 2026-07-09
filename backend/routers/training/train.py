@@ -38,7 +38,13 @@ async def process(
     if not base_dir:
         raise HTTPException(status_code=400, detail="Missing base_dir")
     try:
-        access_token = get_fresh_token()
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated"
+            )
+        access_token = get_fresh_token(user_id)
     except RuntimeError as e:
         raise HTTPException(status_code=401, detail=str(e))
 

@@ -49,12 +49,21 @@ async def process(
     )
 
     try:
-        access_token = get_fresh_token()
+        user_id = request.session.get("user_id")
+
+        if not user_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated"
+            )
+
+        access_token = get_fresh_token(user_id)
+
         job = JobManager.create()
         job.token = access_token
 
 
-        worker = OneDriveWorker(base_dir, options, access_token, job.publisher)
+        worker = OneDriveWorker(base_dir, options, access_token, user_id, job.publisher)
         process = Process(target=worker.run, daemon=True)
         process.start()
         job.process = process
