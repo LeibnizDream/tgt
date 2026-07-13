@@ -421,8 +421,10 @@ uv sync
 ```bash
 nginx -s reload
 ```
-
 ---
+# Authors and Acknowledgments
+
+Developed at the **Leibniz-Centre General Linguistics (ZAS)** as part of the project **LeibnizDream - Realizing Leibniz’s Dream: Child Languages as a Mirror of the Mind**, funded by the European Research Council (ERC), grant agreement No 856421, by Alejandra Camelo Cruz.
 
 # Support
 
