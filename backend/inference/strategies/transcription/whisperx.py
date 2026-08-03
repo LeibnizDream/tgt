@@ -4,6 +4,7 @@ import whisperx
 
 from huggingface_hub import hf_hub_download as _original_hf_download
 from inference.strategies.abstract_strategy import AbstractStrategy
+from utils.functions import find_ffmpeg
 from whisperx.diarize import DiarizationPipeline
 
 # Patch torch.load FIRST
@@ -25,6 +26,7 @@ huggingface_hub.hf_hub_download = patched_hf_download
 class WhisperxStrategy(AbstractStrategy):
     
     def load_model(self):
+        ffmpeg_path = find_ffmpeg()
         print("using device: ", self.device)
         try:
             self.model = whisperx.load_model("large-v2", self.device, compute_type="float16", language=self.language_code)

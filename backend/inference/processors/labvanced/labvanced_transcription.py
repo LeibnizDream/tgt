@@ -18,7 +18,6 @@ from inference.strategies.strategy_factory import StrategyFactory
 from tqdm import tqdm
 from utils.functions import (
     clean_german_transcription,
-    find_ffmpeg,
     format_excel_output,
     set_global_variables,
 )
@@ -26,7 +25,6 @@ from utils.functions import (
 # Global setup
 LANGUAGES, NO_LATIN, OBLIGATORY_COLUMNS = set_global_variables()
 warnings.filterwarnings("ignore")
-ffmpeg_path = find_ffmpeg()
 
 
 class LabvancedTranscriptionProcessor(AbstractProcessor):
