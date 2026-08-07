@@ -1,10 +1,17 @@
-title: TGT: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+cff-version: 1.2.0
+title: "TGT"
+version:
+license: ""
 type: software
+abstract: >
+  TGT (Transcription Glossing Translation) is an end-to-end system
+  designed to support linguistic data processing workflows.
+  This software was developed within the ERC-funded project
+  "LeibnizDream - Realizing Leibniz’s Dream: Child Languages as a Mirror of the Mind"
+  (Grant Agreement No. 856421).
+message: "If you use this software, please cite it as below."
 authors:
-  - {}
-  - given-names:
-    family-names:
-    email: 
+  - given-names: Alejandra
+    family-names: Camelo Cruz
+    affiliation: Leibniz-Centre General Linguistics (ZAS), Geisteswissenschaftliche Zentren Berlin e.V.
 
