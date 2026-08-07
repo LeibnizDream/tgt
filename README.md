@@ -79,6 +79,8 @@ DEEPL_API_KEY=your_deepl_api_key_here
 
 # Optional: Google Gemini
 GOOGLE_API_KEY=your_google_gemini_api_key_here
+# Create a session secret
+SESSION_SECRET=your_session_secret_here
 ```
 
 Never commit `.env` files to GitHub.
