@@ -426,7 +426,7 @@ nginx -s reload
 ---
 # Authors and Acknowledgments
 
-Developed by Alejandra Camelo Cruz at the **Leibniz-Centre General Linguistics (ZAS)**, a research institute of **Geisteswissenschaftliche Zentren Berlin e.V.**, as part of the ERC-funded project **LeibnizDream - Realizing Leibniz’s Dream: Child Languages as a Mirror of the Mind** (Grant Agreement No. 856421).
+Developed by [Alejandra Camelo Cruz](https://github.com/camelo-cruz) at the **Leibniz-Centre General Linguistics (ZAS)**, a research institute of **Geisteswissenschaftliche Zentren Berlin e.V.**, as part of the ERC-funded project **LeibnizDream - Realizing Leibniz’s Dream: Child Languages as a Mirror of the Mind** (Grant Agreement No. 856421).
 
 # Support
 
