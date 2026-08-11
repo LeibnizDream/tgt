@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Leibniz-Zentrum Allgemeine Sprachwissenschaft
+# Developed as part of the ERC-funded LeibnizDream project.
+# Licensed under the GNU General Public License v3.0 or later.
+# See LICENSE for details.
+
 from inference.strategies.llm_strategy import is_llm
 from inference.strategies.transliteration.default import DefaultStrategy
 

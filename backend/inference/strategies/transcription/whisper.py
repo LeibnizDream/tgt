@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Leibniz-Zentrum Allgemeine Sprachwissenschaft
+# Developed as part of the ERC-funded LeibnizDream project.
+# Licensed under the GNU General Public License v3.0 or later.
+# See LICENSE for details.
+
 import whisper
 from inference.strategies.abstract_strategy import AbstractStrategy
 from utils.functions import find_ffmpeg
