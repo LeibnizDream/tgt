@@ -5,11 +5,12 @@
 
 from inference.strategies.abstract_strategy import AbstractStrategy
 from transformers import pipeline
-
+from utils.functions import find_ffmpeg
 
 class VietnameseTranscriptionStrategy(AbstractStrategy):
     
     def load_model(self):
+        ffmpeg_path = find_ffmpeg()
         self.transcriber = pipeline(
             "automatic-speech-recognition",
             model="vinai/PhoWhisper-large",

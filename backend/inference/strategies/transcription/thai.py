@@ -5,11 +5,12 @@
 
 from inference.strategies.abstract_strategy import AbstractStrategy
 from transformers import pipeline
-
+from utils.functions import find_ffmpeg
 
 class ThaiTranscriptionStrategy(AbstractStrategy):
 
     def load_model(self):
+        ffmpeg_path = find_ffmpeg()
         MODEL_NAME = "biodatlab/whisper-th-large-v3-combined"  # specify the model name
 
         self.pipe = pipeline(

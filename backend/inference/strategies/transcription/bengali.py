@@ -5,11 +5,12 @@
 
 from inference.strategies.abstract_strategy import AbstractStrategy
 from transformers import pipeline
-
+from utils.functions import find_ffmpeg
 
 class BengaliTranscriptionStrategy(AbstractStrategy):
         
     def load_model(self):
+        ffmpeg_path = find_ffmpeg()
         self.whisper_asr = pipeline(
             "automatic-speech-recognition",
             model="mozilla-ai/whisper-large-v3-bn",

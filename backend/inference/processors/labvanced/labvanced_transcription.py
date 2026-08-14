@@ -84,8 +84,18 @@ class LabvancedTranscriptionProcessor(AbstractProcessor):
                     self.filename_regexp,
                 )
             except Exception as e:
-                self.logger.info(f"Error processing file '{file}'")
-                self._emit(f"Error transcribing '{file}'", level="warning")
+                self.logger.exception(
+                    f"Error processing file '{file}': "
+                    f"{type(e).__name__}: {e}"
+                )
+                print(
+                    f"[ERROR] {file}: "
+                    f"{type(e).__name__}: {e}"
+                )
+                self._emit(
+                    f"Error transcribing '{file}': {type(e).__name__}: {e}",
+                    level="warning",
+                )
             if progress_cb:
                 progress_cb(count, total)
         return df
