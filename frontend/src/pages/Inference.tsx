@@ -463,7 +463,7 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
 
               {format === "labvanced" && action !== "transcribe" && action !== "create columns" && (
                 <div className="space-y-2">
-                  <Label htmlFor="instruction">Instruction</Label>
+                  <Label htmlFor="instruction">Input column</Label>
                   <Select value={instruction || "automatic"} onValueChange={setInstruction}>
                     <SelectTrigger id="instruction">
                       <SelectValue placeholder="Select instruction" />
