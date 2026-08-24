@@ -18,15 +18,15 @@ from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
 
 _SOURCE_COLS = {
-    "translate": "transcription",
+    "translate": "automatic_transcription",
     "gloss": "to_gloss",
-    "transliterate": "transcription"
+    "transliterate": "automatic_transcription"
 }
 
 _TARGET_COLS = {
-    "translate": ["translation"],
-    "gloss": ["glossing"],
-    "transliterate": ["transliteration"],
+    "translate": ["automatic_translation"],
+    "gloss": ["automatic_glossing"],
+    "transliterate": ["automatic_transliteration"],
 }
 
 

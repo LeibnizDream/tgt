@@ -61,11 +61,11 @@ class PlainTranscriptionProcessor(AbstractProcessor):
         n = len(audio_files)
         return pd.DataFrame({
             "file_name": audio_files,
-            "transcription": [""] * n,
-            "transliteration": [""] * n,
+            "automatic_transcription": [""] * n,
+            "automatic_transliteration": [""] * n,
             "to_gloss": [""] * n,
-            "translation": [""] * n,
-            "glossing": [""] * n,
+            "automatic_translation": [""] * n,
+            "automatic_glossing": [""] * n,
         })
 
     def _write_file(self, path: str, df: pd.DataFrame) -> None:
