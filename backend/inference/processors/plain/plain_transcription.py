@@ -17,6 +17,7 @@ import pandas as pd
 from inference.processors.abstract_processor import AbstractProcessor
 from inference.strategies.strategy_factory import StrategyFactory
 from tqdm import tqdm
+from utils.functions import format_excel_output
 
 
 class PlainTranscriptionProcessor(AbstractProcessor):
@@ -71,10 +72,11 @@ class PlainTranscriptionProcessor(AbstractProcessor):
     def _write_file(self, path: str, df: pd.DataFrame) -> None:
         """Write *df* to *path* (the pre-computed ``transcribed.xlsx`` location)."""
         df.to_excel(path, index=False)
+        format_excel_output(path, "to_gloss")
         self.logger.info(f"Wrote output to {path}")
 
     def _process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Transcribe each audio file and fill the transcription column."""
+        """Transcribe each audio file and fill the automatic transcription column."""
         total = len(df)
         progress_cb = self._progress_callback
 
@@ -82,7 +84,8 @@ class PlainTranscriptionProcessor(AbstractProcessor):
             path = os.path.join(self._current_dir, row["file_name"])
             try:
                 text = self.strategy.run_strategy(path)
-                df.at[i, "transcription"] = text
+                df.at[i, "automatic_transcription"] = text
+                df.at[i, "to_gloss"] = text
             except Exception as e:
                 self.logger.exception(f"Error transcribing '{row['file_name']}': {e}")
                 self._emit(f"Error transcribing '{row['file_name']}'", level="warning")
