@@ -93,7 +93,7 @@ Never commit `.env` files to GitHub.
 
 ```bash
 git clone https://github.com/LeibnizDream/tgt
-cd TGT
+cd tgt
 ```
 
 ---
@@ -101,7 +101,6 @@ cd TGT
 ## 2. Backend Setup
 
 ```bash
-cd backend
 uv sync
 ```
 
@@ -124,7 +123,7 @@ source .venv/bin/activate
 ## 3. Frontend Setup
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run build
 ```
@@ -365,7 +364,7 @@ https://ollama.com
 Pull a model:
 
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen3.5:9b
 ```
 
 Once Ollama is running locally, the application can use local inference without API keys.
