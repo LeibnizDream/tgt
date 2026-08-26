@@ -4,19 +4,19 @@
 # See LICENSE for details.
 
 import os
+import ssl
+import sys
 import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
-import sys
-import os
-import ssl
-import certifi
-from huggingface_hub import login
 
+import certifi
 from dotenv import load_dotenv
+from huggingface_hub import login
 from inference.processing_options import ProcessingOptions
 from inference.processors.processor_factory import ProcessorFactory
 from routers.helpers.job_manager import JobPublisher
+from routers.helpers.processing_audit import complete_processing_audit, start_processing_audit
 from utils.functions import find_language, set_global_variables
 
 # torchcodec requires FFmpeg shared DLLs which are not available;
@@ -70,7 +70,12 @@ class AbstractInferenceWorker(ABC):
                              Use self.current_folder to know which folder just finished.
     """
 
-    def __init__(self, base_dir: str, options: ProcessingOptions, publisher: JobPublisher | None = None):
+    def __init__(
+        self,
+        base_dir: str,
+        options: ProcessingOptions,
+        publisher: JobPublisher | None = None,
+    ):
         self.base_dir = base_dir
         self.current_folder = self.base_dir
         self.options = options
@@ -139,7 +144,17 @@ class AbstractInferenceWorker(ABC):
                     break
 
                 self.publisher.inform(f"Processing folder: {os.path.basename(os.path.normpath(folder))}")
+                audit_path = start_processing_audit(
+                    folder,
+                    self.options,
+                    getattr(self.processor, "strategy", None),
+                )
+                self.publisher.inform(f"Created processing audit: {audit_path.name}")
                 self.processor.process(folder, put=self.inform, progress=self._progress)
+                if self._is_cancelled:
+                    break
+                complete_processing_audit(audit_path)
+                self.publisher.inform(f"Completed processing audit: {audit_path.name}")
                 self._after_process()
 
         except Exception as e:

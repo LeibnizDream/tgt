@@ -1,0 +1,64 @@
+{
+  "strategies": {
+    "WhisperStrategy": {
+      "name": "Whisper",
+      "version": "large-v3",
+      "provider": "OpenAI"
+    },
+    "WhisperxStrategy": {
+      "name": "WhisperX",
+      "version": "large-v2",
+      "provider": "m-bain / OpenAI"
+    },
+    "ThaiTranscriptionStrategy": {
+      "name": "biodatlab/whisper-th-large-v3-combined",
+      "version": "large-v3",
+      "provider": "biodatlab"
+    },
+    "VietnameseTranscriptionStrategy": {
+      "name": "vinai/PhoWhisper-large",
+      "version": "large",
+      "provider": "VinAI"
+    },
+    "BengaliTranscriptionStrategy": {
+      "name": "mozilla-ai/whisper-large-v3-bn",
+      "version": "large-v3",
+      "provider": "Mozilla AI"
+    },
+    "DeeplStrategy": {
+      "name": "DeepL Translation API",
+      "version": "v2",
+      "provider": "DeepL SE"
+    },
+    "MarianStrategy": {
+      "name": "MarianMT",
+      "version": "opus-mt",
+      "provider": "Helsinki-NLP"
+    },
+    "M2M100Strategy": {
+      "name": "M2M100",
+      "version": "1.2B",
+      "provider": "Meta"
+    },
+    "SpaCyGlossingStrategy": {
+      "name": "spaCy",
+      "version": "3.8.11",
+      "provider": "ExplosionAI"
+    },
+    "StanzaGlossingStrategy": {
+      "name": "Stanza",
+      "version": "1.6.1",
+      "provider": "Stanford NLP Group"
+    },
+    "LLMStrategy:gemini": {
+      "name": "Gemini",
+      "version": "2.5 Flash-Lite",
+      "provider": "Google"
+    },
+    "LLMStrategy:qwen": {
+      "name": "Qwen",
+      "version": "Qwen3.5 9B",
+      "provider": "Alibaba Cloud (via Ollama)"
+    }
+  }
+}
