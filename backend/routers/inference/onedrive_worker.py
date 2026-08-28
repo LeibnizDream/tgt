@@ -19,6 +19,7 @@ from routers.helpers.onedrive import (
     list_session_children,
     upload_file_replace_in_onedrive,
 )
+from routers.helpers.processing_audit import AUDIT_FILENAME
 
 
 class OneDriveWorker(AbstractInferenceWorker):
@@ -112,6 +113,7 @@ class OneDriveWorker(AbstractInferenceWorker):
             candidates = [
                 "trials_and_sessions_annotated.xlsx",
                 f"{self.processor.__class__.__name__}.log",
+                AUDIT_FILENAME,
             ]
             return [
                 os.path.join(self.current_folder, f)
@@ -119,11 +121,15 @@ class OneDriveWorker(AbstractInferenceWorker):
                 if os.path.exists(os.path.join(self.current_folder, f))
             ]
 
-        # plain format: walk and collect all transcribed.xlsx and log files
+        # plain format: walk and collect all generated files, including the audit.
         results = []
         for root, _, files in os.walk(self.current_folder):
             for f in files:
-                if f in ("transcribed.xlsx", f"{self.processor.__class__.__name__}.log"):
+                if f in (
+                    "transcribed.xlsx",
+                    f"{self.processor.__class__.__name__}.log",
+                    AUDIT_FILENAME,
+                ):
                     results.append(os.path.join(root, f))
         return results
 

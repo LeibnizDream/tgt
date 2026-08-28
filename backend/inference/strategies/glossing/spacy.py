@@ -47,12 +47,14 @@ class SpaCyGlossingStrategy(GlossingStrategy):
             if not model_dir.exists():
                 raise ValueError(f"Custom glossing model not found at {model_dir}")
             self.nlp = spacy.load(model_dir)
+            self.audit_pipeline = self.model
         elif self.language_code in self.DEFAULT_SPACY:
             pkg = self.DEFAULT_SPACY[self.language_code]
             if not is_package(pkg):
                 print(f"{pkg} not found — downloading…")
                 subprocess.check_call([sys.executable, "-m", "spacy", "download", pkg])
             self.nlp = spacy.load(pkg)
+            self.audit_pipeline = pkg
 
         else:
             raise ValueError("No glossing model specified or available for this language.")
