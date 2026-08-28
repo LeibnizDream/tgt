@@ -447,7 +447,21 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
 
               <div className="space-y-2">
                 <Label htmlFor="action">Action</Label>
-                <Select value={action || "transcribe"} onValueChange={setAction}>
+                <Select
+                  value={action || "transcribe"}
+                  onValueChange={(nextAction) => {
+                    setAction(nextAction);
+
+                    if (nextAction === "transliterate") {
+                      setInstruction("corrected");
+                    } else if (
+                      nextAction === "translate" ||
+                      nextAction === "gloss"
+                    ) {
+                      setInstruction("automatic");
+                    }
+                  }}            
+                >
                   <SelectTrigger id="action">
                     <SelectValue placeholder="Select action" />
                   </SelectTrigger>
@@ -469,7 +483,9 @@ const [availableTransliterationModels, setAvailableTransliterationModels] = useS
                       <SelectValue placeholder="Select instruction" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="automatic">Automatic Transcription</SelectItem>
+                      {action !== "transliterate" && (
+                        <SelectItem value="automatic">Automatic Transcription</SelectItem>
+                      )}
                       <SelectItem value="corrected">Corrected Transcription</SelectItem>
                       <SelectItem value="sentences">Chosen Sentences</SelectItem>
                     </SelectContent>
