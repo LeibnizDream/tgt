@@ -34,6 +34,7 @@ class StanzaGlossingStrategy(GlossingStrategy):
             use_gpu=True,
             download_method=stanza.DownloadMethod.REUSE_RESOURCES,
         )
+        self.audit_pipeline = f"{self.language_code} (tokenize, pos, lemma)"
         torch.load = _orig
 
     def parse_stanza_feats(self, feats_str):
