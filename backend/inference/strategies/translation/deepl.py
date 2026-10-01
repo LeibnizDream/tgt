@@ -18,8 +18,6 @@ class DeeplStrategy(AbstractStrategy):
 
         self._deepl_client = deepl.DeepLClient(api_key)
         code = self.language_code.upper()
-        if code.lower() == "pt":
-            code = "PT-BR"
         self._deepl_source_lang = code
 
     def run_strategy(self, text: str) -> str | None:
