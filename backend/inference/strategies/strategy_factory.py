@@ -41,6 +41,9 @@ class StrategyFactory:
         if language == 'bn':
             from inference.strategies.transcription.bengali import BengaliTranscriptionStrategy
             return BengaliTranscriptionStrategy(language)
+        if language == 'ml':
+            from inference.strategies.transcription.malayalam import MalayalamTranscriptionStrategy
+            return MalayalamTranscriptionStrategy(language)
         if language == 'et':
             from inference.strategies.transcription.whisper import WhisperStrategy
             return WhisperStrategy(language)
